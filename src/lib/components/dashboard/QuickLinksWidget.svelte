@@ -112,7 +112,6 @@
     {links}
     {folders}
     size="compact"
-    onOpenLink={(link) => window.open(link.url, '_blank', 'noopener,noreferrer')}
     onOpenFolder={(folder) => {
         folderPopoverId = folder.id;
         draftFolderName = folder.name || '';
@@ -173,10 +172,11 @@
                     <div
                         style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: var(--surface-2); border-radius: 8px;"
                     >
-                        <button
-                            type="button"
-                            style="display: flex; align-items: center; gap: 12px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1;"
-                            onclick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
+                        <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style="display: flex; align-items: center; gap: 12px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1; text-decoration: none; color: inherit;"
                         >
                             <div
                                 style="width: 32px; height: 32px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; border-radius: 8px;"
@@ -187,7 +187,7 @@
                                 <span style="font-weight: 500; font-size: 14px;">{link.title || 'Link'}</span>
                                 <span style="font-size: 12px; color: var(--ink-3);">{new URL(link.url).hostname}</span>
                             </div>
-                        </button>
+                        </a>
                         <div style="display: flex; gap: 4px;">
                             <Button variant="ghost" size="icon" onclick={() => openEdit(link)}>
                                 <Edit size={14} />
