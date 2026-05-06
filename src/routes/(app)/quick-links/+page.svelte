@@ -48,12 +48,15 @@
         const response = await fetch('/dashboard/api/quick-link-folders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: '' })
+            body: JSON.stringify({ name: 'Untitled folder' })
         });
         if (!response.ok) throw new Error('Failed to create folder');
         const folder = await response.json();
         if (!folder?.id) throw new Error('Failed to create folder');
         await Promise.all([moveToFolder(activeId, folder.id), moveToFolder(targetId, folder.id)]);
+        // Invalidate to refresh the UI
+        const { invalidateAll } = await import('$app/navigation');
+        await invalidateAll();
     }
 </script>
 
@@ -70,7 +73,6 @@
     onEditFolder={openEditFolder}
     onDeleteLink={(link) => openDelete('link', link.id, link.title || 'Link')}
     onDeleteFolder={(folder) => openDelete('folder', folder.id, folder.name || 'Untitled folder')}
-    onMoveToFolder={moveToFolder}
     onCreateFolderFromLinks={createFolderFromLinks}
     onReorderLinks={reorderLinks}
     onReorderFolders={reorderFolders}
