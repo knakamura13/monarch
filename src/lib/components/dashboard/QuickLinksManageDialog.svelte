@@ -227,7 +227,10 @@
             use:enhance={() => {
                 return async ({ result, update }) => {
                     await update();
-                    if (result.type === 'redirect') closeDeleteModal();
+                    // Close on both redirect (link delete returns redirect) and
+                    // success (folder delete returns { success: true }) so the
+                    // dialog never sits open with stale state after delete.
+                    if (result.type === 'redirect' || result.type === 'success') closeDeleteModal();
                 };
             }}
         >

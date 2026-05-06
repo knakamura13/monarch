@@ -7,7 +7,7 @@
     import QuickLinksGrid from '$lib/components/quick-links/QuickLinksGrid.svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import Input from '$lib/components/ui/Input.svelte';
-    import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
+    import { showErrorToast } from '$lib/stores/toast';
 
     type ActionForm = { error?: string; errorId?: string | null } | undefined;
     let { links, folders = [], form }: { links: QuickLink[]; folders: QuickLinkFolder[]; form?: ActionForm } = $props();
@@ -86,25 +86,12 @@
         await invalidateAll();
     }
 
-    async function handleDeleteFolder(folderId: string, folderName: string) {
-        const confirmed = confirm(`Are you sure you want to delete "${folderName}"? This will also delete all links inside.`);
-        if (!confirmed) return;
-
+    function handleDeleteFolder(folderId: string, folderName: string) {
+        // Close the folder popover and route through the app's standard
+        // QuickLinksManageDialog confirmation, matching every other delete
+        // surface in the app instead of the browser's native confirm().
         void closeFolderDialog();
-        try {
-            const formData = new FormData();
-            formData.set('id', folderId);
-            const response = await fetch('?/deleteFolder', { method: 'POST', body: formData });
-            if (response.ok) {
-                showSuccessToast('Folder deleted');
-                const { invalidateAll } = await import('$app/navigation');
-                await invalidateAll();
-            } else {
-                showErrorToast('Failed to delete folder');
-            }
-        } catch (e) {
-            showErrorToast('Failed to delete folder');
-        }
+        qlDialog?.openDelete('folder', folderId, folderName);
     }
 
     async function updateFolderName(folderId: string, name: string) {
