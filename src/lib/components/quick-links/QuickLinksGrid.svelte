@@ -242,11 +242,8 @@
             const targetIdx = items.findIndex((i) => i.id === targetId);
             if (activeIdx !== -1 && targetIdx !== -1 && activeIdx !== targetIdx) {
                 items.splice(targetIdx, 0, items.splice(activeIdx, 1)[0]);
-                // Update orders
-                items.forEach((item, index) => {
-                    item.order = index;
-                });
-                localLinks = [...localLinks.filter((l) => l.folderId), ...items];
+                const reordered = items.map((item, index) => ({ ...item, order: index }));
+                localLinks = [...localLinks.filter((l) => l.folderId), ...reordered];
             }
         } else {
             const items = [...visibleFolders];
@@ -254,10 +251,7 @@
             const targetIdx = items.findIndex((i) => i.id === targetId);
             if (activeIdx !== -1 && targetIdx !== -1 && activeIdx !== targetIdx) {
                 items.splice(targetIdx, 0, items.splice(activeIdx, 1)[0]);
-                items.forEach((item, index) => {
-                    item.order = index;
-                });
-                localFolders = items;
+                localFolders = items.map((item, index) => ({ ...item, order: index }));
             }
         }
     }
