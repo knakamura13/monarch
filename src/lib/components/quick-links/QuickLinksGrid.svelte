@@ -150,6 +150,10 @@
         const rect = target.getBoundingClientRect();
         const containerRect = gridContainer!.getBoundingClientRect();
 
+        // Cleared here (not on a timer) so the next click is gated solely by
+        // whether this pointer cycle crossed the drag threshold.
+        wasDragging = false;
+
         dragState = {
             id: item.id,
             kind,
@@ -270,9 +274,6 @@
 
         if (isDragging) {
             wasDragging = true;
-            setTimeout(() => {
-                wasDragging = false;
-            }, 50);
         }
 
         window.removeEventListener('pointermove', onPointerMove);
