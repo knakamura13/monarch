@@ -3,7 +3,7 @@ import type { QuickLinkCreate, QuickLinkUpdate } from '$lib/schemas/quickLink';
 import { randomUUID } from 'node:crypto';
 import { ddbGet, ddbPut, ddbQuery, ddbUpdate } from '$lib/server/dynamo/ops';
 import { entitySk, wsPk } from '$lib/server/dynamo/keys';
-import type { QuickLinkItem } from '$lib/server/dynamo/types';
+import type { QuickLinkFolderItem, QuickLinkItem } from '$lib/server/dynamo/types';
 import { fetchFaviconUrl } from '$lib/server/utils/favicon';
 import { extractHostname } from '$lib/server/utils/url';
 
@@ -107,19 +107,36 @@ export async function updateQuickLink(workspaceId: string, actorId: string, id: 
 }
 
 export async function softDeleteQuickLink(workspaceId: string, actorId: string, id: string) {
-    const existing = await ddbGet<QuickLinkItem>({
-        PK: wsPk(workspaceId),
-        SK: entitySk('QuickLink', id)
-    });
-    if (!existing) throw new Error('Quick link not found');
-    if (existing.deletedAt) throw new Error('Quick link not found');
+    // Filter folder vs link: route folder IDs to the folder delete service so
+    // we never silently misreport them as missing links. Link deletion must go
+    // through softDeleteQuickLink; folder deletion has its own un-grouping
+    // semantics that this function deliberately doesn't replicate.
+    const [existingLink, asFolder] = await Promise.all([
+        ddbGet<QuickLinkItem>({
+            PK: wsPk(workspaceId),
+            SK: entitySk('QuickLink', id)
+        }),
+        ddbGet<QuickLinkFolderItem>({
+            PK: wsPk(workspaceId),
+            SK: entitySk('QuickLinkFolder', id)
+        })
+    ]);
+    if (asFolder && !asFolder.deletedAt) {
+        throw new Error('Cannot delete folder via softDeleteQuickLink; use deleteQuickLinkFolder');
+    }
+    if (!existingLink) throw new Error('Quick link not found');
+    if (existingLink.deletedAt) throw new Error('Quick link not found');
+
+    const now = new Date().toISOString();
+    // Also clear folderId so soft-deleted links never reference a folder that
+    // might itself be deleted later — prevents dangling references.
     await ddbUpdate(
         { PK: wsPk(workspaceId), SK: entitySk('QuickLink', id) },
-        'SET #deletedAt = :d, #updatedAt = :u',
-        { ':d': new Date().toISOString(), ':u': new Date().toISOString() },
-        { '#deletedAt': 'deletedAt', '#updatedAt': 'updatedAt' }
+        'SET #deletedAt = :d, #updatedAt = :u, #folderId = :f',
+        { ':d': now, ':u': now, ':f': null },
+        { '#deletedAt': 'deletedAt', '#updatedAt': 'updatedAt', '#folderId': 'folderId' }
     );
-    const label = existing.title ?? extractHostname(existing.url);
+    const label = existingLink.title ?? extractHostname(existingLink.url);
     await logActivity({
         workspaceId,
         userId: actorId,
