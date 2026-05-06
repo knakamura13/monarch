@@ -6,6 +6,8 @@
     import QuickLinksManageDialog from '$lib/components/dashboard/QuickLinksManageDialog.svelte';
     import QuickLinksGrid from '$lib/components/quick-links/QuickLinksGrid.svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
+    import Input from '$lib/components/ui/Input.svelte';
+    import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
 
     type ActionForm = { error?: string; errorId?: string | null } | undefined;
     let { links, folders = [], form }: { links: QuickLink[]; folders: QuickLinkFolder[]; form?: ActionForm } = $props();
@@ -24,11 +26,6 @@
     }
     function closeFolderDialog() {
         folderPopoverId = null;
-    }
-    function toggleFolderPopover(folderId: string, e: Event) {
-        e.preventDefault();
-        e.stopPropagation();
-        folderPopoverId = folderPopoverId === folderId ? null : folderId;
     }
 
     async function moveToFolder(linkId: string, folderId: string | null) {
@@ -66,6 +63,32 @@
         const { invalidateAll } = await import('$app/navigation');
         await invalidateAll();
     }
+
+    async function handleDeleteFolder(folderId: string) {
+        closeFolderDialog();
+        try {
+            const formData = new FormData();
+            formData.set('id', folderId);
+            const response = await fetch('?/deleteFolder', { method: 'POST', body: formData });
+            if (response.ok) {
+                showSuccessToast('Folder deleted');
+                const { invalidateAll } = await import('$app/navigation');
+                await invalidateAll();
+            } else {
+                showErrorToast('Failed to delete folder');
+            }
+        } catch (e) {
+            showErrorToast('Failed to delete folder');
+        }
+    }
+
+    async function updateFolderName(folderId: string, name: string) {
+        const formData = new FormData();
+        formData.set('id', folderId);
+        formData.set('name', name);
+        const response = await fetch('?/updateFolder', { method: 'POST', body: formData });
+        if (!response.ok) showErrorToast('Failed to update folder name');
+    }
 </script>
 
 <QuickLinksGrid
@@ -90,43 +113,56 @@
 {#if folderPopoverId}
     {@const folder = folders.find((f) => f.id === folderPopoverId)}
     {@const folderLinks = links.filter((l) => l.folderId === folderPopoverId).sort((a, b) => a.order - b.order)}
+
+    {#snippet folderHeader()}
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+            <Folder style="width: 16px; height: 16px; color: var(--lilac-d); flex-shrink: 0;" />
+            <Input
+                value={folder?.name || ''}
+                class="modal-title-input display"
+                style="height: 32px; font-size: 18px; border: none; background: transparent; padding: 0;"
+                onchange={(e) => folder && updateFolderName(folder.id, e.currentTarget.value)}
+                placeholder="Folder name"
+            />
+        </div>
+    {/snippet}
+
+    {#snippet folderHeaderActions()}
+        <ThreeDotsMenu
+            menuId="folder-options"
+            items={[
+                {
+                    label: 'Delete',
+                    icon: Trash2,
+                    variant: 'destructive',
+                    action: () => folder && handleDeleteFolder(folder.id)
+                }
+            ]}
+        />
+    {/snippet}
+
     <Dialog
         open={!!folderPopoverId}
         onClose={closeFolderDialog}
         contentWidth="md"
+        header={folderHeader}
+        headerActions={folderHeaderActions}
         ariaLabel={folder?.name ? `Folder ${folder.name}` : 'Folder'}
-        titleLevel="h3"
     >
         <div style="display: flex; gap: 12px; flex-direction: column;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <Folder style="width: 16px; height: 16px; color: var(--lilac-d);" />
-                    <h3 class="display" style="font-size: 20px; margin: 0;">{folder?.name || 'Untitled Folder'}</h3>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <Button variant="ghost" size="icon" onclick={() => folder && openEditFolder(folder)}>
-                        <Edit size={16} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="text-destructive"
-                        onclick={() => folder && qlDialog?.openDelete('folder', folder.id, folder.name || 'Untitled folder')}
-                    >
-                        <Trash2 size={16} />
-                    </Button>
-                </div>
-            </div>
-
             <div class="folder-links-grid" style="display: grid; grid-template-columns: 1fr; gap: 8px;">
                 {#each folderLinks as link (link.id)}
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: var(--surface-2); border-radius: 8px;">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: var(--surface-2); border-radius: 8px;"
+                    >
                         <button
                             type="button"
                             style="display: flex; align-items: center; gap: 12px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1;"
                             onclick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
                         >
-                            <div style="width: 32px; height: 32px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                            <div
+                                style="width: 32px; height: 32px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; border-radius: 8px;"
+                            >
                                 <Link2 size={16} class="text-muted-foreground" />
                             </div>
                             <div style="display: flex; flex-direction: column;">
@@ -138,7 +174,12 @@
                             <Button variant="ghost" size="icon" onclick={() => openEdit(link)}>
                                 <Edit size={14} />
                             </Button>
-                            <Button variant="ghost" size="icon" class="text-destructive" onclick={() => qlDialog?.openDelete('link', link.id, link.title || 'Link')}>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="text-destructive"
+                                onclick={() => qlDialog?.openDelete('link', link.id, link.title || 'Link')}
+                            >
                                 <Trash2 size={14} />
                             </Button>
                         </div>
@@ -147,7 +188,7 @@
             </div>
 
             <Button variant="outline" style="width: 100%;" onclick={() => folder && openAdd(folder)}>
-                <Plus size={16} style="margin-right: 8px;" /> Add link to folder
+                <Plus size={16} style="margin-right: 8px;" /> Add link
             </Button>
         </div>
     </Dialog>

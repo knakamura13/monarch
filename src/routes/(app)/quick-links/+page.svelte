@@ -6,6 +6,9 @@
     import QuickLinksGrid from '$lib/components/quick-links/QuickLinksGrid.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import Dialog from '$lib/components/ui/Dialog.svelte';
+    import Input from '$lib/components/ui/Input.svelte';
+    import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
+    import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
     import { getPageNumber } from '$lib/constants/navigation';
     import type { PageData } from './$types';
 
@@ -66,6 +69,32 @@
         const { invalidateAll } = await import('$app/navigation');
         await invalidateAll();
     }
+
+    async function handleDeleteFolder(folderId: string) {
+        folderPopoverId = null;
+        try {
+            const formData = new FormData();
+            formData.set('id', folderId);
+            const response = await fetch('?/deleteFolder', { method: 'POST', body: formData });
+            if (response.ok) {
+                showSuccessToast('Folder deleted');
+                const { invalidateAll } = await import('$app/navigation');
+                await invalidateAll();
+            } else {
+                showErrorToast('Failed to delete folder');
+            }
+        } catch (e) {
+            showErrorToast('Failed to delete folder');
+        }
+    }
+
+    async function updateFolderName(folderId: string, name: string) {
+        const formData = new FormData();
+        formData.set('id', folderId);
+        formData.set('name', name);
+        const response = await fetch('?/updateFolder', { method: 'POST', body: formData });
+        if (!response.ok) showErrorToast('Failed to update folder name');
+    }
 </script>
 
 <PageHeader title="Quick links" sub="Access your most-used resources and documents." number={getPageNumber('/quick-links')} />
@@ -92,28 +121,43 @@
 {#if folderPopoverId}
     {@const folder = data.quickLinkFolders.find((f) => f.id === folderPopoverId)}
     {@const folderLinks = data.quickLinks.filter((l) => l.folderId === folderPopoverId).sort((a, b) => a.order - b.order)}
-    <Dialog open={!!folderPopoverId} onClose={() => (folderPopoverId = null)} contentWidth="md" titleLevel="h3">
-        <div style="display: flex; gap: 12px; flex-direction: column;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <Folder style="width: 16px; height: 16px; color: var(--lilac-d);" />
-                    <h3 class="display" style="font-size: 20px; margin: 0;">{folder?.name || 'Untitled Folder'}</h3>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <Button variant="ghost" size="icon" onclick={() => folder && openEditFolder(folder)}>
-                        <Edit size={16} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="text-destructive"
-                        onclick={() => folder && openDelete('folder', folder.id, folder.name || 'Untitled folder')}
-                    >
-                        <Trash2 size={16} />
-                    </Button>
-                </div>
-            </div>
 
+    {#snippet folderHeader()}
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+            <Folder style="width: 16px; height: 16px; color: var(--lilac-d); flex-shrink: 0;" />
+            <Input
+                value={folder?.name || ''}
+                class="modal-title-input display"
+                style="height: 32px; font-size: 18px; border: none; background: transparent; padding: 0;"
+                onchange={(e) => folder && updateFolderName(folder.id, e.currentTarget.value)}
+                placeholder="Folder name"
+            />
+        </div>
+    {/snippet}
+
+    {#snippet folderHeaderActions()}
+        <ThreeDotsMenu
+            menuId="folder-options"
+            items={[
+                {
+                    label: 'Delete',
+                    icon: Trash2,
+                    variant: 'destructive',
+                    action: () => folder && handleDeleteFolder(folder.id)
+                }
+            ]}
+        />
+    {/snippet}
+
+    <Dialog
+        open={!!folderPopoverId}
+        onClose={() => (folderPopoverId = null)}
+        contentWidth="md"
+        header={folderHeader}
+        headerActions={folderHeaderActions}
+        ariaLabel={folder?.name ? `Folder ${folder.name}` : 'Folder'}
+    >
+        <div style="display: flex; gap: 12px; flex-direction: column;">
             <div class="folder-links-grid" style="display: grid; grid-template-columns: 1fr; gap: 8px;">
                 {#each folderLinks as link (link.id)}
                     <div
@@ -152,7 +196,7 @@
             </div>
 
             <Button variant="outline" style="width: 100%;" onclick={() => folder && openAdd(folder)}>
-                <Plus size={16} style="margin-right: 8px;" /> Add link to folder
+                <Plus size={16} style="margin-right: 8px;" /> Add link
             </Button>
         </div>
     </Dialog>
