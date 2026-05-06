@@ -1,6 +1,6 @@
 import { logActivity } from '$lib/server/activity';
 import { randomUUID } from 'node:crypto';
-import { ddbGet, ddbPut, ddbQuery, ddbUpdate } from '$lib/server/dynamo/ops';
+import { ddbGet, ddbPut, ddbQuery, ddbTransactWrite, ddbUpdate, type TransactItem } from '$lib/server/dynamo/ops';
 import { entitySk, wsPk } from '$lib/server/dynamo/keys';
 import type { QuickLinkFolderItem, QuickLinkItem } from '$lib/server/dynamo/types';
 import { extractHostname } from '$lib/server/utils/url';
@@ -134,6 +134,77 @@ export async function deleteQuickLinkFolder(workspaceId: string, actorId: string
         entityId: id,
         summary: `Quick link folder "${label}" deleted`
     });
+}
+
+/**
+ * Atomically creates a new folder and assigns the given links to it in a single
+ * DynamoDB transaction. Either every write succeeds or none do, so we never
+ * leave behind an empty orphan folder if a link reassignment fails.
+ */
+export async function createFolderWithLinks(workspaceId: string, actorId: string, linkIds: string[], name?: string | null) {
+    if (linkIds.length === 0) throw new Error('linkIds must contain at least one link');
+
+    const links = await Promise.all(
+        linkIds.map((id) =>
+            ddbGet<QuickLinkItem>({
+                PK: wsPk(workspaceId),
+                SK: entitySk('QuickLink', id)
+            })
+        )
+    );
+    for (const [i, link] of links.entries()) {
+        if (!link || link.deletedAt) {
+            throw new Error(`Quick link not found: ${linkIds[i]}`);
+        }
+    }
+
+    const existingFolders = await listQuickLinkFolders(workspaceId);
+    const order = (existingFolders.at(-1)?.order ?? -1) + 1;
+    const now = new Date().toISOString();
+    const folder = {
+        id: randomUUID(),
+        workspaceId,
+        name: name ?? null,
+        order,
+        deletedAt: null as string | null,
+        createdAt: now,
+        updatedAt: now
+    };
+
+    const items: TransactItem[] = [
+        {
+            Put: {
+                Item: {
+                    PK: wsPk(workspaceId),
+                    SK: entitySk('QuickLinkFolder', folder.id),
+                    ...folder
+                }
+            }
+        },
+        ...linkIds.map<TransactItem>((linkId) => ({
+            Update: {
+                Key: { PK: wsPk(workspaceId), SK: entitySk('QuickLink', linkId) },
+                UpdateExpression: 'SET #folderId = :f, #updatedAt = :u',
+                ExpressionAttributeValues: { ':f': folder.id, ':u': now },
+                ExpressionAttributeNames: { '#folderId': 'folderId', '#updatedAt': 'updatedAt' },
+                ConditionExpression: 'attribute_exists(PK) AND attribute_not_exists(deletedAt)'
+            }
+        }))
+    ];
+
+    await ddbTransactWrite(items);
+
+    const label = folder.name ?? 'Folder';
+    await logActivity({
+        workspaceId,
+        userId: actorId,
+        action: 'QUICK_LINK_FOLDER_CREATED',
+        entityType: 'QuickLinkFolder',
+        entityId: folder.id,
+        summary: `Quick link folder "${label}" created from ${linkIds.length} link${linkIds.length === 1 ? '' : 's'}`
+    });
+
+    return folder;
 }
 
 export async function moveLinkToFolder(workspaceId: string, actorId: string, linkId: string, folderId: string | null) {

@@ -74,15 +74,14 @@
     }
 
     async function createFolderFromLinks(activeId: string, targetId: string) {
-        const response = await fetch('/dashboard/api/quick-link-folders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: 'Untitled folder' })
-        });
+        // Atomic — server uses a DynamoDB transaction so we never end up with
+        // an empty orphan folder if a link reassignment fails.
+        const formData = new FormData();
+        formData.append('linkIds', activeId);
+        formData.append('linkIds', targetId);
+        formData.set('name', 'Untitled folder');
+        const response = await fetch('?/createFolderFromLinks', { method: 'POST', body: formData });
         if (!response.ok) throw new Error('Failed to create folder');
-        const folder = await response.json();
-        if (!folder?.id) throw new Error('Failed to create folder');
-        await Promise.all([moveToFolder(activeId, folder.id), moveToFolder(targetId, folder.id)]);
         const { invalidateAll } = await import('$app/navigation');
         await invalidateAll();
     }
