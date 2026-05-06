@@ -619,4 +619,15 @@
     .ql-label--folder {
         color: var(--lilac-d);
     }
+
+    .ql-item:hover :global(.widget-item-menu-wrap),
+    .ql-item:focus-within :global(.widget-item-menu-wrap) {
+        opacity: 1;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+        .ql-item :global(.widget-item-menu-wrap) {
+            opacity: 1;
+        }
+    }
 </style>
