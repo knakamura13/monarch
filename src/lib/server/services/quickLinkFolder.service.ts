@@ -234,15 +234,37 @@ export async function moveLinkToFolder(workspaceId: string, actorId: string, lin
     });
 }
 
+// DynamoDB TransactWriteItems caps at 100 items per call. Reorder operations
+// chunk into batches that respect that limit while still landing each batch
+// atomically.
+const TRANSACT_WRITE_LIMIT = 100;
+
+function buildOrderUpdate(
+    workspaceId: string,
+    type: 'QuickLink' | 'QuickLinkFolder',
+    id: string,
+    order: number,
+    now: string
+): TransactItem {
+    return {
+        Update: {
+            Key: { PK: wsPk(workspaceId), SK: entitySk(type, id) },
+            UpdateExpression: 'SET #order = :o, #updatedAt = :u',
+            ExpressionAttributeValues: { ':o': order, ':u': now },
+            ExpressionAttributeNames: { '#order': 'order', '#updatedAt': 'updatedAt' }
+        }
+    };
+}
+
 export async function reorderQuickLinks(workspaceId: string, actorId: string, linkIds: string[]) {
-    for (const [i, linkId] of linkIds.entries()) {
-        if (!linkId) continue;
-        await ddbUpdate(
-            { PK: wsPk(workspaceId), SK: entitySk('QuickLink', linkId) },
-            'SET #order = :o, #updatedAt = :u',
-            { ':o': i, ':u': new Date().toISOString() },
-            { '#order': 'order', '#updatedAt': 'updatedAt' }
-        );
+    const ids = linkIds.filter((id): id is string => Boolean(id));
+    if (ids.length === 0) return;
+
+    const now = new Date().toISOString();
+    const items: TransactItem[] = ids.map((linkId, i) => buildOrderUpdate(workspaceId, 'QuickLink', linkId, i, now));
+
+    for (let i = 0; i < items.length; i += TRANSACT_WRITE_LIMIT) {
+        await ddbTransactWrite(items.slice(i, i + TRANSACT_WRITE_LIMIT));
     }
 
     await logActivity({
@@ -256,14 +278,14 @@ export async function reorderQuickLinks(workspaceId: string, actorId: string, li
 }
 
 export async function reorderQuickLinkFolders(workspaceId: string, actorId: string, folderIds: string[]) {
-    for (const [i, folderId] of folderIds.entries()) {
-        if (!folderId) continue;
-        await ddbUpdate(
-            { PK: wsPk(workspaceId), SK: entitySk('QuickLinkFolder', folderId) },
-            'SET #order = :o, #updatedAt = :u',
-            { ':o': i, ':u': new Date().toISOString() },
-            { '#order': 'order', '#updatedAt': 'updatedAt' }
-        );
+    const ids = folderIds.filter((id): id is string => Boolean(id));
+    if (ids.length === 0) return;
+
+    const now = new Date().toISOString();
+    const items: TransactItem[] = ids.map((folderId, i) => buildOrderUpdate(workspaceId, 'QuickLinkFolder', folderId, i, now));
+
+    for (let i = 0; i < items.length; i += TRANSACT_WRITE_LIMIT) {
+        await ddbTransactWrite(items.slice(i, i + TRANSACT_WRITE_LIMIT));
     }
 
     await logActivity({
