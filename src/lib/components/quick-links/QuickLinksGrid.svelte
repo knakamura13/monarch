@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onDestroy } from 'svelte';
+    import { onDestroy, untrack } from 'svelte';
     import { flip } from 'svelte/animate';
     import { Folder, Link2, Plus, Edit, Trash2 } from 'lucide-svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
@@ -319,42 +319,55 @@
         }
     });
 
+    // Tracks link IDs whose favicon fetch is currently in-flight. Plain (non-reactive)
+    // so changes to it do not re-trigger the $effect below.
+    const _inFlight = new Set<string>();
+
     $effect(() => {
-        const imageElements: HTMLImageElement[] = [];
-        const preloadPromises = links.map((link) => {
-            if (preloadedFavicons.has(link.id) || brokenFavicons.has(link.id)) return Promise.resolve();
+        // Only `links` is a reactive dependency here. preloadedFavicons and
+        // brokenFavicons are read via untrack() so completing a preload does not
+        // cause the effect to re-run and rebuild Image objects for all other links.
+        const toProcess = links.filter(
+            (link) =>
+                !_inFlight.has(link.id) &&
+                !untrack(() => preloadedFavicons.has(link.id) || brokenFavicons.has(link.id))
+        );
+
+        const imageEntries: { img: HTMLImageElement; id: string }[] = [];
+
+        const preloadPromises = toProcess.map((link) => {
+            _inFlight.add(link.id);
             const url = faviconForLink(link);
-            if (!url) return Promise.resolve();
+            if (!url) {
+                _inFlight.delete(link.id);
+                return Promise.resolve();
+            }
             return new Promise<void>((resolve) => {
                 const img = new Image();
-                imageElements.push(img);
+                imageEntries.push({ img, id: link.id });
                 img.onload = () => {
-                    const next = new Set(preloadedFavicons);
-                    next.add(link.id);
-                    preloadedFavicons = next;
+                    _inFlight.delete(link.id);
+                    preloadedFavicons = new Set([...preloadedFavicons, link.id]);
                     resolve();
                 };
                 img.onerror = () => {
                     const fallbackUrl = getFallbackFavicon(link);
                     if (!fallbackUrl) {
-                        const next = new Set(brokenFavicons);
-                        next.add(link.id);
-                        brokenFavicons = next;
+                        _inFlight.delete(link.id);
+                        brokenFavicons = new Set([...brokenFavicons, link.id]);
                         resolve();
                         return;
                     }
                     const fallbackImg = new Image();
-                    imageElements.push(fallbackImg);
+                    imageEntries.push({ img: fallbackImg, id: link.id });
                     fallbackImg.onload = () => {
-                        const next = new Set(preloadedFavicons);
-                        next.add(link.id);
-                        preloadedFavicons = next;
+                        _inFlight.delete(link.id);
+                        preloadedFavicons = new Set([...preloadedFavicons, link.id]);
                         resolve();
                     };
                     fallbackImg.onerror = () => {
-                        const next = new Set(brokenFavicons);
-                        next.add(link.id);
-                        brokenFavicons = next;
+                        _inFlight.delete(link.id);
+                        brokenFavicons = new Set([...brokenFavicons, link.id]);
                         resolve();
                     };
                     fallbackImg.src = fallbackUrl;
@@ -362,13 +375,18 @@
                 img.src = url;
             });
         });
+
         void Promise.all(preloadPromises);
+
         return () => {
-            imageElements.forEach((img) => {
+            for (const { img, id } of imageEntries) {
                 img.src = '';
                 img.onload = null;
                 img.onerror = null;
-            });
+                // Remove from in-flight so the link can be retried if links changes
+                // while this preload was still pending.
+                _inFlight.delete(id);
+            }
         };
     });
 </script>
