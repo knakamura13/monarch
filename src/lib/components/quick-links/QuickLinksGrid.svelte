@@ -70,6 +70,7 @@
     let dragState = $state<DragState | null>(null);
     let wasDragging = $state(false);
     let hoveredMergeId = $state<string | null>(null);
+    let lastReorderTargetId: string | null = null;
 
     const faviconCache = new Map<string, string>();
     const fallbackFaviconCache = new Map<string, string>();
@@ -230,7 +231,12 @@
             hoveredMergeId = bestMergeId;
 
             if (bestTargetId && !bestMergeId) {
-                reorderLocally(dragState.id, bestTargetId, dragState.kind);
+                if (bestTargetId !== lastReorderTargetId) {
+                    lastReorderTargetId = bestTargetId;
+                    reorderLocally(dragState.id, bestTargetId, dragState.kind);
+                }
+            } else {
+                lastReorderTargetId = null;
             }
         }
     }
@@ -302,6 +308,7 @@
 
         dragState = null;
         hoveredMergeId = null;
+        lastReorderTargetId = null;
     }
 
     onDestroy(() => {
