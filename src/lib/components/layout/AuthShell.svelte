@@ -13,7 +13,7 @@
 <main
     class="auth-shell"
     id="main"
-    style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 32px;"
+    style="min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 32px; padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));"
 >
     <div style="width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 32px;">

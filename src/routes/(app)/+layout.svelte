@@ -127,8 +127,8 @@
 <style>
     .app-layout {
         display: flex;
-        height: 100vh;
-        max-height: 100vh;
+        height: 100dvh;
+        max-height: 100dvh;
         width: 100vw;
         max-width: 100vw;
         background: var(--bg);
@@ -140,7 +140,7 @@
         flex-shrink: 0;
         width: 200px;
         height: 100%;
-        max-height: 100vh;
+        max-height: 100dvh;
         min-height: 0;
         overflow-y: auto;
     }
@@ -159,7 +159,7 @@
         min-width: 0;
         min-height: 0;
         height: 100%;
-        max-height: 100vh;
+        max-height: 100dvh;
         overflow: hidden;
     }
     .main-content {
@@ -167,7 +167,7 @@
         min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        padding: 16px 16px 32px;
+        padding: 16px 16px max(32px, env(safe-area-inset-bottom, 0px));
         background: var(--bg);
         display: flex;
         flex-direction: column;
@@ -176,19 +176,19 @@
     /* Responsive main content for shorter screens */
     @media (max-height: 800px) {
         .main-content {
-            padding: 24px 24px 32px;
+            padding: 24px 24px max(32px, env(safe-area-inset-bottom, 0px));
         }
     }
 
     @media (max-height: 700px) {
         .main-content {
-            padding: 20px 20px 24px;
+            padding: 20px 20px max(24px, env(safe-area-inset-bottom, 0px));
         }
     }
 
     @media (max-height: 600px) {
         .main-content {
-            padding: 16px 16px 20px;
+            padding: 16px 16px max(20px, env(safe-area-inset-bottom, 0px));
         }
     }
 
