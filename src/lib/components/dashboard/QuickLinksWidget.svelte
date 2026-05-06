@@ -14,6 +14,7 @@
 
     let qlDialog = $state<QuickLinksManageDialog | null>(null);
     let folderPopoverId = $state<string | null>(null);
+    let draftFolderName = $state('');
 
     function openAdd(folder?: QuickLinkFolder) {
         qlDialog?.openAddLink(folder ?? null);
@@ -24,8 +25,15 @@
     function openEditFolder(folder: QuickLinkFolder) {
         qlDialog?.openEditFolder(folder);
     }
-    function closeFolderDialog() {
+    async function closeFolderDialog() {
+        if (folderPopoverId) {
+            const folder = folders.find((f) => f.id === folderPopoverId);
+            if (folder && draftFolderName.trim() && draftFolderName !== folder.name) {
+                await updateFolderName(folder.id, draftFolderName);
+            }
+        }
         folderPopoverId = null;
+        draftFolderName = '';
     }
 
     async function moveToFolder(linkId: string, folderId: string | null) {
@@ -87,7 +95,12 @@
         formData.set('id', folderId);
         formData.set('name', name);
         const response = await fetch('?/updateFolder', { method: 'POST', body: formData });
-        if (!response.ok) showErrorToast('Failed to update folder name');
+        if (response.ok) {
+            const { invalidateAll } = await import('$app/navigation');
+            await invalidateAll();
+        } else {
+            showErrorToast('Failed to update folder name');
+        }
     }
 </script>
 
@@ -98,6 +111,7 @@
     onOpenLink={(link) => window.open(link.url, '_blank', 'noopener,noreferrer')}
     onOpenFolder={(folder) => {
         folderPopoverId = folder.id;
+        draftFolderName = folder.name || '';
     }}
     onOpenAddLink={() => openAdd()}
     onOpenAddFolder={() => qlDialog?.openAddFolder()}
@@ -118,10 +132,9 @@
         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
             <Folder style="width: 16px; height: 16px; color: var(--lilac-d); flex-shrink: 0;" />
             <Input
-                value={folder?.name || ''}
+                bind:value={draftFolderName}
                 class="modal-title-input display"
                 style="height: 32px; font-size: 18px; border: none; background: transparent; padding: 0;"
-                onchange={(e) => folder && updateFolderName(folder.id, e.currentTarget.value)}
                 placeholder="Folder name"
             />
         </div>

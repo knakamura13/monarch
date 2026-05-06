@@ -15,6 +15,7 @@
     let { data, form }: { data: PageData; form?: { error?: string; errorId?: string | null } } = $props();
     let qlDialog = $state<QuickLinksManageDialog | null>(null);
     let folderPopoverId = $state<string | null>(null);
+    let draftFolderName = $state('');
 
     function openAdd(folder?: QuickLinkFolder) {
         qlDialog?.openAddLink(folder ?? null);
@@ -72,6 +73,7 @@
 
     async function handleDeleteFolder(folderId: string) {
         folderPopoverId = null;
+        draftFolderName = '';
         try {
             const formData = new FormData();
             formData.set('id', folderId);
@@ -93,7 +95,23 @@
         formData.set('id', folderId);
         formData.set('name', name);
         const response = await fetch('?/updateFolder', { method: 'POST', body: formData });
-        if (!response.ok) showErrorToast('Failed to update folder name');
+        if (response.ok) {
+            const { invalidateAll } = await import('$app/navigation');
+            await invalidateAll();
+        } else {
+            showErrorToast('Failed to update folder name');
+        }
+    }
+
+    async function closeFolderDialog() {
+        if (folderPopoverId) {
+            const folder = data.quickLinkFolders.find((f) => f.id === folderPopoverId);
+            if (folder && draftFolderName.trim() && draftFolderName !== folder.name) {
+                await updateFolderName(folder.id, draftFolderName);
+            }
+        }
+        folderPopoverId = null;
+        draftFolderName = '';
     }
 </script>
 
@@ -106,6 +124,7 @@
     onOpenLink={(link) => window.open(link.url, '_blank', 'noopener,noreferrer')}
     onOpenFolder={(folder) => {
         folderPopoverId = folder.id;
+        draftFolderName = folder.name || '';
     }}
     onOpenAddLink={() => openAdd()}
     onOpenAddFolder={() => qlDialog?.openAddFolder()}
@@ -126,10 +145,9 @@
         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
             <Folder style="width: 16px; height: 16px; color: var(--lilac-d); flex-shrink: 0;" />
             <Input
-                value={folder?.name || ''}
+                bind:value={draftFolderName}
                 class="modal-title-input display"
                 style="height: 32px; font-size: 18px; border: none; background: transparent; padding: 0;"
-                onchange={(e) => folder && updateFolderName(folder.id, e.currentTarget.value)}
                 placeholder="Folder name"
             />
         </div>
@@ -151,7 +169,7 @@
 
     <Dialog
         open={!!folderPopoverId}
-        onClose={() => (folderPopoverId = null)}
+        onClose={closeFolderDialog}
         contentWidth="md"
         header={folderHeader}
         headerActions={folderHeaderActions}
