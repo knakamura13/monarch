@@ -1,16 +1,20 @@
 <script lang="ts">
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
+    import { Folder, Plus, Edit, Trash2, Link2 } from 'lucide-svelte';
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import QuickLinksManageDialog from '$lib/components/dashboard/QuickLinksManageDialog.svelte';
     import QuickLinksGrid from '$lib/components/quick-links/QuickLinksGrid.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
+    import Dialog from '$lib/components/ui/Dialog.svelte';
     import { getPageNumber } from '$lib/constants/navigation';
     import type { PageData } from './$types';
 
     let { data, form }: { data: PageData; form?: { error?: string; errorId?: string | null } } = $props();
     let qlDialog = $state<QuickLinksManageDialog | null>(null);
+    let folderPopoverId = $state<string | null>(null);
 
-    function openAdd() {
-        qlDialog?.openAddLink();
+    function openAdd(folder?: QuickLinkFolder) {
+        qlDialog?.openAddLink(folder ?? null);
     }
     function openEditLink(link: QuickLink) {
         qlDialog?.openEditLink(link);
@@ -35,6 +39,8 @@
         for (const linkId of linkIds) formData.append('linkIds', linkId);
         const response = await fetch('?/reorderLinks', { method: 'POST', body: formData });
         if (!response.ok) throw new Error('Failed to reorder links');
+        const { invalidateAll } = await import('$app/navigation');
+        await invalidateAll();
     }
 
     async function reorderFolders(folderIds: string[]) {
@@ -42,6 +48,8 @@
         for (const folderId of folderIds) formData.append('folderIds', folderId);
         const response = await fetch('?/reorderFolders', { method: 'POST', body: formData });
         if (!response.ok) throw new Error('Failed to reorder folders');
+        const { invalidateAll } = await import('$app/navigation');
+        await invalidateAll();
     }
 
     async function createFolderFromLinks(activeId: string, targetId: string) {
@@ -67,7 +75,10 @@
     folders={data.quickLinkFolders}
     size="large"
     onOpenLink={(link) => window.open(link.url, '_blank', 'noopener,noreferrer')}
-    onOpenAddLink={openAdd}
+    onOpenFolder={(folder) => {
+        folderPopoverId = folder.id;
+    }}
+    onOpenAddLink={() => openAdd()}
     onOpenAddFolder={() => qlDialog?.openAddFolder()}
     onEditLink={openEditLink}
     onEditFolder={openEditFolder}
@@ -77,5 +88,74 @@
     onReorderLinks={reorderLinks}
     onReorderFolders={reorderFolders}
 />
+
+{#if folderPopoverId}
+    {@const folder = data.quickLinkFolders.find((f) => f.id === folderPopoverId)}
+    {@const folderLinks = data.quickLinks.filter((l) => l.folderId === folderPopoverId).sort((a, b) => a.order - b.order)}
+    <Dialog open={!!folderPopoverId} onClose={() => (folderPopoverId = null)} contentWidth="md" titleLevel="h3">
+        <div style="display: flex; gap: 12px; flex-direction: column;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <Folder style="width: 16px; height: 16px; color: var(--lilac-d);" />
+                    <h3 class="display" style="font-size: 20px; margin: 0;">{folder?.name || 'Untitled Folder'}</h3>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <Button variant="ghost" size="icon" onclick={() => folder && openEditFolder(folder)}>
+                        <Edit size={16} />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        class="text-destructive"
+                        onclick={() => folder && openDelete('folder', folder.id, folder.name || 'Untitled folder')}
+                    >
+                        <Trash2 size={16} />
+                    </Button>
+                </div>
+            </div>
+
+            <div class="folder-links-grid" style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+                {#each folderLinks as link (link.id)}
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-2); border-radius: 12px;"
+                    >
+                        <button
+                            type="button"
+                            style="display: flex; align-items: center; gap: 12px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1;"
+                            onclick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
+                        >
+                            <div
+                                style="width: 40px; height: 40px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; border-radius: 10px;"
+                            >
+                                <Link2 size={20} class="text-muted-foreground" />
+                            </div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-weight: 500; font-size: 15px;">{link.title || 'Link'}</span>
+                                <span style="font-size: 13px; color: var(--ink-3);">{new URL(link.url).hostname}</span>
+                            </div>
+                        </button>
+                        <div style="display: flex; gap: 4px;">
+                            <Button variant="ghost" size="icon" onclick={() => openEditLink(link)}>
+                                <Edit size={16} />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="text-destructive"
+                                onclick={() => openDelete('link', link.id, link.title || 'Link')}
+                            >
+                                <Trash2 size={16} />
+                            </Button>
+                        </div>
+                    </div>
+                {/each}
+            </div>
+
+            <Button variant="outline" style="width: 100%;" onclick={() => folder && openAdd(folder)}>
+                <Plus size={16} style="margin-right: 8px;" /> Add link to folder
+            </Button>
+        </div>
+    </Dialog>
+{/if}
 
 <QuickLinksManageDialog bind:this={qlDialog} links={data.quickLinks} {form} />
