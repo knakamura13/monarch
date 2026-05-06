@@ -185,9 +185,12 @@ export async function createFolderWithLinks(workspaceId: string, actorId: string
             Update: {
                 Key: { PK: wsPk(workspaceId), SK: entitySk('QuickLink', linkId) },
                 UpdateExpression: 'SET #folderId = :f, #updatedAt = :u',
-                ExpressionAttributeValues: { ':f': folder.id, ':u': now },
-                ExpressionAttributeNames: { '#folderId': 'folderId', '#updatedAt': 'updatedAt' },
-                ConditionExpression: 'attribute_exists(PK) AND attribute_not_exists(deletedAt)'
+                ExpressionAttributeValues: { ':f': folder.id, ':u': now, ':null': null },
+                ExpressionAttributeNames: { '#folderId': 'folderId', '#updatedAt': 'updatedAt', '#deletedAt': 'deletedAt' },
+                // Links store deletedAt as null on create (the attribute is
+                // always present), so attribute_not_exists wouldn't match.
+                // Compare equality with null instead.
+                ConditionExpression: 'attribute_exists(PK) AND #deletedAt = :null'
             }
         }))
     ];
