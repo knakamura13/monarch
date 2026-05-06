@@ -4,6 +4,7 @@
     import { Folder, Link2, Plus, Edit, Trash2 } from 'lucide-svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
+    import { isInternalDomain } from '$lib/utils/url';
 
     type Size = 'compact' | 'large';
 
@@ -111,7 +112,7 @@
         if (faviconCache.has(link.url)) return faviconCache.get(link.url) || '';
         try {
             const h = new URL(link.url).hostname;
-            if (/^(localhost|127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(h)) {
+            if (isInternalDomain(h)) {
                 faviconCache.set(link.url, '');
                 return '';
             }
@@ -128,7 +129,7 @@
         if (fallbackFaviconCache.has(link.url)) return fallbackFaviconCache.get(link.url) || '';
         try {
             const h = new URL(link.url).hostname;
-            if (/^(localhost|127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(h)) {
+            if (isInternalDomain(h)) {
                 fallbackFaviconCache.set(link.url, '');
                 return '';
             }
