@@ -446,6 +446,8 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 class="ql-button ql-button--link"
+                draggable="false"
+                ondragstart={(e) => e.preventDefault()}
                 onpointerdown={(e) => onPointerDown(e, link, 'link')}
                 onclick={(e) => {
                     if (wasDragging) {
