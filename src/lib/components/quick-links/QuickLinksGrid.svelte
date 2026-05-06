@@ -19,6 +19,7 @@
         onEditFolder: (folder: QuickLinkFolder) => void;
         onDeleteLink: (link: QuickLink) => void;
         onDeleteFolder: (folder: QuickLinkFolder) => void;
+        onMoveToFolder: (linkId: string, folderId: string | null) => Promise<void>;
         onCreateFolderFromLinks: (activeId: string, targetId: string) => Promise<void>;
         onReorderLinks: (linkIds: string[]) => Promise<void>;
         onReorderFolders: (folderIds: string[]) => Promise<void>;
@@ -36,6 +37,7 @@
         onEditFolder,
         onDeleteLink,
         onDeleteFolder,
+        onMoveToFolder,
         onCreateFolderFromLinks,
         onReorderLinks,
         onReorderFolders
@@ -198,15 +200,16 @@
 
                 if (id === dragState.id) continue;
 
-                // Merge detection: Link onto Link at root level
-                if (dragState.kind === 'link' && kind === 'link' && !dragState.item.folderId) {
+                // Merge detection: Link onto Link (create folder) or Link onto Folder (move into)
+                if (dragState.kind === 'link' && !dragState.item.folderId) {
                     const mergeThreshold = 20;
-                    if (
+                    const isInside =
                         event.clientX > rect.left + mergeThreshold &&
                         event.clientX < rect.right - mergeThreshold &&
                         event.clientY > rect.top + mergeThreshold &&
-                        event.clientY < rect.bottom - mergeThreshold
-                    ) {
+                        event.clientY < rect.bottom - mergeThreshold;
+
+                    if (isInside && (kind === 'link' || kind === 'folder')) {
                         bestMergeId = id;
                         break;
                     }
@@ -280,7 +283,12 @@
         if (isDragging) {
             if (mergeId && kind === 'link') {
                 try {
-                    await onCreateFolderFromLinks(id, mergeId);
+                    const targetIsFolder = folders.some((f) => f.id === mergeId);
+                    if (targetIsFolder) {
+                        await onMoveToFolder(id, mergeId);
+                    } else {
+                        await onCreateFolderFromLinks(id, mergeId);
+                    }
                 } catch (e) {
                     console.error(e);
                 }
@@ -371,7 +379,9 @@
 >
     {#each visibleFolders as folder (folder.id)}
         <div
-            class="ql-item {dragState?.id === folder.id ? 'ql-item--dragging-placeholder' : ''}"
+            class="ql-item {dragState?.id === folder.id ? 'ql-item--dragging-placeholder' : ''} {hoveredMergeId === folder.id
+                ? 'ql-item--merge-target'
+                : ''}"
             data-kind="folder"
             data-id={folder.id}
             animate:flip={{ duration: 200 }}

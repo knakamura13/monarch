@@ -38,24 +38,39 @@
 
     async function moveToFolder(linkId: string, folderId: string | null) {
         const formData = new FormData();
-        formData.append('linkId', linkId);
-        if (folderId) formData.append('folderId', folderId);
+        formData.set('linkId', linkId);
+        if (folderId) formData.set('folderId', folderId);
         const response = await fetch('?/moveToFolder', { method: 'POST', body: formData });
-        if (!response.ok) throw new Error('Failed to move link');
+        if (response.ok) {
+            const { invalidateAll } = await import('$app/navigation');
+            await invalidateAll();
+        } else {
+            throw new Error('Failed to move link');
+        }
     }
 
     async function reorderLinks(linkIds: string[]) {
         const formData = new FormData();
         for (const linkId of linkIds) formData.append('linkIds', linkId);
         const response = await fetch('?/reorderLinks', { method: 'POST', body: formData });
-        if (!response.ok) throw new Error('Failed to reorder links');
+        if (response.ok) {
+            const { invalidateAll } = await import('$app/navigation');
+            await invalidateAll();
+        } else {
+            throw new Error('Failed to reorder links');
+        }
     }
 
     async function reorderFolders(folderIds: string[]) {
         const formData = new FormData();
         for (const folderId of folderIds) formData.append('folderIds', folderId);
         const response = await fetch('?/reorderFolders', { method: 'POST', body: formData });
-        if (!response.ok) throw new Error('Failed to reorder folders');
+        if (response.ok) {
+            const { invalidateAll } = await import('$app/navigation');
+            await invalidateAll();
+        } else {
+            throw new Error('Failed to reorder folders');
+        }
     }
 
     async function createFolderFromLinks(activeId: string, targetId: string) {
@@ -72,8 +87,11 @@
         await invalidateAll();
     }
 
-    async function handleDeleteFolder(folderId: string) {
-        closeFolderDialog();
+    async function handleDeleteFolder(folderId: string, folderName: string) {
+        const confirmed = confirm(`Are you sure you want to delete "${folderName}"? This will also delete all links inside.`);
+        if (!confirmed) return;
+
+        void closeFolderDialog();
         try {
             const formData = new FormData();
             formData.set('id', folderId);
@@ -119,6 +137,7 @@
     onEditFolder={openEditFolder}
     onDeleteLink={(link) => qlDialog?.openDelete('link', link.id, link.title || 'Link')}
     onDeleteFolder={(folder) => qlDialog?.openDelete('folder', folder.id, folder.name || 'Untitled folder')}
+    onMoveToFolder={moveToFolder}
     onCreateFolderFromLinks={createFolderFromLinks}
     onReorderLinks={reorderLinks}
     onReorderFolders={reorderFolders}
@@ -148,7 +167,7 @@
                     label: 'Delete',
                     icon: Trash2,
                     variant: 'destructive',
-                    action: () => folder && handleDeleteFolder(folder.id)
+                    action: () => folder && handleDeleteFolder(folder.id, folder.name || 'Untitled folder')
                 }
             ]}
         />
