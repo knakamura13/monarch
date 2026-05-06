@@ -10,7 +10,12 @@
     import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
 
     type ActionForm = { error?: string; errorId?: string | null } | undefined;
-    let { links, folders = [], form }: { links: QuickLink[]; folders: QuickLinkFolder[]; form?: ActionForm } = $props();
+    let {
+        links,
+        folders = [],
+        form,
+        actionBase = '/quick-links'
+    }: { links: QuickLink[]; folders: QuickLinkFolder[]; form?: ActionForm; actionBase?: string } = $props();
 
     let qlDialog = $state<QuickLinksManageDialog | null>(null);
     let folderPopoverId = $state<string | null>(null);
@@ -40,7 +45,7 @@
         const formData = new FormData();
         formData.set('linkId', linkId);
         if (folderId) formData.set('folderId', folderId);
-        const response = await fetch('?/moveToFolder', { method: 'POST', body: formData });
+        const response = await fetch(`${actionBase}?/moveToFolder`, { method: 'POST', body: formData });
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
@@ -52,7 +57,7 @@
     async function reorderLinks(linkIds: string[]) {
         const formData = new FormData();
         for (const linkId of linkIds) formData.append('linkIds', linkId);
-        const response = await fetch('?/reorderLinks', { method: 'POST', body: formData });
+        const response = await fetch(`${actionBase}?/reorderLinks`, { method: 'POST', body: formData });
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
@@ -64,7 +69,7 @@
     async function reorderFolders(folderIds: string[]) {
         const formData = new FormData();
         for (const folderId of folderIds) formData.append('folderIds', folderId);
-        const response = await fetch('?/reorderFolders', { method: 'POST', body: formData });
+        const response = await fetch(`${actionBase}?/reorderFolders`, { method: 'POST', body: formData });
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
@@ -95,7 +100,7 @@
         try {
             const formData = new FormData();
             formData.set('id', folderId);
-            const response = await fetch('?/deleteFolder', { method: 'POST', body: formData });
+            const response = await fetch(`${actionBase}?/deleteFolder`, { method: 'POST', body: formData });
             if (response.ok) {
                 showSuccessToast('Folder deleted');
                 const { invalidateAll } = await import('$app/navigation');
@@ -112,7 +117,7 @@
         const formData = new FormData();
         formData.set('id', folderId);
         formData.set('name', name);
-        const response = await fetch('?/updateFolder', { method: 'POST', body: formData });
+        const response = await fetch(`${actionBase}?/updateFolder`, { method: 'POST', body: formData });
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
