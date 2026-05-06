@@ -1,26 +1,10 @@
 <script lang="ts">
     import { flip } from 'svelte/animate';
-    import { untrack } from 'svelte';
     import { Folder, Link2, Plus, Edit, Trash2 } from 'lucide-svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
-    import { arraysEqual, clamp } from './quickLinkDrag';
 
     type Size = 'compact' | 'large';
-    type DragKind = 'folder' | 'link';
-
-    interface TempDragState {
-        id: string;
-        kind: DragKind;
-        item: QuickLink | QuickLinkFolder;
-        tileRect: DOMRect;
-        gridRect: DOMRect;
-    }
-
-    interface DragFunction {
-        (event: PointerEvent, id: string, kind: DragKind): void;
-        tempDrag: TempDragState | null;
-    }
 
     type Props = {
         links: QuickLink[];
@@ -34,10 +18,6 @@
         onEditFolder: (folder: QuickLinkFolder) => void;
         onDeleteLink: (link: QuickLink) => void;
         onDeleteFolder: (folder: QuickLinkFolder) => void;
-        onMoveToFolder: (linkId: string, folderId: string | null) => Promise<void>;
-        onCreateFolderFromLinks: (activeId: string, targetId: string) => Promise<void>;
-        onReorderLinks: (linkIds: string[]) => Promise<void>;
-        onReorderFolders: (folderIds: string[]) => Promise<void>;
     };
 
     let {
@@ -51,9 +31,7 @@
         onEditLink,
         onEditFolder,
         onDeleteLink,
-        onDeleteFolder,
-        onReorderLinks,
-        onReorderFolders
+        onDeleteFolder
     }: Props = $props();
 
     const tileSize = $derived(size === 'compact' ? 48 : 64);
@@ -61,76 +39,22 @@
     const gap = $derived(size === 'compact' ? 16 : 24);
     const labelSize = $derived(size === 'compact' ? 11 : 13);
 
-    let folderOrder = $state<string[]>([]);
-    let linkOrder = $state<string[]>([]);
-    let dragState = $state<{
-        id: string;
-        kind: DragKind;
-        offsetX: number;
-        offsetY: number;
-        width: number;
-        height: number;
-        left: number;
-        top: number;
-        gridLeft: number;
-        gridTop: number;
-        gridRight: number;
-        gridBottom: number;
-        item: QuickLink | QuickLinkFolder;
-    } | null>(null);
-    let dragging = $state(false);
-    let liveRegionMessage = $state('');
     let brokenFavicons = $state<Set<string>>(new Set());
     let preloadedFavicons = $state<Set<string>>(new Set());
-
-    const confirmedOrders = new Map<DragKind, string[]>();
-    const saving = new Set<DragKind>();
 
     const faviconCache = new Map<string, string>();
     const fallbackFaviconCache = new Map<string, string>();
 
-    $effect(() => {
-        const nextFolderOrder = folders
-            .slice()
-            .sort((a, b) => a.order - b.order)
-            .map((folder) => folder.id);
-        const nextLinkOrder = links
+    const rootLinks = $derived(
+        links
             .filter((link) => !link.folderId)
             .slice()
             .sort((a, b) => a.order - b.order)
-            .map((link) => link.id);
-
-        untrack(() => {
-            if (folderOrder.length === 0) folderOrder = nextFolderOrder;
-            if (linkOrder.length === 0) linkOrder = nextLinkOrder;
-            confirmedOrders.set('folder', nextFolderOrder);
-            confirmedOrders.set('link', nextLinkOrder);
-        });
-    });
-
-    function byId<T extends { id: string }>(items: T[]) {
-        return new Map(items.map((item) => [item.id, item]));
-    }
-
-    const folderById = $derived(byId(folders));
-    const linkById = $derived(byId(links));
-    const rootLinks = $derived(
-        linkOrder
-            .map((id) => linkById.get(id))
-            .filter((value): value is QuickLink => Boolean(value))
-            .filter((value) => !value.folderId)
     );
     const visibleFolders = $derived(
-        folderOrder.map((id) => folderById.get(id)).filter((value): value is QuickLinkFolder => Boolean(value))
-    );
-    const _folderLinksMap = $derived(
-        visibleFolders.reduce(
-            (acc, folder) => {
-                acc[folder.id] = links.filter((link) => link.folderId === folder.id).sort((a, b) => a.order - b.order);
-                return acc;
-            },
-            {} as Record<string, QuickLink[]>
-        )
+        folders
+            .slice()
+            .sort((a, b) => a.order - b.order)
     );
 
     function prettyHostname(url: string): string {
@@ -232,177 +156,11 @@
             });
         };
     });
-
-    let startX = 0;
-    let startY = 0;
-
-    function clearDrag() {
-        dragState = null;
-        dragging = false;
-        if (typeof document !== 'undefined') {
-            document.body.style.removeProperty('user-select');
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-        }
-    }
-
-    const beginDrag: DragFunction = (event: PointerEvent, id: string, kind: DragKind) => {
-        if (event.button !== 0) return;
-        const tile = (event.currentTarget as HTMLElement).closest<HTMLElement>('.ql-item');
-        const grid = tile?.closest<HTMLElement>('.ql-grid');
-        if (!tile || !grid) return;
-        
-        startX = event.clientX;
-        startY = event.clientY;
-        
-        // Store reference to initial drag state, but don't commit it yet
-        const tileRect = tile.getBoundingClientRect();
-        const gridRect = grid.getBoundingClientRect();
-        const item = kind === 'folder' ? folderById.get(id) : linkById.get(id);
-        if (!item) return;
-
-        // Temporary storage for drag start calculation
-        beginDrag.tempDrag = {
-            id, kind, item, tileRect, gridRect
-        };
-
-        window.addEventListener('pointermove', handlePointerMove, { passive: false });
-        window.addEventListener('pointerup', handlePointerUp, { passive: false });
-    };
-    
-    // Initialize tempDrag property
-    beginDrag.tempDrag = null;
-
-    function handlePointerMove(event: PointerEvent) {
-        if (!dragState && beginDrag.tempDrag) {
-            const dx = Math.abs(event.clientX - startX);
-            const dy = Math.abs(event.clientY - startY);
-            
-            // Threshold of 5px to trigger drag
-            if (dx > 5 || dy > 5) {
-                const { id, kind, item, tileRect, gridRect } = beginDrag.tempDrag;
-                dragging = true;
-                document.body.style.userSelect = 'none';
-                dragState = {
-                    id, kind, item,
-                    offsetX: startX - tileRect.left,
-                    offsetY: startY - tileRect.top,
-                    width: tileRect.width,
-                    height: tileRect.height,
-                    left: tileRect.left,
-                    top: tileRect.top,
-                    gridLeft: gridRect.left,
-                    gridTop: gridRect.top,
-                    gridRight: gridRect.right,
-                    gridBottom: gridRect.bottom
-                };
-            }
-        }
-        
-        if (dragging && dragState) {
-            event.preventDefault();
-            updateDrag(event);
-        }
-    }
-
-    async function handlePointerUp(event: PointerEvent) {
-        const active = dragState;
-        clearDrag();
-        beginDrag.tempDrag = null;
-        if (!active) return;
-
-        // Calculate final position and find target
-        const candidates = otherItems(active.kind, active.id);
-        const target =
-            candidates.find((item) => event.clientY < item.midY || event.clientX < item.midX) ?? candidates.at(-1);
-        
-        if (!target || target.id === active.id) return;
-        
-        const current = orderedIds(active.kind);
-        const from = current.indexOf(active.id);
-        const to = current.indexOf(target.id);
-        
-        if (from === -1 || to === -1 || from === to) return;
-        
-        const next = [...current];
-        next.splice(from, 1);
-        next.splice(to, 0, active.id);
-        
-        if (!arraysEqual(next, current)) {
-            reorderLocal(active.kind, next);
-            
-            // Save the new order
-            const kind = active.kind;
-            if (!saving.has(kind)) {
-                saving.add(kind);
-                try {
-                    if (kind === 'folder') {
-                        await onReorderFolders(next);
-                    } else {
-                        await onReorderLinks(next);
-                    }
-                    confirmedOrders.set(kind, next);
-                } finally {
-                    saving.delete(kind);
-                }
-            }
-        }
-    }
-
-
-    function reorderLocal(kind: DragKind, orderedIds: string[]) {
-        if (kind === 'folder') folderOrder = orderedIds;
-        else linkOrder = orderedIds;
-    }
-
-    function orderedIds(kind: DragKind) {
-        return kind === 'folder' ? folderOrder : linkOrder;
-    }
-
-    function otherItems(kind: DragKind, activeId: string) {
-        return Array.from(document.querySelectorAll<HTMLElement>(`.ql-item[data-kind="${kind}"]:not([data-id="${activeId}"])`)).map(
-            (node) => {
-                const rect = node.getBoundingClientRect();
-                return { id: node.dataset.id ?? '', midX: rect.left + rect.width / 2, midY: rect.top + rect.height / 2 };
-            }
-        );
-    }
-
-    function updateDrag(event: PointerEvent) {
-        if (!dragState) return;
-        dragState = {
-            ...dragState,
-            left: clamp(event.clientX - dragState.offsetX, dragState.gridLeft, dragState.gridRight - dragState.width),
-            top: clamp(event.clientY - dragState.offsetY, dragState.gridTop, dragState.gridBottom - dragState.height)
-        };
-        const candidates = otherItems(dragState.kind, dragState.id);
-        const target =
-            candidates.find((item) => event.clientY < item.midY || event.clientX < item.midX) ?? candidates.at(-1);
-        if (!target || target.id === dragState.id) return;
-        const current = orderedIds(dragState.kind);
-        const from = current.indexOf(dragState.id);
-        const to = current.indexOf(target.id);
-        if (from === -1 || to === -1 || from === to) return;
-        const next = [...current];
-        next.splice(from, 1);
-        next.splice(to, 0, dragState.id);
-        if (!arraysEqual(next, current)) reorderLocal(dragState.kind, next);
-    }
-
-    async function openFolder(folder: QuickLinkFolder) {
-        onOpenFolder?.(folder);
-    }
-
-    $effect(() => {
-        return () => clearDrag();
-    });
-    </script>
-
-<div aria-live="polite" aria-atomic="true" class="sr-only">{liveRegionMessage}</div>
+</script>
 
 <div class="ql-grid" style={`grid-template-columns: repeat(auto-fill, minmax(${gridMin}px, 1fr)); gap: ${gap}px;`}>
     {#each visibleFolders as folder (folder.id)}
-        <div class="ql-item {dragState?.id === folder.id ? 'ql-item-placeholder' : ''}" data-kind="folder" data-id={folder.id} animate:flip>
+        <div class="ql-item" data-kind="folder" data-id={folder.id} animate:flip>
             <div class="widget-item-menu-wrap" onclick={(e) => e.stopPropagation()} role="presentation">
                 <div class="widget-item-menu-inner">
                     <ThreeDotsMenu
@@ -417,11 +175,7 @@
             <button
                 type="button"
                 class="ql-button"
-                onclick={() => {
-                    if (dragging) return;
-                    openFolder(folder);
-                }}
-                onpointerdown={(e) => beginDrag(e, folder.id, 'folder')}
+                onclick={() => onOpenFolder?.(folder)}
             >
                 <div class="ql-icon ql-icon--folder" style={`width: ${tileSize}px; height: ${tileSize}px;`}>
                     <Folder
@@ -434,7 +188,7 @@
     {/each}
 
     {#each rootLinks as link (link.id)}
-        <div class="ql-item {dragState?.id === link.id ? 'ql-item-placeholder' : ''}" data-kind="link" data-id={link.id} animate:flip>
+        <div class="ql-item" data-kind="link" data-id={link.id} animate:flip>
             <div class="widget-item-menu-wrap" onclick={(e) => e.stopPropagation()} role="presentation">
                 <div class="widget-item-menu-inner">
                     <ThreeDotsMenu
@@ -449,11 +203,7 @@
             <button
                 type="button"
                 class="ql-button"
-                onclick={() => {
-                    if (dragging) return;
-                    onOpenLink(link);
-                }}
-                onpointerdown={(e) => beginDrag(e, link.id, 'link')}
+                onclick={() => onOpenLink(link)}
             >
                 <div class="ql-icon ql-icon--link" style={`width: ${tileSize}px; height: ${tileSize}px;`}>
                     {#if brokenFavicons.has(link.id) || !(link.faviconUrl || preloadedFavicons.has(link.id))}
@@ -488,45 +238,6 @@
     </button>
 </div>
 
-{#if dragState}
-    {@const item = dragState.item}
-    <div
-        class="ql-ghost"
-        style={`left: ${dragState.left}px; top: ${dragState.top}px; width: ${dragState.width}px; height: ${dragState.height}px;`}
-    >
-        <div class="ql-ghost-card">
-            <div class="ql-button" style="width: 100%; height: 100%;">
-                <div
-                    class="ql-icon {dragState.kind === 'folder' ? 'ql-icon--folder' : 'ql-icon--link'}"
-                    style={`width: ${tileSize}px; height: ${tileSize}px;`}
-                >
-                    {#if dragState.kind === 'folder'}
-                        <Folder
-                            style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; color: var(--lilac-d);`}
-                        />
-                    {:else}
-                        {@const link = item as QuickLink}
-                        {#if brokenFavicons.has(link.id) || !(link.faviconUrl || preloadedFavicons.has(link.id))}
-                            <Link2
-                                style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; color: var(--ink-3);`}
-                            />
-                        {:else}
-                            <img
-                                src={faviconForLink(link)}
-                                alt=""
-                                style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; object-fit: contain;`}
-                            />
-                        {/if}
-                    {/if}
-                </div>
-                <span class="ql-label" style={`font-size: ${labelSize}px;`}
-                    >{dragState.kind === 'folder' ? (item as QuickLinkFolder).name || 'Untitled' : labelFor(item as QuickLink)}</span
-                >
-            </div>
-        </div>
-    </div>
-{/if}
-
 <style>
     .ql-grid {
         display: grid;
@@ -540,12 +251,6 @@
         flex-direction: column;
         align-items: center;
         gap: 8px;
-    }
-    .ql-item-placeholder {
-        opacity: 0.22;
-    }
-    .ql-item-placeholder .widget-item-menu-wrap {
-        visibility: hidden;
     }
     .ql-button {
         cursor: pointer;
@@ -600,21 +305,5 @@
     }
     .ql-label--folder {
         color: var(--lilac-d);
-    }
-    .ql-ghost {
-        position: fixed;
-        pointer-events: none;
-        z-index: 9999;
-    }
-    .ql-ghost-card {
-        width: 100%;
-        height: 100%;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--surface);
-        border: 1px solid var(--hairline);
-        box-shadow: 0 18px 45px color-mix(in srgb, var(--ink-1) 18%, transparent);
     }
 </style>
