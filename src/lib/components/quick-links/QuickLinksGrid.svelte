@@ -544,6 +544,10 @@
         align-items: center;
         gap: 8px;
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
     .ql-item--dragging-placeholder {
         opacity: 0.2;
@@ -576,6 +580,10 @@
         align-items: center;
         gap: 8px;
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
     .ql-button:hover {
         transform: translateY(-2px);
