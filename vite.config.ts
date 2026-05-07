@@ -1,6 +1,21 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import { defineConfig } from 'vitest/config';
+import { statSync, existsSync } from 'fs';
+import path from 'path';
+
+// When running inside a git worktree, pnpm resolves packages to the main
+// repo's node_modules (outside Vite's default fs root). Walk up to the real
+// .git directory to find the project root so @fs/ requests aren't blocked.
+function gitRepoRoot(): string {
+    let dir = process.cwd();
+    while (dir !== path.dirname(dir)) {
+        const gitPath = path.join(dir, '.git');
+        if (existsSync(gitPath) && statSync(gitPath).isDirectory()) return dir;
+        dir = path.dirname(dir);
+    }
+    return process.cwd();
+}
 
 export default defineConfig({
     plugins: [
@@ -65,6 +80,9 @@ export default defineConfig({
     },
     server: {
         port: Number(process.env.PORT ?? 5173),
-        host: process.env.HOST ?? 'localhost'
+        host: process.env.HOST ?? 'localhost',
+        fs: {
+            allow: [gitRepoRoot()]
+        }
     }
 });
