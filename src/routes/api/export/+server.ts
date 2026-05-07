@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ locals }) => {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'Content-Disposition': `attachment; filename="case-tracker-${wsId}-${Date.now()}.json"`
+                    'Content-Disposition': `attachment; filename="monarch-${wsId}-${Date.now()}.json"`
                 }
             }
         );

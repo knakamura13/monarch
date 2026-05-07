@@ -42,14 +42,14 @@ export default defineConfig({
                 ]
             },
             manifest: {
-                name: 'Private Case Tracker',
-                short_name: 'Case Tracker',
+                name: 'Monarch',
+                short_name: 'Monarch',
                 description: 'Track case evidence, timelines, forms, and tasks.',
                 start_url: '/',
                 scope: '/',
                 display: 'standalone',
-                theme_color: '#0f172a',
-                background_color: '#0f172a',
+                theme_color: '#f5f0e8',
+                background_color: '#f5f0e8',
                 icons: [
                     {
                         src: '/pwa/icon-192.png',
