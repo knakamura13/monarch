@@ -8,7 +8,7 @@
     import Dialog from '$lib/components/ui/Dialog.svelte';
     import Input from '$lib/components/ui/Input.svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
-    import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
+    import { showErrorToast } from '$lib/stores/toast';
     import { getPageNumber } from '$lib/constants/navigation';
     import type { PageData } from './$types';
 
@@ -62,39 +62,24 @@
     }
 
     async function createFolderFromLinks(activeId: string, targetId: string) {
-        const response = await fetch('/dashboard/api/quick-link-folders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: 'Untitled folder' })
-        });
+        // Atomic — server uses a DynamoDB transaction so we never end up with
+        // an empty orphan folder if a link reassignment fails.
+        const formData = new FormData();
+        formData.append('linkIds', activeId);
+        formData.append('linkIds', targetId);
+        formData.set('name', 'Untitled folder');
+        const response = await fetch('?/createFolderFromLinks', { method: 'POST', body: formData });
         if (!response.ok) throw new Error('Failed to create folder');
-        const folder = await response.json();
-        if (!folder?.id) throw new Error('Failed to create folder');
-        await Promise.all([moveToFolder(activeId, folder.id), moveToFolder(targetId, folder.id)]);
-        // Invalidate to refresh the UI
         const { invalidateAll } = await import('$app/navigation');
         await invalidateAll();
     }
 
-    async function handleDeleteFolder(folderId: string, folderName: string) {
-        const confirmed = confirm(`Are you sure you want to delete "${folderName}"? This will also delete all links inside.`);
-        if (!confirmed) return;
-
+    function handleDeleteFolder(folderId: string, folderName: string) {
+        // Close the folder popover and route through the app's standard
+        // QuickLinksManageDialog confirmation, matching every other delete
+        // surface in the app instead of the browser's native confirm().
         void closeFolderDialog();
-        try {
-            const formData = new FormData();
-            formData.set('id', folderId);
-            const response = await fetch('?/deleteFolder', { method: 'POST', body: formData });
-            if (response.ok) {
-                showSuccessToast('Folder deleted');
-                const { invalidateAll } = await import('$app/navigation');
-                await invalidateAll();
-            } else {
-                showErrorToast('Failed to delete folder');
-            }
-        } catch (e) {
-            showErrorToast('Failed to delete folder');
-        }
+        qlDialog?.openDelete('folder', folderId, folderName);
     }
 
     async function updateFolderName(folderId: string, name: string) {
@@ -128,7 +113,6 @@
     links={data.quickLinks}
     folders={data.quickLinkFolders}
     size="large"
-    onOpenLink={(link) => window.open(link.url, '_blank', 'noopener,noreferrer')}
     onOpenFolder={(folder) => {
         folderPopoverId = folder.id;
         draftFolderName = folder.name || '';
@@ -189,10 +173,11 @@
                     <div
                         style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-2); border-radius: 12px;"
                     >
-                        <button
-                            type="button"
-                            style="display: flex; align-items: center; gap: 12px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1;"
-                            onclick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
+                        <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style="display: flex; align-items: center; gap: 12px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1; text-decoration: none; color: inherit;"
                         >
                             <div
                                 style="width: 40px; height: 40px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; border-radius: 10px;"
@@ -203,7 +188,7 @@
                                 <span style="font-weight: 500; font-size: 15px;">{link.title || 'Link'}</span>
                                 <span style="font-size: 13px; color: var(--ink-3);">{new URL(link.url).hostname}</span>
                             </div>
-                        </button>
+                        </a>
                         <div style="display: flex; gap: 4px;">
                             <Button variant="ghost" size="icon" onclick={() => openEditLink(link)}>
                                 <Edit size={16} />

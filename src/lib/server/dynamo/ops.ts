@@ -5,6 +5,7 @@ import {
     PutCommand,
     QueryCommand,
     ScanCommand,
+    TransactWriteCommand,
     UpdateCommand,
     type QueryCommandInput,
     type ScanCommandInput
@@ -153,6 +154,83 @@ export async function ddbQuery<T>(input: Omit<QueryCommandInput, 'TableName'>) {
     const { ddb, tableName } = await getLive();
     const res = await ddb.send(new QueryCommand({ ...input, TableName: tableName }));
     return (res.Items as T[]) ?? [];
+}
+
+type TransactPut = { Put: { Item: Record<string, unknown> } };
+type TransactUpdate = {
+    Update: {
+        Key: Key;
+        UpdateExpression: string;
+        ExpressionAttributeValues: Record<string, unknown>;
+        ExpressionAttributeNames?: Record<string, string>;
+        ConditionExpression?: string;
+    };
+};
+type TransactDelete = { Delete: { Key: Key; ConditionExpression?: string } };
+export type TransactItem = TransactPut | TransactUpdate | TransactDelete;
+
+function applyTransactItemToMem(item: TransactItem) {
+    const store = memStore();
+    if ('Put' in item) {
+        const it = item.Put.Item as AnyItem;
+        store.set(keyStr({ PK: it.PK, SK: it.SK }), it);
+        return;
+    }
+    if ('Update' in item) {
+        const cur = store.get(keyStr(item.Update.Key));
+        if (!cur) return;
+        const setPrefix = item.Update.UpdateExpression.trim().startsWith('SET') ? item.Update.UpdateExpression.trim().slice(3) : '';
+        const assignments = setPrefix
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        for (const a of assignments) {
+            const [lhsRaw, rhsRaw] = a.split('=').map((s) => s.trim());
+            if (!lhsRaw || !rhsRaw) continue;
+            const field = item.Update.ExpressionAttributeNames?.[lhsRaw] ?? (lhsRaw.startsWith('#') ? lhsRaw.slice(1) : lhsRaw);
+            const val = item.Update.ExpressionAttributeValues[rhsRaw];
+            (cur as Record<string, unknown>)[field] = val;
+        }
+        store.set(keyStr(item.Update.Key), cur);
+        return;
+    }
+    if ('Delete' in item) {
+        store.delete(keyStr(item.Delete.Key));
+    }
+}
+
+export async function ddbTransactWrite(items: TransactItem[]) {
+    if (items.length === 0) return;
+    if (items.length > 100) {
+        throw new Error(`ddbTransactWrite supports at most 100 items per call (got ${items.length})`);
+    }
+    const normalized = items.map((item) => {
+        if ('Put' in item) {
+            return { Put: { Item: normalize(item.Put.Item) as Record<string, unknown> } };
+        }
+        if ('Update' in item) {
+            return {
+                Update: {
+                    ...item.Update,
+                    ExpressionAttributeValues: normalize(item.Update.ExpressionAttributeValues) as Record<string, unknown>
+                }
+            };
+        }
+        return item;
+    }) as TransactItem[];
+
+    if (useMem) {
+        for (const item of normalized) applyTransactItemToMem(item);
+        return;
+    }
+
+    const { ddb, tableName } = await getLive();
+    const transactItems = normalized.map((item) => {
+        if ('Put' in item) return { Put: { TableName: tableName, Item: item.Put.Item } };
+        if ('Update' in item) return { Update: { TableName: tableName, ...item.Update } };
+        return { Delete: { TableName: tableName, ...item.Delete } };
+    });
+    return ddb.send(new TransactWriteCommand({ TransactItems: transactItems }));
 }
 
 export async function ddbScan<T>(input: Omit<ScanCommandInput, 'TableName'>) {

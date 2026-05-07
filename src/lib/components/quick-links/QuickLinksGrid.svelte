@@ -12,7 +12,10 @@
         links: QuickLink[];
         folders: QuickLinkFolder[];
         size: Size;
-        onOpenLink: (link: QuickLink) => void;
+        // Optional click hook fired when a link tile is opened (for analytics
+        // etc.). Navigation itself is handled natively by the <a> tag, so this
+        // is no longer required for the link to actually open.
+        onOpenLink?: (link: QuickLink) => void;
         onOpenFolder?: (folder: QuickLinkFolder) => void;
         onOpenAddLink: () => void;
         onOpenAddFolder: () => void;
@@ -459,17 +462,25 @@
                     />
                 </div>
             </div>
-            <button
-                type="button"
-                class="ql-button"
+            <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="ql-button ql-button--link"
+                draggable="false"
+                ondragstart={(e) => e.preventDefault()}
                 onpointerdown={(e) => onPointerDown(e, link, 'link')}
                 onclick={(e) => {
                     if (wasDragging) {
+                        // A drag just ended — suppress the synthetic click so
+                        // the browser doesn't navigate after a reorder/merge.
                         e.preventDefault();
                         e.stopPropagation();
                         return;
                     }
-                    onOpenLink(link);
+                    // Otherwise let the native <a> handle navigation, which
+                    // preserves middle-click and Cmd/Ctrl-click semantics.
+                    onOpenLink?.(link);
                 }}
             >
                 <div class="ql-icon ql-icon--link" style={`width: ${tileSize}px; height: ${tileSize}px;`}>
@@ -481,12 +492,13 @@
                         <img
                             src={faviconForLink(link)}
                             alt=""
+                            draggable="false"
                             style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; object-fit: contain;`}
                         />
                     {/if}
                 </div>
                 <span class="ql-label" style={`font-size: ${labelSize}px;`}>{labelFor(link)}</span>
-            </button>
+            </a>
         </div>
     {/each}
 
@@ -604,6 +616,12 @@
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
+    }
+    /* Anchor variant for external links — strip the default link styling so
+       it matches the surrounding button-shaped tiles. */
+    .ql-button--link {
+        text-decoration: none;
+        color: inherit;
     }
     .ql-button:hover {
         transform: translateY(-2px);

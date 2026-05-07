@@ -78,6 +78,11 @@ export const quickLinkFolderReorderSchema = z.object({
     folderIds: z.array(z.string().min(1))
 });
 
+export const quickLinkCreateFolderFromLinksSchema = z.object({
+    linkIds: z.array(z.string().min(1)).min(1),
+    name: optionalFolderName
+});
+
 export type QuickLinkCreate = z.infer<typeof quickLinkCreateSchema>;
 export type QuickLinkUpdate = z.infer<typeof quickLinkUpdateSchema>;
 export type QuickLinkFolderCreate = z.infer<typeof quickLinkFolderCreateSchema>;
@@ -85,3 +90,4 @@ export type QuickLinkFolderUpdate = z.infer<typeof quickLinkFolderUpdateSchema>;
 export type QuickLinkMoveToFolder = z.infer<typeof quickLinkMoveToFolderSchema>;
 export type QuickLinkReorder = z.infer<typeof quickLinkReorderSchema>;
 export type QuickLinkFolderReorder = z.infer<typeof quickLinkFolderReorderSchema>;
+export type QuickLinkCreateFolderFromLinks = z.infer<typeof quickLinkCreateFolderFromLinksSchema>;

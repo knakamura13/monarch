@@ -1,5 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { quickLinkCreateSchema } from '$lib/schemas/quickLink';
+import { createQuickLink, listQuickLinks, softDeleteQuickLink } from '$lib/server/services/quickLink.service';
+import { createQuickLinkFolder } from '$lib/server/services/quickLinkFolder.service';
+
+const actorId = 'test-user';
+
+function workspaceId() {
+    return `ws_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 describe('quickLinkCreateSchema', () => {
     it('prepends https for bare host', () => {
@@ -54,5 +62,41 @@ describe('quickLinkCreateSchema', () => {
         });
         expect(r.success).toBe(true);
         if (r.success) expect(r.data.title).toBeNull();
+    });
+});
+
+describe('softDeleteQuickLink', () => {
+    beforeEach(() => {
+        (globalThis as unknown as { __ddbMem?: Map<string, unknown> }).__ddbMem = new Map();
+    });
+
+    it('rejects folder IDs with a clear error instead of "not found"', async () => {
+        const ws = workspaceId();
+        const folder = await createQuickLinkFolder(ws, actorId, 'A folder');
+
+        await expect(softDeleteQuickLink(ws, actorId, folder.id)).rejects.toThrow(/Cannot delete folder/);
+    });
+
+    it('soft-deletes a link and clears its folderId so it no longer references the folder', async () => {
+        const ws = workspaceId();
+        const folder = await createQuickLinkFolder(ws, actorId, 'Parent');
+        const link = await createQuickLink(ws, actorId, {
+            url: 'https://example.com',
+            title: 'Example',
+            description: null,
+            notes: null,
+            folderId: folder.id
+        } as Parameters<typeof createQuickLink>[2]);
+
+        await softDeleteQuickLink(ws, actorId, link.id);
+
+        // Listing root links should not return the deleted link
+        const all = await listQuickLinks(ws);
+        expect(all.find((l) => l.id === link.id)).toBeUndefined();
+    });
+
+    it('throws when the link does not exist', async () => {
+        const ws = workspaceId();
+        await expect(softDeleteQuickLink(ws, actorId, 'nonexistent-id')).rejects.toThrow('Quick link not found');
     });
 });
