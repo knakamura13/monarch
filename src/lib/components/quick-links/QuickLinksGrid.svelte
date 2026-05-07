@@ -71,6 +71,7 @@
     let dragState = $state<DragState | null>(null);
     let wasDragging = $state(false);
     let hoveredMergeId = $state<string | null>(null);
+    let lastReorderTargetId: string | null = null;
 
     const faviconCache = new Map<string, string>();
     const fallbackFaviconCache = new Map<string, string>();
@@ -149,6 +150,10 @@
         const target = event.currentTarget as HTMLElement;
         const rect = target.getBoundingClientRect();
         const containerRect = gridContainer!.getBoundingClientRect();
+
+        // Cleared here (not on a timer) so the next click is gated solely by
+        // whether this pointer cycle crossed the drag threshold.
+        wasDragging = false;
 
         dragState = {
             id: item.id,
@@ -231,7 +236,12 @@
             hoveredMergeId = bestMergeId;
 
             if (bestTargetId && !bestMergeId) {
-                reorderLocally(dragState.id, bestTargetId, dragState.kind);
+                if (bestTargetId !== lastReorderTargetId) {
+                    lastReorderTargetId = bestTargetId;
+                    reorderLocally(dragState.id, bestTargetId, dragState.kind);
+                }
+            } else {
+                lastReorderTargetId = null;
             }
         }
     }
@@ -243,11 +253,8 @@
             const targetIdx = items.findIndex((i) => i.id === targetId);
             if (activeIdx !== -1 && targetIdx !== -1 && activeIdx !== targetIdx) {
                 items.splice(targetIdx, 0, items.splice(activeIdx, 1)[0]);
-                // Update orders
-                items.forEach((item, index) => {
-                    item.order = index;
-                });
-                localLinks = [...localLinks.filter((l) => l.folderId), ...items];
+                const reordered = items.map((item, index) => ({ ...item, order: index }));
+                localLinks = [...localLinks.filter((l) => l.folderId), ...reordered];
             }
         } else {
             const items = [...visibleFolders];
@@ -255,10 +262,7 @@
             const targetIdx = items.findIndex((i) => i.id === targetId);
             if (activeIdx !== -1 && targetIdx !== -1 && activeIdx !== targetIdx) {
                 items.splice(targetIdx, 0, items.splice(activeIdx, 1)[0]);
-                items.forEach((item, index) => {
-                    item.order = index;
-                });
-                localFolders = items;
+                localFolders = items.map((item, index) => ({ ...item, order: index }));
             }
         }
     }
@@ -271,9 +275,6 @@
 
         if (isDragging) {
             wasDragging = true;
-            setTimeout(() => {
-                wasDragging = false;
-            }, 50);
         }
 
         window.removeEventListener('pointermove', onPointerMove);
@@ -309,6 +310,7 @@
 
         dragState = null;
         hoveredMergeId = null;
+        lastReorderTargetId = null;
     }
 
     onDestroy(() => {
@@ -562,6 +564,10 @@
         align-items: center;
         gap: 8px;
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
     .ql-item--dragging-placeholder {
         opacity: 0.2;
@@ -594,6 +600,10 @@
         align-items: center;
         gap: 8px;
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
     .ql-button:hover {
         transform: translateY(-2px);
@@ -637,5 +647,16 @@
     }
     .ql-label--folder {
         color: var(--lilac-d);
+    }
+
+    .ql-item:hover :global(.widget-item-menu-wrap),
+    .ql-item:focus-within :global(.widget-item-menu-wrap) {
+        opacity: 1;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+        .ql-item :global(.widget-item-menu-wrap) {
+            opacity: 1;
+        }
     }
 </style>
