@@ -147,7 +147,14 @@
             {#if editingFolder}
                 <input type="hidden" name="id" value={editingFolder.id} />
             {/if}
-            <Input name="name" bind:value={draftFolderName} placeholder="Folder name" required />
+            <Label for="ql-mgr-folder-name">Folder name</Label>
+            <Input
+                id="ql-mgr-folder-name"
+                name="name"
+                bind:value={draftFolderName}
+                placeholder="Folder name"
+                required
+            />
             {#if form?.error}
                 <div class="modal-error">
                     <ErrorDetails status={400} message={form.error} errorId={form.errorId ?? undefined} />
@@ -184,7 +191,8 @@
             {#if !editing && addingToFolder}
                 <input type="hidden" name="folderId" value={addingToFolder.id} />
             {/if}
-            <Input name="url" bind:value={draftUrl} placeholder="URL" required />
+            <Label for="ql-mgr-url">URL</Label>
+            <Input id="ql-mgr-url" name="url" bind:value={draftUrl} placeholder="URL" required />
             <div>
                 <Label for="ql-mgr-title">Title (optional)</Label>
                 <Input
@@ -227,7 +235,10 @@
             use:enhance={() => {
                 return async ({ result, update }) => {
                     await update();
-                    if (result.type === 'redirect') closeDeleteModal();
+                    // Close on both redirect (link delete returns redirect) and
+                    // success (folder delete returns { success: true }) so the
+                    // dialog never sits open with stale state after delete.
+                    if (result.type === 'redirect' || result.type === 'success') closeDeleteModal();
                 };
             }}
         >

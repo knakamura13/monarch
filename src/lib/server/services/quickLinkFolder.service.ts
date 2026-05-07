@@ -1,6 +1,6 @@
 import { logActivity } from '$lib/server/activity';
 import { randomUUID } from 'node:crypto';
-import { ddbGet, ddbPut, ddbQuery, ddbUpdate } from '$lib/server/dynamo/ops';
+import { ddbGet, ddbPut, ddbQuery, ddbTransactWrite, ddbUpdate, type TransactItem } from '$lib/server/dynamo/ops';
 import { entitySk, wsPk } from '$lib/server/dynamo/keys';
 import type { QuickLinkFolderItem, QuickLinkItem } from '$lib/server/dynamo/types';
 import { extractHostname } from '$lib/server/utils/url';
@@ -136,6 +136,80 @@ export async function deleteQuickLinkFolder(workspaceId: string, actorId: string
     });
 }
 
+/**
+ * Atomically creates a new folder and assigns the given links to it in a single
+ * DynamoDB transaction. Either every write succeeds or none do, so we never
+ * leave behind an empty orphan folder if a link reassignment fails.
+ */
+export async function createFolderWithLinks(workspaceId: string, actorId: string, linkIds: string[], name?: string | null) {
+    if (linkIds.length === 0) throw new Error('linkIds must contain at least one link');
+
+    const links = await Promise.all(
+        linkIds.map((id) =>
+            ddbGet<QuickLinkItem>({
+                PK: wsPk(workspaceId),
+                SK: entitySk('QuickLink', id)
+            })
+        )
+    );
+    for (const [i, link] of links.entries()) {
+        if (!link || link.deletedAt) {
+            throw new Error(`Quick link not found: ${linkIds[i]}`);
+        }
+    }
+
+    const existingFolders = await listQuickLinkFolders(workspaceId);
+    const order = (existingFolders.at(-1)?.order ?? -1) + 1;
+    const now = new Date().toISOString();
+    const folder = {
+        id: randomUUID(),
+        workspaceId,
+        name: name ?? null,
+        order,
+        deletedAt: null as string | null,
+        createdAt: now,
+        updatedAt: now
+    };
+
+    const items: TransactItem[] = [
+        {
+            Put: {
+                Item: {
+                    PK: wsPk(workspaceId),
+                    SK: entitySk('QuickLinkFolder', folder.id),
+                    ...folder
+                }
+            }
+        },
+        ...linkIds.map<TransactItem>((linkId) => ({
+            Update: {
+                Key: { PK: wsPk(workspaceId), SK: entitySk('QuickLink', linkId) },
+                UpdateExpression: 'SET #folderId = :f, #updatedAt = :u',
+                ExpressionAttributeValues: { ':f': folder.id, ':u': now, ':null': null },
+                ExpressionAttributeNames: { '#folderId': 'folderId', '#updatedAt': 'updatedAt', '#deletedAt': 'deletedAt' },
+                // Links store deletedAt as null on create (the attribute is
+                // always present), so attribute_not_exists wouldn't match.
+                // Compare equality with null instead.
+                ConditionExpression: 'attribute_exists(PK) AND #deletedAt = :null'
+            }
+        }))
+    ];
+
+    await ddbTransactWrite(items);
+
+    const label = folder.name ?? 'Folder';
+    await logActivity({
+        workspaceId,
+        userId: actorId,
+        action: 'QUICK_LINK_FOLDER_CREATED',
+        entityType: 'QuickLinkFolder',
+        entityId: folder.id,
+        summary: `Quick link folder "${label}" created from ${linkIds.length} link${linkIds.length === 1 ? '' : 's'}`
+    });
+
+    return folder;
+}
+
 export async function moveLinkToFolder(workspaceId: string, actorId: string, linkId: string, folderId: string | null) {
     const existing = await ddbGet<QuickLinkItem>({
         PK: wsPk(workspaceId),
@@ -163,15 +237,37 @@ export async function moveLinkToFolder(workspaceId: string, actorId: string, lin
     });
 }
 
+// DynamoDB TransactWriteItems caps at 100 items per call. Reorder operations
+// chunk into batches that respect that limit while still landing each batch
+// atomically.
+const TRANSACT_WRITE_LIMIT = 100;
+
+function buildOrderUpdate(
+    workspaceId: string,
+    type: 'QuickLink' | 'QuickLinkFolder',
+    id: string,
+    order: number,
+    now: string
+): TransactItem {
+    return {
+        Update: {
+            Key: { PK: wsPk(workspaceId), SK: entitySk(type, id) },
+            UpdateExpression: 'SET #order = :o, #updatedAt = :u',
+            ExpressionAttributeValues: { ':o': order, ':u': now },
+            ExpressionAttributeNames: { '#order': 'order', '#updatedAt': 'updatedAt' }
+        }
+    };
+}
+
 export async function reorderQuickLinks(workspaceId: string, actorId: string, linkIds: string[]) {
-    for (const [i, linkId] of linkIds.entries()) {
-        if (!linkId) continue;
-        await ddbUpdate(
-            { PK: wsPk(workspaceId), SK: entitySk('QuickLink', linkId) },
-            'SET #order = :o, #updatedAt = :u',
-            { ':o': i, ':u': new Date().toISOString() },
-            { '#order': 'order', '#updatedAt': 'updatedAt' }
-        );
+    const ids = linkIds.filter((id): id is string => Boolean(id));
+    if (ids.length === 0) return;
+
+    const now = new Date().toISOString();
+    const items: TransactItem[] = ids.map((linkId, i) => buildOrderUpdate(workspaceId, 'QuickLink', linkId, i, now));
+
+    for (let i = 0; i < items.length; i += TRANSACT_WRITE_LIMIT) {
+        await ddbTransactWrite(items.slice(i, i + TRANSACT_WRITE_LIMIT));
     }
 
     await logActivity({
@@ -185,14 +281,14 @@ export async function reorderQuickLinks(workspaceId: string, actorId: string, li
 }
 
 export async function reorderQuickLinkFolders(workspaceId: string, actorId: string, folderIds: string[]) {
-    for (const [i, folderId] of folderIds.entries()) {
-        if (!folderId) continue;
-        await ddbUpdate(
-            { PK: wsPk(workspaceId), SK: entitySk('QuickLinkFolder', folderId) },
-            'SET #order = :o, #updatedAt = :u',
-            { ':o': i, ':u': new Date().toISOString() },
-            { '#order': 'order', '#updatedAt': 'updatedAt' }
-        );
+    const ids = folderIds.filter((id): id is string => Boolean(id));
+    if (ids.length === 0) return;
+
+    const now = new Date().toISOString();
+    const items: TransactItem[] = ids.map((folderId, i) => buildOrderUpdate(workspaceId, 'QuickLinkFolder', folderId, i, now));
+
+    for (let i = 0; i < items.length; i += TRANSACT_WRITE_LIMIT) {
+        await ddbTransactWrite(items.slice(i, i + TRANSACT_WRITE_LIMIT));
     }
 
     await logActivity({

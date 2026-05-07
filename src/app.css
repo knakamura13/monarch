@@ -1478,10 +1478,24 @@ select {
 .widget-item:hover .widget-item-menu-wrap,
 .widget-item:focus-within .widget-item-menu-wrap {
     opacity: 1;
+    pointer-events: auto;
 }
 
+/* The inner wrapper inherits pointer-events from the wrap. Only enabling it
+   when the wrap itself is interactive prevents clicks from landing on an
+   invisible kebab and stealing focus from the underlying tile. */
 .widget-item-menu-inner {
-    pointer-events: auto;
+    pointer-events: inherit;
+}
+
+/* Touch devices have no hover, so the menu is always visible — keep it
+   interactive. The :focus-within rule above also covers keyboard users on
+   any device. */
+@media (hover: none) and (pointer: coarse) {
+    .widget-item-menu-wrap {
+        opacity: 1;
+        pointer-events: auto;
+    }
 }
 
 /* Dashboard quick-links tiles: float ⋮ above the icon; align to top-right of centered 48px square */

@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { onDestroy } from 'svelte';
+    import { onDestroy, untrack } from 'svelte';
     import { flip } from 'svelte/animate';
     import { Folder, Link2, Plus, Edit, Trash2 } from 'lucide-svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
+    import { isInternalDomain } from '$lib/utils/url';
 
     type Size = 'compact' | 'large';
 
@@ -11,7 +12,10 @@
         links: QuickLink[];
         folders: QuickLinkFolder[];
         size: Size;
-        onOpenLink: (link: QuickLink) => void;
+        // Optional click hook fired when a link tile is opened (for analytics
+        // etc.). Navigation itself is handled natively by the <a> tag, so this
+        // is no longer required for the link to actually open.
+        onOpenLink?: (link: QuickLink) => void;
         onOpenFolder?: (folder: QuickLinkFolder) => void;
         onOpenAddLink: () => void;
         onOpenAddFolder: () => void;
@@ -63,13 +67,30 @@
         startTime: number;
         isDragging: boolean;
         containerRect: DOMRect;
+        pointerType: string;
+        longPressTimer: ReturnType<typeof setTimeout> | null;
+        cancelled: boolean;
+        rafId: number | null;
+        pendingX: number;
+        pendingY: number;
     };
+
+    // Drag-detection thresholds.
+    // Touch uses long-press (time only) so a quick swipe still scrolls the
+    // page natively. Mouse/pen uses displacement so accidental holds don't
+    // block clicks.
+    const TOUCH_LONG_PRESS_MS = 500;
+    const POINTER_MOVE_THRESHOLD_PX = 8;
+    const TOUCH_CANCEL_MOVE_PX = 12;
 
     let brokenFavicons = $state<Set<string>>(new Set());
     let preloadedFavicons = $state<Set<string>>(new Set());
     let dragState = $state<DragState | null>(null);
     let wasDragging = $state(false);
     let hoveredMergeId = $state<string | null>(null);
+    let lastReorderTargetId: string | null = null;
+    // Status text announced via aria-live when keyboard reordering happens.
+    let liveStatus = $state('');
 
     const faviconCache = new Map<string, string>();
     const fallbackFaviconCache = new Map<string, string>();
@@ -111,7 +132,7 @@
         if (faviconCache.has(link.url)) return faviconCache.get(link.url) || '';
         try {
             const h = new URL(link.url).hostname;
-            if (/^(localhost|127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(h)) {
+            if (isInternalDomain(h)) {
                 faviconCache.set(link.url, '');
                 return '';
             }
@@ -128,7 +149,7 @@
         if (fallbackFaviconCache.has(link.url)) return fallbackFaviconCache.get(link.url) || '';
         try {
             const h = new URL(link.url).hostname;
-            if (/^(localhost|127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(h)) {
+            if (isInternalDomain(h)) {
                 fallbackFaviconCache.set(link.url, '');
                 return '';
             }
@@ -143,11 +164,38 @@
 
     let gridContainer = $state<HTMLElement | null>(null);
 
+    // Honor OS-level reduce-motion preference for the FLIP reorder animation.
+    let reducedMotion = $state(false);
+    $effect(() => {
+        if (typeof window === 'undefined' || !window.matchMedia) return;
+        const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const apply = () => {
+            reducedMotion = mql.matches;
+        };
+        apply();
+        mql.addEventListener('change', apply);
+        return () => mql.removeEventListener('change', apply);
+    });
+    const flipDuration = $derived(reducedMotion ? 0 : 200);
+
+    function enterDragMode() {
+        if (!dragState || dragState.isDragging) return;
+        dragState.isDragging = true;
+        document.body.style.userSelect = 'none';
+        // Block native page scroll while a drag is in progress so that touch
+        // pointer-moves are routed to the drag, not the scroller.
+        document.body.style.touchAction = 'none';
+    }
+
     function onPointerDown(event: PointerEvent, item: QuickLink | QuickLinkFolder, kind: 'link' | 'folder') {
         if (event.button !== 0) return;
         const target = event.currentTarget as HTMLElement;
         const rect = target.getBoundingClientRect();
         const containerRect = gridContainer!.getBoundingClientRect();
+
+        // Cleared here (not on a timer) so the next click is gated solely by
+        // whether this pointer cycle crossed the drag threshold.
+        wasDragging = false;
 
         dragState = {
             id: item.id,
@@ -163,8 +211,25 @@
             height: rect.height,
             startTime: Date.now(),
             isDragging: false,
-            containerRect
+            containerRect,
+            pointerType: event.pointerType || 'mouse',
+            longPressTimer: null,
+            cancelled: false,
+            rafId: null,
+            pendingX: event.clientX,
+            pendingY: event.clientY
         };
+
+        // Touch only: arm a long-press timer. If the user pans before the
+        // timer fires we cancel the drag candidate so the page can scroll
+        // normally — this matches mobile-OS reorder behavior.
+        if (dragState.pointerType === 'touch') {
+            dragState.longPressTimer = setTimeout(() => {
+                if (dragState && !dragState.cancelled && !dragState.isDragging) {
+                    enterDragMode();
+                }
+            }, TOUCH_LONG_PRESS_MS);
+        }
 
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
@@ -178,61 +243,158 @@
         const dy = event.clientY - dragState.startY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (!dragState.isDragging && (distance > 8 || Date.now() - dragState.startTime > 200)) {
-            dragState.isDragging = true;
-            document.body.style.userSelect = 'none';
+        if (!dragState.isDragging) {
+            const isTouch = dragState.pointerType === 'touch';
+            if (isTouch) {
+                // Movement before long-press fires → user is scrolling, not dragging.
+                if (distance > TOUCH_CANCEL_MOVE_PX) {
+                    cancelDragCandidate();
+                    return;
+                }
+                // Otherwise wait for the long-press timer.
+                return;
+            }
+            // Mouse/pen: enter drag on small displacement.
+            if (distance > POINTER_MOVE_THRESHOLD_PX) {
+                enterDragMode();
+            } else {
+                return;
+            }
         }
 
-        if (dragState.isDragging) {
-            dragState.currentX = event.clientX;
-            dragState.currentY = event.clientY;
-            dragState.containerRect = gridContainer!.getBoundingClientRect();
+        // Throttle the expensive hit-testing work to one rAF tick.
+        dragState.pendingX = event.clientX;
+        dragState.pendingY = event.clientY;
+        if (dragState.rafId == null) {
+            dragState.rafId = requestAnimationFrame(processPointerMove);
+        }
+    }
 
-            // Handle live reordering
-            const items = Array.from(gridContainer!.querySelectorAll('.ql-item[data-id]')) as HTMLElement[];
-            let bestTargetId: string | null = null;
-            let bestMergeId: string | null = null;
+    function processPointerMove() {
+        if (!dragState || !dragState.isDragging) {
+            if (dragState) dragState.rafId = null;
+            return;
+        }
+        dragState.rafId = null;
+        const x = dragState.pendingX;
+        const y = dragState.pendingY;
 
-            for (const el of items) {
-                const rect = el.getBoundingClientRect();
-                const id = el.getAttribute('data-id')!;
-                const kind = el.getAttribute('data-kind')!;
+        dragState.currentX = x;
+        dragState.currentY = y;
+        dragState.containerRect = gridContainer!.getBoundingClientRect();
 
-                if (id === dragState.id) continue;
+        // Live reorder hit-testing.
+        const items = Array.from(gridContainer!.querySelectorAll('.ql-item[data-id]')) as HTMLElement[];
+        let bestTargetId: string | null = null;
+        let bestMergeId: string | null = null;
 
-                // Merge detection: Link onto Link (create folder) or Link onto Folder (move into)
-                if (dragState.kind === 'link' && !dragState.item.folderId) {
-                    const mergeThreshold = 20;
-                    const isInside =
-                        event.clientX > rect.left + mergeThreshold &&
-                        event.clientX < rect.right - mergeThreshold &&
-                        event.clientY > rect.top + mergeThreshold &&
-                        event.clientY < rect.bottom - mergeThreshold;
+        for (const el of items) {
+            const rect = el.getBoundingClientRect();
+            const id = el.getAttribute('data-id')!;
+            const elKind = el.getAttribute('data-kind')!;
 
-                    if (isInside && (kind === 'link' || kind === 'folder')) {
-                        bestMergeId = id;
-                        break;
-                    }
-                }
+            if (id === dragState.id) continue;
 
-                // Reorder detection
-                if (
-                    event.clientX > rect.left &&
-                    event.clientX < rect.right &&
-                    event.clientY > rect.top &&
-                    event.clientY < rect.bottom
-                ) {
-                    bestTargetId = id;
+            // Merge: link → link (create folder) or link → folder (move into).
+            if (dragState.kind === 'link' && !(dragState.item as QuickLink).folderId) {
+                const mergeThreshold = 20;
+                const isInside =
+                    x > rect.left + mergeThreshold &&
+                    x < rect.right - mergeThreshold &&
+                    y > rect.top + mergeThreshold &&
+                    y < rect.bottom - mergeThreshold;
+
+                if (isInside && (elKind === 'link' || elKind === 'folder')) {
+                    bestMergeId = id;
                     break;
                 }
             }
 
-            hoveredMergeId = bestMergeId;
-
-            if (bestTargetId && !bestMergeId) {
-                reorderLocally(dragState.id, bestTargetId, dragState.kind);
+            // Reorder.
+            if (x > rect.left && x < rect.right && y > rect.top && y < rect.bottom) {
+                bestTargetId = id;
+                break;
             }
         }
+
+        hoveredMergeId = bestMergeId;
+
+        if (bestTargetId && !bestMergeId) {
+            if (bestTargetId !== lastReorderTargetId) {
+                lastReorderTargetId = bestTargetId;
+                reorderLocally(dragState.id, bestTargetId, dragState.kind);
+            }
+        } else {
+            lastReorderTargetId = null;
+        }
+    }
+
+    function cancelDragCandidate() {
+        if (!dragState) return;
+        dragState.cancelled = true;
+        if (dragState.longPressTimer != null) {
+            clearTimeout(dragState.longPressTimer);
+            dragState.longPressTimer = null;
+        }
+        if (dragState.rafId != null) {
+            cancelAnimationFrame(dragState.rafId);
+            dragState.rafId = null;
+        }
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+        dragState = null;
+    }
+
+    // ─── Keyboard reorder (WCAG 2.1.1 keyboard alternative for drag) ─────────
+    // Alt+Arrow on a focused tile moves it through its sibling list. We use Alt
+    // as the modifier so plain arrow-key navigation still moves browser focus
+    // and selection in the surrounding page.
+    async function onTileKeyDown(
+        event: KeyboardEvent,
+        item: QuickLink | QuickLinkFolder,
+        kind: 'link' | 'folder'
+    ) {
+        if (!event.altKey) return;
+        const direction =
+            event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+                ? -1
+                : event.key === 'ArrowRight' || event.key === 'ArrowDown'
+                  ? 1
+                  : 0;
+        if (direction === 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const list: { id: string }[] = kind === 'link' ? [...rootLinks] : [...visibleFolders];
+        const idx = list.findIndex((i) => i.id === item.id);
+        if (idx < 0) return;
+        const nextIdx = idx + direction;
+        if (nextIdx < 0 || nextIdx >= list.length) {
+            liveStatus = `${labelForItem(item, kind)} is already at the ${direction < 0 ? 'start' : 'end'} of the list.`;
+            return;
+        }
+        const target = list[nextIdx];
+        if (!target) return;
+        const targetId = target.id;
+        reorderLocally(item.id, targetId, kind);
+        liveStatus = `${labelForItem(item, kind)} moved to position ${nextIdx + 1} of ${list.length}.`;
+
+        try {
+            if (kind === 'link') {
+                await onReorderLinks(rootLinks.map((l) => l.id));
+            } else {
+                await onReorderFolders(visibleFolders.map((f) => f.id));
+            }
+        } catch (e) {
+            console.error(e);
+            liveStatus = 'Reorder failed. Please try again.';
+        }
+    }
+
+    function labelForItem(item: QuickLink | QuickLinkFolder, kind: 'link' | 'folder') {
+        if (kind === 'folder') return (item as QuickLinkFolder).name || 'Untitled folder';
+        return labelFor(item as QuickLink);
     }
 
     function reorderLocally(activeId: string, targetId: string, kind: 'link' | 'folder') {
@@ -241,23 +403,21 @@
             const activeIdx = items.findIndex((i) => i.id === activeId);
             const targetIdx = items.findIndex((i) => i.id === targetId);
             if (activeIdx !== -1 && targetIdx !== -1 && activeIdx !== targetIdx) {
-                items.splice(targetIdx, 0, items.splice(activeIdx, 1)[0]);
-                // Update orders
-                items.forEach((item, index) => {
-                    item.order = index;
-                });
-                localLinks = [...localLinks.filter((l) => l.folderId), ...items];
+                const [moved] = items.splice(activeIdx, 1);
+                if (!moved) return;
+                items.splice(targetIdx, 0, moved);
+                const reordered = items.map((item, index) => ({ ...item, order: index }));
+                localLinks = [...localLinks.filter((l) => l.folderId), ...reordered];
             }
         } else {
             const items = [...visibleFolders];
             const activeIdx = items.findIndex((i) => i.id === activeId);
             const targetIdx = items.findIndex((i) => i.id === targetId);
             if (activeIdx !== -1 && targetIdx !== -1 && activeIdx !== targetIdx) {
-                items.splice(targetIdx, 0, items.splice(activeIdx, 1)[0]);
-                items.forEach((item, index) => {
-                    item.order = index;
-                });
-                localFolders = items;
+                const [moved] = items.splice(activeIdx, 1);
+                if (!moved) return;
+                items.splice(targetIdx, 0, moved);
+                localFolders = items.map((item, index) => ({ ...item, order: index }));
             }
         }
     }
@@ -265,20 +425,21 @@
     async function onPointerUp() {
         if (!dragState) return;
 
-        const { isDragging, id, kind } = dragState;
+        const { isDragging, id, kind, longPressTimer, rafId } = dragState;
         const mergeId = hoveredMergeId;
+
+        if (longPressTimer != null) clearTimeout(longPressTimer);
+        if (rafId != null) cancelAnimationFrame(rafId);
 
         if (isDragging) {
             wasDragging = true;
-            setTimeout(() => {
-                wasDragging = false;
-            }, 50);
         }
 
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
         window.removeEventListener('pointercancel', onPointerUp);
         document.body.style.removeProperty('user-select');
+        document.body.style.removeProperty('touch-action');
 
         if (isDragging) {
             if (mergeId && kind === 'link') {
@@ -308,6 +469,7 @@
 
         dragState = null;
         hoveredMergeId = null;
+        lastReorderTargetId = null;
     }
 
     onDestroy(() => {
@@ -315,45 +477,64 @@
             window.removeEventListener('pointermove', onPointerMove);
             window.removeEventListener('pointerup', onPointerUp);
             window.removeEventListener('pointercancel', onPointerUp);
+            document.body.style.removeProperty('user-select');
+            document.body.style.removeProperty('touch-action');
+        }
+        if (dragState) {
+            if (dragState.longPressTimer != null) clearTimeout(dragState.longPressTimer);
+            if (dragState.rafId != null) cancelAnimationFrame(dragState.rafId);
         }
     });
 
+    // Tracks link IDs whose favicon fetch is currently in-flight. Plain (non-reactive)
+    // so changes to it do not re-trigger the $effect below.
+    const _inFlight = new Set<string>();
+
     $effect(() => {
-        const imageElements: HTMLImageElement[] = [];
-        const preloadPromises = links.map((link) => {
-            if (preloadedFavicons.has(link.id) || brokenFavicons.has(link.id)) return Promise.resolve();
+        // Only `links` is a reactive dependency here. preloadedFavicons and
+        // brokenFavicons are read via untrack() so completing a preload does not
+        // cause the effect to re-run and rebuild Image objects for all other links.
+        const toProcess = links.filter(
+            (link) =>
+                !_inFlight.has(link.id) &&
+                !untrack(() => preloadedFavicons.has(link.id) || brokenFavicons.has(link.id))
+        );
+
+        const imageEntries: { img: HTMLImageElement; id: string }[] = [];
+
+        const preloadPromises = toProcess.map((link) => {
+            _inFlight.add(link.id);
             const url = faviconForLink(link);
-            if (!url) return Promise.resolve();
+            if (!url) {
+                _inFlight.delete(link.id);
+                return Promise.resolve();
+            }
             return new Promise<void>((resolve) => {
                 const img = new Image();
-                imageElements.push(img);
+                imageEntries.push({ img, id: link.id });
                 img.onload = () => {
-                    const next = new Set(preloadedFavicons);
-                    next.add(link.id);
-                    preloadedFavicons = next;
+                    _inFlight.delete(link.id);
+                    preloadedFavicons = new Set([...preloadedFavicons, link.id]);
                     resolve();
                 };
                 img.onerror = () => {
                     const fallbackUrl = getFallbackFavicon(link);
                     if (!fallbackUrl) {
-                        const next = new Set(brokenFavicons);
-                        next.add(link.id);
-                        brokenFavicons = next;
+                        _inFlight.delete(link.id);
+                        brokenFavicons = new Set([...brokenFavicons, link.id]);
                         resolve();
                         return;
                     }
                     const fallbackImg = new Image();
-                    imageElements.push(fallbackImg);
+                    imageEntries.push({ img: fallbackImg, id: link.id });
                     fallbackImg.onload = () => {
-                        const next = new Set(preloadedFavicons);
-                        next.add(link.id);
-                        preloadedFavicons = next;
+                        _inFlight.delete(link.id);
+                        preloadedFavicons = new Set([...preloadedFavicons, link.id]);
                         resolve();
                     };
                     fallbackImg.onerror = () => {
-                        const next = new Set(brokenFavicons);
-                        next.add(link.id);
-                        brokenFavicons = next;
+                        _inFlight.delete(link.id);
+                        brokenFavicons = new Set([...brokenFavicons, link.id]);
                         resolve();
                     };
                     fallbackImg.src = fallbackUrl;
@@ -361,13 +542,18 @@
                 img.src = url;
             });
         });
+
         void Promise.all(preloadPromises);
+
         return () => {
-            imageElements.forEach((img) => {
+            for (const { img, id } of imageEntries) {
                 img.src = '';
                 img.onload = null;
                 img.onerror = null;
-            });
+                // Remove from in-flight so the link can be retried if links changes
+                // while this preload was still pending.
+                _inFlight.delete(id);
+            }
         };
     });
 </script>
@@ -384,7 +570,7 @@
                 : ''}"
             data-kind="folder"
             data-id={folder.id}
-            animate:flip={{ duration: 200 }}
+            animate:flip={{ duration: flipDuration }}
         >
             <div class="widget-item-menu-wrap" onclick={(e) => e.stopPropagation()} role="presentation">
                 <div class="widget-item-menu-inner">
@@ -400,7 +586,9 @@
             <button
                 type="button"
                 class="ql-button"
+                aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown"
                 onpointerdown={(e) => onPointerDown(e, folder, 'folder')}
+                onkeydown={(e) => onTileKeyDown(e, folder, 'folder')}
                 onclick={(e) => {
                     if (wasDragging) {
                         e.preventDefault();
@@ -425,7 +613,7 @@
             class="ql-item {dragState?.id === link.id ? 'ql-item--dragging-placeholder' : ''} {hoveredMergeId === link.id ? 'ql-item--merge-target' : ''}"
             data-kind="link"
             data-id={link.id}
-            animate:flip={{ duration: 200 }}
+            animate:flip={{ duration: flipDuration }}
         >
             <div class="widget-item-menu-wrap" onclick={(e) => e.stopPropagation()} role="presentation">
                 <div class="widget-item-menu-inner">
@@ -438,17 +626,27 @@
                     />
                 </div>
             </div>
-            <button
-                type="button"
-                class="ql-button"
+            <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="ql-button ql-button--link"
+                draggable="false"
+                aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown"
+                ondragstart={(e) => e.preventDefault()}
                 onpointerdown={(e) => onPointerDown(e, link, 'link')}
+                onkeydown={(e) => onTileKeyDown(e, link, 'link')}
                 onclick={(e) => {
                     if (wasDragging) {
+                        // A drag just ended — suppress the synthetic click so
+                        // the browser doesn't navigate after a reorder/merge.
                         e.preventDefault();
                         e.stopPropagation();
                         return;
                     }
-                    onOpenLink(link);
+                    // Otherwise let the native <a> handle navigation, which
+                    // preserves middle-click and Cmd/Ctrl-click semantics.
+                    onOpenLink?.(link);
                 }}
             >
                 <div class="ql-icon ql-icon--link" style={`width: ${tileSize}px; height: ${tileSize}px;`}>
@@ -460,12 +658,13 @@
                         <img
                             src={faviconForLink(link)}
                             alt=""
+                            draggable="false"
                             style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; object-fit: contain;`}
                         />
                     {/if}
                 </div>
                 <span class="ql-label" style={`font-size: ${labelSize}px;`}>{labelFor(link)}</span>
-            </button>
+            </a>
         </div>
     {/each}
 
@@ -483,6 +682,7 @@
         <span class="ql-label ql-label--folder" style={`font-size: ${labelSize}px;`}>Add folder</span>
     </button>
 </div>
+<div class="ql-sr-status" role="status" aria-live="polite" aria-atomic="true">{liveStatus}</div>
 
 {#if dragState && dragState.isDragging}
     {@const item = dragState.item}
@@ -536,6 +736,30 @@
         position: relative;
         padding: 12px 0;
     }
+    /* Visually-hidden screen-reader-only status region for keyboard reorder
+       announcements. Following the standard sr-only pattern. */
+    .ql-sr-status {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .ql-item,
+        .ql-button,
+        .ql-ghost,
+        .ql-item--merge-target .ql-icon {
+            transition: none !important;
+        }
+        .ql-button:hover {
+            transform: none;
+        }
+    }
     .ql-item {
         position: relative;
         display: flex;
@@ -543,6 +767,12 @@
         align-items: center;
         gap: 8px;
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+        /* Allow vertical pan (page scroll) on mobile; we toggle to "none"
+           imperatively once a drag is detected so reorder still works. */
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
     .ql-item--dragging-placeholder {
         opacity: 0.2;
@@ -575,6 +805,16 @@
         align-items: center;
         gap: 8px;
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
+    /* Anchor variant for external links — strip the default link styling so
+       it matches the surrounding button-shaped tiles. */
+    .ql-button--link {
+        text-decoration: none;
+        color: inherit;
     }
     .ql-button:hover {
         transform: translateY(-2px);
@@ -618,5 +858,18 @@
     }
     .ql-label--folder {
         color: var(--lilac-d);
+    }
+
+    .ql-item:hover :global(.widget-item-menu-wrap),
+    .ql-item:focus-within :global(.widget-item-menu-wrap) {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+        .ql-item :global(.widget-item-menu-wrap) {
+            opacity: 1;
+            pointer-events: auto;
+        }
     }
 </style>

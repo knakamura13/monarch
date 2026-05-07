@@ -4,7 +4,11 @@ import {
     listQuickLinkFolders,
     createQuickLinkFolder,
     updateQuickLinkFolder,
-    deleteQuickLinkFolder
+    deleteQuickLinkFolder,
+    createFolderWithLinks,
+    moveLinkToFolder,
+    reorderQuickLinks,
+    reorderQuickLinkFolders
 } from '$lib/server/services/quickLinkFolder.service';
 import { logActionError } from '$lib/server/services/actionError.service';
 import type { Actions, PageServerLoad } from './$types';
@@ -15,10 +19,12 @@ import {
     quickLinkDeleteSchema,
     quickLinkFolderCreateSchema,
     quickLinkFolderUpdateSchema,
-    quickLinkFolderDeleteSchema
+    quickLinkFolderDeleteSchema,
+    quickLinkMoveToFolderSchema,
+    quickLinkFolderReorderSchema,
+    quickLinkReorderSchema,
+    quickLinkCreateFolderFromLinksSchema
 } from '$lib/schemas/quickLink';
-import { moveLinkToFolder, reorderQuickLinks, reorderQuickLinkFolders } from '$lib/server/services/quickLinkFolder.service';
-import { quickLinkMoveToFolderSchema, quickLinkFolderReorderSchema, quickLinkReorderSchema } from '$lib/schemas/quickLink';
 
 function formArray(formData: FormData, key: string) {
     return formData
@@ -176,6 +182,26 @@ export const actions: Actions = {
             return { success: true };
         } catch (e) {
             const message = e instanceof Error ? e.message : 'Failed to reorder links';
+            const errorId = await logActionError(event, { message, status: 500, stack: e instanceof Error ? e.stack : undefined });
+            return fail(500, { error: message, errorId });
+        }
+    },
+    createFolderFromLinks: async (event) => {
+        const { workspace, user } = requireWorkspace(event);
+        const formData = await event.request.formData();
+        const parsed = quickLinkCreateFolderFromLinksSchema.safeParse({
+            linkIds: formArray(formData, 'linkIds'),
+            name: formData.get('name') ?? undefined
+        });
+        if (!parsed.success) {
+            const errorId = await logActionError(event, { message: parsed.error.message, status: 400, stack: undefined });
+            return fail(400, { error: parsed.error.message, errorId });
+        }
+        try {
+            const folder = await createFolderWithLinks(workspace.id, user.id, parsed.data.linkIds, parsed.data.name);
+            return { success: true, folder };
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Failed to create folder';
             const errorId = await logActionError(event, { message, status: 500, stack: e instanceof Error ? e.stack : undefined });
             return fail(500, { error: message, errorId });
         }

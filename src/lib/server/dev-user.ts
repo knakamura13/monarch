@@ -3,11 +3,13 @@ import { baPk, entitySk, gsi1Sk, gsi1UserPk, wsPk } from './dynamo/keys';
 import { ENV } from './env';
 
 export const DEV_USER = {
-    id: 'dev_user_local',
+    get id() {
+        return ENV.DEV_USER_ID;
+    },
     email: 'dev@localhost',
     name: 'Dev User',
     image: null
-} as const;
+};
 
 export const DEV_WORKSPACE = {
     id: 'dev_workspace_local',
