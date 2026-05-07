@@ -70,16 +70,27 @@ export const quickLinkMoveToFolderSchema = z.object({
     folderId: z.string().nullable().optional()
 });
 
+// Reorder payloads are chunked into 100-item DynamoDB transactions on the
+// server, but unbounded arrays would still let a malicious caller force the
+// server to do arbitrary amounts of work. Cap at 1000 — well above any
+// realistic UI limit.
+const REORDER_MAX = 1000;
+
+// createFolderFromLinks fits 1 folder Put + N link Updates into a single
+// atomic DynamoDB transaction (capped at 100 items). 99 link updates leaves
+// room for the folder Put.
+const FOLDER_FROM_LINKS_MAX = 99;
+
 export const quickLinkReorderSchema = z.object({
-    linkIds: z.array(z.string().min(1))
+    linkIds: z.array(z.string().min(1)).max(REORDER_MAX)
 });
 
 export const quickLinkFolderReorderSchema = z.object({
-    folderIds: z.array(z.string().min(1))
+    folderIds: z.array(z.string().min(1)).max(REORDER_MAX)
 });
 
 export const quickLinkCreateFolderFromLinksSchema = z.object({
-    linkIds: z.array(z.string().min(1)).min(1),
+    linkIds: z.array(z.string().min(1)).min(1).max(FOLDER_FROM_LINKS_MAX),
     name: optionalFolderName
 });
 

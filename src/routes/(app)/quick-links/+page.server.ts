@@ -4,7 +4,11 @@ import {
     listQuickLinkFolders,
     createQuickLinkFolder,
     updateQuickLinkFolder,
-    deleteQuickLinkFolder
+    deleteQuickLinkFolder,
+    createFolderWithLinks,
+    moveLinkToFolder,
+    reorderQuickLinks,
+    reorderQuickLinkFolders
 } from '$lib/server/services/quickLinkFolder.service';
 import { logActionError } from '$lib/server/services/actionError.service';
 import type { Actions, PageServerLoad } from './$types';
@@ -15,15 +19,7 @@ import {
     quickLinkDeleteSchema,
     quickLinkFolderCreateSchema,
     quickLinkFolderUpdateSchema,
-    quickLinkFolderDeleteSchema
-} from '$lib/schemas/quickLink';
-import {
-    createFolderWithLinks,
-    moveLinkToFolder,
-    reorderQuickLinks,
-    reorderQuickLinkFolders
-} from '$lib/server/services/quickLinkFolder.service';
-import {
+    quickLinkFolderDeleteSchema,
     quickLinkMoveToFolderSchema,
     quickLinkFolderReorderSchema,
     quickLinkReorderSchema,

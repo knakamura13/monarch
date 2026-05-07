@@ -12,6 +12,14 @@
     import { getPageNumber } from '$lib/constants/navigation';
     import type { PageData } from './$types';
 
+    function prettyHostname(url: string): string {
+        try {
+            return new URL(url).hostname;
+        } catch {
+            return 'Link';
+        }
+    }
+
     let { data, form }: { data: PageData; form?: { error?: string; errorId?: string | null } } = $props();
     let qlDialog = $state<QuickLinksManageDialog | null>(null);
     let folderPopoverId = $state<string | null>(null);
@@ -141,6 +149,7 @@
                 class="modal-title-input display"
                 style="height: 32px; font-size: 18px; border: none; background: transparent; padding: 0;"
                 placeholder="Folder name"
+                aria-label="Folder name"
             />
         </div>
     {/snippet}
@@ -186,7 +195,7 @@
                             </div>
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-weight: 500; font-size: 15px;">{link.title || 'Link'}</span>
-                                <span style="font-size: 13px; color: var(--ink-3);">{new URL(link.url).hostname}</span>
+                                <span style="font-size: 13px; color: var(--ink-3);">{prettyHostname(link.url)}</span>
                             </div>
                         </a>
                         <div style="display: flex; gap: 4px;">
