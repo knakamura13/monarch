@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { quickLinkCreateSchema } from '$lib/schemas/quickLink';
+import {
+    quickLinkCreateSchema,
+    quickLinkCreateFolderFromLinksSchema,
+    quickLinkReorderSchema,
+    quickLinkFolderReorderSchema
+} from '$lib/schemas/quickLink';
 import { createQuickLink, listQuickLinks, softDeleteQuickLink } from '$lib/server/services/quickLink.service';
 import { createQuickLinkFolder } from '$lib/server/services/quickLinkFolder.service';
 
@@ -98,5 +103,27 @@ describe('softDeleteQuickLink', () => {
     it('throws when the link does not exist', async () => {
         const ws = workspaceId();
         await expect(softDeleteQuickLink(ws, actorId, 'nonexistent-id')).rejects.toThrow('Quick link not found');
+    });
+});
+
+describe('batch-operation schema caps', () => {
+    it('quickLinkCreateFolderFromLinksSchema rejects > 99 link IDs (DDB tx limit headroom)', () => {
+        const ids = Array.from({ length: 100 }, (_, i) => `link-${i}`);
+        expect(quickLinkCreateFolderFromLinksSchema.safeParse({ linkIds: ids }).success).toBe(false);
+    });
+
+    it('quickLinkCreateFolderFromLinksSchema accepts exactly 99 link IDs', () => {
+        const ids = Array.from({ length: 99 }, (_, i) => `link-${i}`);
+        expect(quickLinkCreateFolderFromLinksSchema.safeParse({ linkIds: ids }).success).toBe(true);
+    });
+
+    it('quickLinkReorderSchema rejects > 1000 IDs', () => {
+        const ids = Array.from({ length: 1001 }, (_, i) => `link-${i}`);
+        expect(quickLinkReorderSchema.safeParse({ linkIds: ids }).success).toBe(false);
+    });
+
+    it('quickLinkFolderReorderSchema rejects > 1000 IDs', () => {
+        const ids = Array.from({ length: 1001 }, (_, i) => `folder-${i}`);
+        expect(quickLinkFolderReorderSchema.safeParse({ folderIds: ids }).success).toBe(false);
     });
 });

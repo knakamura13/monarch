@@ -32,7 +32,7 @@ export function isInternalDomain(hostname: string): boolean {
 
     // IPv4-mapped IPv6 like ::ffff:127.0.0.1 or ::ffff:10.0.0.1
     const v4mapped = h.match(/^::ffff:([0-9.]+)$/);
-    if (v4mapped) return isInternalDomain(v4mapped[1]);
+    if (v4mapped && v4mapped[1]) return isInternalDomain(v4mapped[1]);
 
     return false;
 }

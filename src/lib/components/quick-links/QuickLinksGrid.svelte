@@ -89,6 +89,8 @@
     let wasDragging = $state(false);
     let hoveredMergeId = $state<string | null>(null);
     let lastReorderTargetId: string | null = null;
+    // Status text announced via aria-live when keyboard reordering happens.
+    let liveStatus = $state('');
 
     const faviconCache = new Map<string, string>();
     const fallbackFaviconCache = new Map<string, string>();
@@ -294,7 +296,7 @@
             if (id === dragState.id) continue;
 
             // Merge: link → link (create folder) or link → folder (move into).
-            if (dragState.kind === 'link' && !dragState.item.folderId) {
+            if (dragState.kind === 'link' && !(dragState.item as QuickLink).folderId) {
                 const mergeThreshold = 20;
                 const isInside =
                     x > rect.left + mergeThreshold &&
@@ -344,13 +346,66 @@
         dragState = null;
     }
 
+    // ─── Keyboard reorder (WCAG 2.1.1 keyboard alternative for drag) ─────────
+    // Alt+Arrow on a focused tile moves it through its sibling list. We use Alt
+    // as the modifier so plain arrow-key navigation still moves browser focus
+    // and selection in the surrounding page.
+    async function onTileKeyDown(
+        event: KeyboardEvent,
+        item: QuickLink | QuickLinkFolder,
+        kind: 'link' | 'folder'
+    ) {
+        if (!event.altKey) return;
+        const direction =
+            event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+                ? -1
+                : event.key === 'ArrowRight' || event.key === 'ArrowDown'
+                  ? 1
+                  : 0;
+        if (direction === 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const list: { id: string }[] = kind === 'link' ? [...rootLinks] : [...visibleFolders];
+        const idx = list.findIndex((i) => i.id === item.id);
+        if (idx < 0) return;
+        const nextIdx = idx + direction;
+        if (nextIdx < 0 || nextIdx >= list.length) {
+            liveStatus = `${labelForItem(item, kind)} is already at the ${direction < 0 ? 'start' : 'end'} of the list.`;
+            return;
+        }
+        const target = list[nextIdx];
+        if (!target) return;
+        const targetId = target.id;
+        reorderLocally(item.id, targetId, kind);
+        liveStatus = `${labelForItem(item, kind)} moved to position ${nextIdx + 1} of ${list.length}.`;
+
+        try {
+            if (kind === 'link') {
+                await onReorderLinks(rootLinks.map((l) => l.id));
+            } else {
+                await onReorderFolders(visibleFolders.map((f) => f.id));
+            }
+        } catch (e) {
+            console.error(e);
+            liveStatus = 'Reorder failed. Please try again.';
+        }
+    }
+
+    function labelForItem(item: QuickLink | QuickLinkFolder, kind: 'link' | 'folder') {
+        if (kind === 'folder') return (item as QuickLinkFolder).name || 'Untitled folder';
+        return labelFor(item as QuickLink);
+    }
+
     function reorderLocally(activeId: string, targetId: string, kind: 'link' | 'folder') {
         if (kind === 'link') {
             const items = [...rootLinks];
             const activeIdx = items.findIndex((i) => i.id === activeId);
             const targetIdx = items.findIndex((i) => i.id === targetId);
             if (activeIdx !== -1 && targetIdx !== -1 && activeIdx !== targetIdx) {
-                items.splice(targetIdx, 0, items.splice(activeIdx, 1)[0]);
+                const [moved] = items.splice(activeIdx, 1);
+                if (!moved) return;
+                items.splice(targetIdx, 0, moved);
                 const reordered = items.map((item, index) => ({ ...item, order: index }));
                 localLinks = [...localLinks.filter((l) => l.folderId), ...reordered];
             }
@@ -359,7 +414,9 @@
             const activeIdx = items.findIndex((i) => i.id === activeId);
             const targetIdx = items.findIndex((i) => i.id === targetId);
             if (activeIdx !== -1 && targetIdx !== -1 && activeIdx !== targetIdx) {
-                items.splice(targetIdx, 0, items.splice(activeIdx, 1)[0]);
+                const [moved] = items.splice(activeIdx, 1);
+                if (!moved) return;
+                items.splice(targetIdx, 0, moved);
                 localFolders = items.map((item, index) => ({ ...item, order: index }));
             }
         }
@@ -529,7 +586,9 @@
             <button
                 type="button"
                 class="ql-button"
+                aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown"
                 onpointerdown={(e) => onPointerDown(e, folder, 'folder')}
+                onkeydown={(e) => onTileKeyDown(e, folder, 'folder')}
                 onclick={(e) => {
                     if (wasDragging) {
                         e.preventDefault();
@@ -573,8 +632,10 @@
                 rel="noopener noreferrer"
                 class="ql-button ql-button--link"
                 draggable="false"
+                aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown"
                 ondragstart={(e) => e.preventDefault()}
                 onpointerdown={(e) => onPointerDown(e, link, 'link')}
+                onkeydown={(e) => onTileKeyDown(e, link, 'link')}
                 onclick={(e) => {
                     if (wasDragging) {
                         // A drag just ended — suppress the synthetic click so
@@ -621,6 +682,7 @@
         <span class="ql-label ql-label--folder" style={`font-size: ${labelSize}px;`}>Add folder</span>
     </button>
 </div>
+<div class="ql-sr-status" role="status" aria-live="polite" aria-atomic="true">{liveStatus}</div>
 
 {#if dragState && dragState.isDragging}
     {@const item = dragState.item}
@@ -673,6 +735,19 @@
         align-items: start;
         position: relative;
         padding: 12px 0;
+    }
+    /* Visually-hidden screen-reader-only status region for keyboard reorder
+       announcements. Following the standard sr-only pattern. */
+    .ql-sr-status {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
     @media (prefers-reduced-motion: reduce) {
         .ql-item,
