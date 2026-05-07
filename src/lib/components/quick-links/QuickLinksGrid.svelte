@@ -67,7 +67,21 @@
         startTime: number;
         isDragging: boolean;
         containerRect: DOMRect;
+        pointerType: string;
+        longPressTimer: ReturnType<typeof setTimeout> | null;
+        cancelled: boolean;
+        rafId: number | null;
+        pendingX: number;
+        pendingY: number;
     };
+
+    // Drag-detection thresholds.
+    // Touch uses long-press (time only) so a quick swipe still scrolls the
+    // page natively. Mouse/pen uses displacement so accidental holds don't
+    // block clicks.
+    const TOUCH_LONG_PRESS_MS = 500;
+    const POINTER_MOVE_THRESHOLD_PX = 8;
+    const TOUCH_CANCEL_MOVE_PX = 12;
 
     let brokenFavicons = $state<Set<string>>(new Set());
     let preloadedFavicons = $state<Set<string>>(new Set());
@@ -148,6 +162,15 @@
 
     let gridContainer = $state<HTMLElement | null>(null);
 
+    function enterDragMode() {
+        if (!dragState || dragState.isDragging) return;
+        dragState.isDragging = true;
+        document.body.style.userSelect = 'none';
+        // Block native page scroll while a drag is in progress so that touch
+        // pointer-moves are routed to the drag, not the scroller.
+        document.body.style.touchAction = 'none';
+    }
+
     function onPointerDown(event: PointerEvent, item: QuickLink | QuickLinkFolder, kind: 'link' | 'folder') {
         if (event.button !== 0) return;
         const target = event.currentTarget as HTMLElement;
@@ -172,8 +195,25 @@
             height: rect.height,
             startTime: Date.now(),
             isDragging: false,
-            containerRect
+            containerRect,
+            pointerType: event.pointerType || 'mouse',
+            longPressTimer: null,
+            cancelled: false,
+            rafId: null,
+            pendingX: event.clientX,
+            pendingY: event.clientY
         };
+
+        // Touch only: arm a long-press timer. If the user pans before the
+        // timer fires we cancel the drag candidate so the page can scroll
+        // normally — this matches mobile-OS reorder behavior.
+        if (dragState.pointerType === 'touch') {
+            dragState.longPressTimer = setTimeout(() => {
+                if (dragState && !dragState.cancelled && !dragState.isDragging) {
+                    enterDragMode();
+                }
+            }, TOUCH_LONG_PRESS_MS);
+        }
 
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
@@ -187,66 +227,107 @@
         const dy = event.clientY - dragState.startY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (!dragState.isDragging && (distance > 8 || Date.now() - dragState.startTime > 200)) {
-            dragState.isDragging = true;
-            document.body.style.userSelect = 'none';
+        if (!dragState.isDragging) {
+            const isTouch = dragState.pointerType === 'touch';
+            if (isTouch) {
+                // Movement before long-press fires → user is scrolling, not dragging.
+                if (distance > TOUCH_CANCEL_MOVE_PX) {
+                    cancelDragCandidate();
+                    return;
+                }
+                // Otherwise wait for the long-press timer.
+                return;
+            }
+            // Mouse/pen: enter drag on small displacement.
+            if (distance > POINTER_MOVE_THRESHOLD_PX) {
+                enterDragMode();
+            } else {
+                return;
+            }
         }
 
-        if (dragState.isDragging) {
-            dragState.currentX = event.clientX;
-            dragState.currentY = event.clientY;
-            dragState.containerRect = gridContainer!.getBoundingClientRect();
+        // Throttle the expensive hit-testing work to one rAF tick.
+        dragState.pendingX = event.clientX;
+        dragState.pendingY = event.clientY;
+        if (dragState.rafId == null) {
+            dragState.rafId = requestAnimationFrame(processPointerMove);
+        }
+    }
 
-            // Handle live reordering
-            const items = Array.from(gridContainer!.querySelectorAll('.ql-item[data-id]')) as HTMLElement[];
-            let bestTargetId: string | null = null;
-            let bestMergeId: string | null = null;
+    function processPointerMove() {
+        if (!dragState || !dragState.isDragging) {
+            if (dragState) dragState.rafId = null;
+            return;
+        }
+        dragState.rafId = null;
+        const x = dragState.pendingX;
+        const y = dragState.pendingY;
 
-            for (const el of items) {
-                const rect = el.getBoundingClientRect();
-                const id = el.getAttribute('data-id')!;
-                const kind = el.getAttribute('data-kind')!;
+        dragState.currentX = x;
+        dragState.currentY = y;
+        dragState.containerRect = gridContainer!.getBoundingClientRect();
 
-                if (id === dragState.id) continue;
+        // Live reorder hit-testing.
+        const items = Array.from(gridContainer!.querySelectorAll('.ql-item[data-id]')) as HTMLElement[];
+        let bestTargetId: string | null = null;
+        let bestMergeId: string | null = null;
 
-                // Merge detection: Link onto Link (create folder) or Link onto Folder (move into)
-                if (dragState.kind === 'link' && !dragState.item.folderId) {
-                    const mergeThreshold = 20;
-                    const isInside =
-                        event.clientX > rect.left + mergeThreshold &&
-                        event.clientX < rect.right - mergeThreshold &&
-                        event.clientY > rect.top + mergeThreshold &&
-                        event.clientY < rect.bottom - mergeThreshold;
+        for (const el of items) {
+            const rect = el.getBoundingClientRect();
+            const id = el.getAttribute('data-id')!;
+            const elKind = el.getAttribute('data-kind')!;
 
-                    if (isInside && (kind === 'link' || kind === 'folder')) {
-                        bestMergeId = id;
-                        break;
-                    }
-                }
+            if (id === dragState.id) continue;
 
-                // Reorder detection
-                if (
-                    event.clientX > rect.left &&
-                    event.clientX < rect.right &&
-                    event.clientY > rect.top &&
-                    event.clientY < rect.bottom
-                ) {
-                    bestTargetId = id;
+            // Merge: link → link (create folder) or link → folder (move into).
+            if (dragState.kind === 'link' && !dragState.item.folderId) {
+                const mergeThreshold = 20;
+                const isInside =
+                    x > rect.left + mergeThreshold &&
+                    x < rect.right - mergeThreshold &&
+                    y > rect.top + mergeThreshold &&
+                    y < rect.bottom - mergeThreshold;
+
+                if (isInside && (elKind === 'link' || elKind === 'folder')) {
+                    bestMergeId = id;
                     break;
                 }
             }
 
-            hoveredMergeId = bestMergeId;
-
-            if (bestTargetId && !bestMergeId) {
-                if (bestTargetId !== lastReorderTargetId) {
-                    lastReorderTargetId = bestTargetId;
-                    reorderLocally(dragState.id, bestTargetId, dragState.kind);
-                }
-            } else {
-                lastReorderTargetId = null;
+            // Reorder.
+            if (x > rect.left && x < rect.right && y > rect.top && y < rect.bottom) {
+                bestTargetId = id;
+                break;
             }
         }
+
+        hoveredMergeId = bestMergeId;
+
+        if (bestTargetId && !bestMergeId) {
+            if (bestTargetId !== lastReorderTargetId) {
+                lastReorderTargetId = bestTargetId;
+                reorderLocally(dragState.id, bestTargetId, dragState.kind);
+            }
+        } else {
+            lastReorderTargetId = null;
+        }
+    }
+
+    function cancelDragCandidate() {
+        if (!dragState) return;
+        dragState.cancelled = true;
+        if (dragState.longPressTimer != null) {
+            clearTimeout(dragState.longPressTimer);
+            dragState.longPressTimer = null;
+        }
+        if (dragState.rafId != null) {
+            cancelAnimationFrame(dragState.rafId);
+            dragState.rafId = null;
+        }
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+        dragState = null;
     }
 
     function reorderLocally(activeId: string, targetId: string, kind: 'link' | 'folder') {
@@ -273,8 +354,11 @@
     async function onPointerUp() {
         if (!dragState) return;
 
-        const { isDragging, id, kind } = dragState;
+        const { isDragging, id, kind, longPressTimer, rafId } = dragState;
         const mergeId = hoveredMergeId;
+
+        if (longPressTimer != null) clearTimeout(longPressTimer);
+        if (rafId != null) cancelAnimationFrame(rafId);
 
         if (isDragging) {
             wasDragging = true;
@@ -284,6 +368,7 @@
         window.removeEventListener('pointerup', onPointerUp);
         window.removeEventListener('pointercancel', onPointerUp);
         document.body.style.removeProperty('user-select');
+        document.body.style.removeProperty('touch-action');
 
         if (isDragging) {
             if (mergeId && kind === 'link') {
@@ -321,6 +406,12 @@
             window.removeEventListener('pointermove', onPointerMove);
             window.removeEventListener('pointerup', onPointerUp);
             window.removeEventListener('pointercancel', onPointerUp);
+            document.body.style.removeProperty('user-select');
+            document.body.style.removeProperty('touch-action');
+        }
+        if (dragState) {
+            if (dragState.longPressTimer != null) clearTimeout(dragState.longPressTimer);
+            if (dragState.rafId != null) cancelAnimationFrame(dragState.rafId);
         }
     });
 
@@ -576,7 +667,9 @@
         align-items: center;
         gap: 8px;
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
-        touch-action: none;
+        /* Allow vertical pan (page scroll) on mobile; we toggle to "none"
+           imperatively once a drag is detected so reorder still works. */
+        touch-action: manipulation;
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
@@ -612,7 +705,7 @@
         align-items: center;
         gap: 8px;
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        touch-action: none;
+        touch-action: manipulation;
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
