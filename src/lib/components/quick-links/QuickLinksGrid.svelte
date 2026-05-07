@@ -162,6 +162,20 @@
 
     let gridContainer = $state<HTMLElement | null>(null);
 
+    // Honor OS-level reduce-motion preference for the FLIP reorder animation.
+    let reducedMotion = $state(false);
+    $effect(() => {
+        if (typeof window === 'undefined' || !window.matchMedia) return;
+        const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const apply = () => {
+            reducedMotion = mql.matches;
+        };
+        apply();
+        mql.addEventListener('change', apply);
+        return () => mql.removeEventListener('change', apply);
+    });
+    const flipDuration = $derived(reducedMotion ? 0 : 200);
+
     function enterDragMode() {
         if (!dragState || dragState.isDragging) return;
         dragState.isDragging = true;
@@ -499,7 +513,7 @@
                 : ''}"
             data-kind="folder"
             data-id={folder.id}
-            animate:flip={{ duration: 200 }}
+            animate:flip={{ duration: flipDuration }}
         >
             <div class="widget-item-menu-wrap" onclick={(e) => e.stopPropagation()} role="presentation">
                 <div class="widget-item-menu-inner">
@@ -540,7 +554,7 @@
             class="ql-item {dragState?.id === link.id ? 'ql-item--dragging-placeholder' : ''} {hoveredMergeId === link.id ? 'ql-item--merge-target' : ''}"
             data-kind="link"
             data-id={link.id}
-            animate:flip={{ duration: 200 }}
+            animate:flip={{ duration: flipDuration }}
         >
             <div class="widget-item-menu-wrap" onclick={(e) => e.stopPropagation()} role="presentation">
                 <div class="widget-item-menu-inner">
@@ -660,6 +674,17 @@
         position: relative;
         padding: 12px 0;
     }
+    @media (prefers-reduced-motion: reduce) {
+        .ql-item,
+        .ql-button,
+        .ql-ghost,
+        .ql-item--merge-target .ql-icon {
+            transition: none !important;
+        }
+        .ql-button:hover {
+            transform: none;
+        }
+    }
     .ql-item {
         position: relative;
         display: flex;
@@ -763,11 +788,13 @@
     .ql-item:hover :global(.widget-item-menu-wrap),
     .ql-item:focus-within :global(.widget-item-menu-wrap) {
         opacity: 1;
+        pointer-events: auto;
     }
 
     @media (hover: none) and (pointer: coarse) {
         .ql-item :global(.widget-item-menu-wrap) {
             opacity: 1;
+            pointer-events: auto;
         }
     }
 </style>
