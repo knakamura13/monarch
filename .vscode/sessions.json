@@ -1,0 +1,66 @@
+{
+  "$schema": "https://cdn.statically.io/gh/nguyenngoclongdev/cdn/main/schema/v11/terminal-keeper.json",
+  "theme": "tribe",
+  "active": "default",
+  "activateOnStartup": true,
+  "keepExistingTerminals": false,
+  "sessions": {
+    "default": [
+      {
+        "name": "Update",
+        "autoExecuteCommands": true,
+        "icon": "git-fetch",
+        "color": "terminal.ansiWhite",
+        "commands": [
+          "git fetch --all",
+          "git cleanup",
+          "git worktree prune",
+          "git remote prune origin",
+          "git gc --auto",
+          "git pull",
+          "git checkout main",
+          "git pull",
+          "exit"
+        ]
+      },
+      {
+        "name": "Services",
+        "autoExecuteCommands": true,
+        "icon": "vm",
+        "color": "terminal.ansiBlue",
+        "commands": [
+          "open -a Docker || (echo 'Failed to open Docker Desktop')",
+          "until docker info >/dev/null 2>&1; do sleep 2; done || (echo 'Docker daemon failed to start')",
+          "docker ps -q --filter 'name=case-tracker-dynamodb' | xargs -r docker stop || (echo 'Failed to stop existing container')",
+          "docker ps -a -q --filter 'name=case-tracker-dynamodb' | xargs -r docker rm || (echo 'Failed to remove existing container')",
+          "docker compose up -d && exit"
+        ]
+      },
+      {
+        "name": "Dev",
+        "autoExecuteCommands": true,
+        "icon": "server",
+        "color": "terminal.ansiGreen",
+        "commands": [
+          "pnpm dev"
+        ]
+      },
+      {
+        "name": "Terminal",
+        "autoExecuteCommands": false,
+        "icon": "terminal",
+        "color": "terminal.ansiRed",
+        "commands": []
+      },
+      {
+        "name": "Gemini",
+        "autoExecuteCommands": true,
+        "icon": "person",
+        "color": "terminal.ansiYellow",
+        "commands": [
+          "gemini --yolo"
+        ]
+      }
+    ]
+  }
+}

@@ -1,16 +1,35 @@
+# Dependencies
 node_modules/
-.DS_Store
-.svelte-kit/
+pnpm-lock.yaml
+
+# Build outputs
 build/
 dist/
+.svelte-kit/
+
+# Environment files
 .env
 .env.*
 !.env.example
+
+# Testing and coverage
+coverage/
 playwright-report/
 test-results/
-coverage/
+
+# Logs
 *.log
+
+# IDE files
 .idea/
-.vscode/
+/.vscode/*
+!/.vscode/sessions.json
+
+# Cache and temporary files
+.DS_Store
 .firecrawl/
 reports/
+
+# AI tool files
+.aider*
+.claude/worktrees/
