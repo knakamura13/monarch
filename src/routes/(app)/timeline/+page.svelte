@@ -555,6 +555,7 @@
         onenhance={() => {
             return async ({ result }: { result: { type: string } }) => {
                 if (result.type === 'success') {
+                    showSuccessToast('Milestone created successfully');
                     showCreateModal = false;
                     defaultPhase = undefined;
                 }
