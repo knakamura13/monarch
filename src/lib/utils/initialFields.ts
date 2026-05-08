@@ -9,5 +9,6 @@ export function fieldFromInitial<T extends string>(
     const v = initial[name as keyof typeof initial];
     if (v == null) return fallback;
     if (v instanceof Date) return v.toISOString().slice(0, 10);
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) return v.slice(0, 10);
     return String(v);
 }

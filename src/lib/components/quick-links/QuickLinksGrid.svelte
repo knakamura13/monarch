@@ -231,13 +231,17 @@
             }, TOUCH_LONG_PRESS_MS);
         }
 
-        window.addEventListener('pointermove', onPointerMove);
-        window.addEventListener('pointerup', onPointerUp);
-        window.addEventListener('pointercancel', onPointerUp);
+        window.addEventListener('pointermove', onPointerMove, { passive: false });
+        window.addEventListener('pointerup', onPointerUp, { passive: false });
+        window.addEventListener('pointercancel', onPointerUp, { passive: false });
     }
 
     function onPointerMove(event: PointerEvent) {
         if (!dragState) return;
+
+        if (dragState.isDragging) {
+            event.preventDefault();
+        }
 
         const dx = event.clientX - dragState.startX;
         const dy = event.clientY - dragState.startY;

@@ -9,7 +9,8 @@ import type { TaskCreate, TaskUpdate, TaskStatus } from '$lib/schemas/task';
 export async function listTasks(workspaceId: string): Promise<TaskItem[]> {
     const rows = await ddbQuery<TaskItem>({
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: { ':pk': wsPk(workspaceId), ':prefix': 'Task#' }
+        ExpressionAttributeValues: { ':pk': wsPk(workspaceId), ':prefix': 'Task#' },
+        ConsistentRead: true
     });
     return rows.filter((t) => !t.deletedAt);
 }
@@ -17,7 +18,8 @@ export async function listTasks(workspaceId: string): Promise<TaskItem[]> {
 export async function getTask(workspaceId: string, id: string) {
     const task = await ddbGet<TaskItem>({
         PK: wsPk(workspaceId),
-        SK: entitySk('Task', id)
+        SK: entitySk('Task', id),
+        ConsistentRead: true
     });
     if (!task || task.deletedAt) return null;
     return {
@@ -88,6 +90,7 @@ export async function updateTask(workspaceId: string, actorId: string, id: strin
     const values: Record<string, unknown> = {};
     const sets: string[] = [];
     for (const [k, v] of Object.entries(patch)) {
+        if (v === undefined) continue;
         const nk = `#${k}`;
         const vk = `:${k}`;
         names[nk] = k;

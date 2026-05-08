@@ -6,17 +6,9 @@
     let {
         task,
         onEdit,
-        draggable = false,
-        onDragStart,
-        onDragEnter,
-        onDragOver,
-        onDragLeave,
-        onDrop,
-        onDragEnd,
+        onPointerDown,
         isDragging = false,
-        isDropTarget = false,
-        isAnyDragging = false,
-        dropPosition = null
+        isAnyDragging = false
     }: {
         task: {
             id: string;
@@ -28,17 +20,9 @@
             checklist?: Array<{ id: string; text: string; done: boolean }>;
         };
         onEdit?: (id: string) => void;
-        draggable?: boolean;
-        onDragStart?: (e: DragEvent, id: string) => void;
-        onDragEnter?: (e: DragEvent, id: string) => void;
-        onDragOver?: (e: DragEvent, id: string) => void;
-        onDragLeave?: () => void;
-        onDrop?: (e: DragEvent, id: string, status: string) => void;
-        onDragEnd?: () => void;
+        onPointerDown?: (e: PointerEvent, id: string) => void;
         isDragging?: boolean;
-        isDropTarget?: boolean;
         isAnyDragging?: boolean;
-        dropPosition?: 'before' | 'after' | null;
     } = $props();
 
     function hasMeaningfulDescription(description: string | null) {
@@ -54,37 +38,20 @@
     );
 </script>
 
-<div
-    class="task-card"
-    role="listitem"
-    ondragenter={(e) => {
-        if (onDragEnter) {
-            e.stopPropagation();
-            onDragEnter(e, task.id);
-        }
-    }}
-    ondragover={(e) => {
-        if (onDragOver) {
-            e.stopPropagation();
-            onDragOver(e, task.id);
-        }
-    }}
-    ondragleave={() => onDragLeave && onDragLeave()}
-    ondrop={(e) => onDrop && onDrop(e, task.id, task.status)}
->
-    {#if isDropTarget && dropPosition === 'before'}
-        <div class="task-card-drop-indicator"></div>
-    {/if}
-
+<div class="task-card" role="listitem" data-task-id={task.id} data-status={task.status}>
     <div
         class={taskCardClasses}
-        {draggable}
-        data-task-id={task.id}
-        ondragstart={(e) => onDragStart && onDragStart(e, task.id)}
-        ondragend={() => onDragEnd && onDragEnd()}
-        onclick={() => onEdit && onEdit(task.id)}
+        onpointerdown={(e) => onPointerDown && onPointerDown(e, task.id)}
+        onclick={(e) => {
+            if (isAnyDragging) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            onEdit && onEdit(task.id);
+        }}
         onkeydown={(e) => {
-            if ((e.key === 'Enter' || e.key === ' ') && onEdit) {
+            if ((e.key === 'Enter' || e.key === ' ') && !isAnyDragging && onEdit) {
                 e.preventDefault();
                 onEdit(task.id);
             }
@@ -123,7 +90,4 @@
         </Card>
     </div>
 
-    {#if isDropTarget && dropPosition === 'after'}
-        <div class="task-card-drop-indicator task-card-drop-indicator-bottom"></div>
-    {/if}
 </div>

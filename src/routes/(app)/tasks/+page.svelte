@@ -38,11 +38,21 @@
     });
 
     // Drag and drop state
-    let draggingId = $state<string | null>(null);
-    let dropTargetId = $state<string | null>(null);
-    let dropPosition = $state<'before' | 'after' | null>(null);
-    let dragEnterCount = $state(0);
-    let isDragging = $state(false);
+    type DragState = {
+        id: string;
+        item: any;
+        pointerOffsetY: number;
+        containerRect: DOMRect;
+        width: number;
+        height: number;
+        currentTop: number;
+        currentLeft: number;
+        startX: number;
+        startY: number;
+    };
+
+    let dragState = $state<DragState | null>(null);
+    let isDragging = $derived(!!dragState);
     let liveRegionMessage = $state<string>('');
 
     async function updateUrl(id: string | null) {
@@ -76,224 +86,123 @@
 
     let scrollContainer = $state<HTMLElement | null>(null);
 
-    function handleTouchMove(_event: TouchEvent) {
-        if (isDragging) {
-            // Prevent scrolling while dragging on mobile if we decide to implement touch drag
-            // event.preventDefault();
-        }
-    }
-
-    // Drag and drop handlers
-    function handleDragStart(event: DragEvent, id: string) {
-        if (isDragging) return;
-        isDragging = true;
-        dropTargetId = null;
-        dropPosition = null;
-        dragEnterCount = 0;
-        if (event.dataTransfer) {
-            event.dataTransfer.effectAllowed = 'move';
-            event.dataTransfer.setData('text/plain', id);
-            event.dataTransfer.setData('application/x-task-id', id);
-        }
-        setTimeout(() => {
-            draggingId = id;
-        }, 0);
-    }
-
-    function handleDragEnd() {
-        draggingId = null;
-        dropTargetId = null;
-        dropPosition = null;
-        dragEnterCount = 0;
-        isDragging = false;
-    }
-
-    function handleDragEnter(event: DragEvent, id: string) {
-        event.preventDefault();
-        dragEnterCount++;
-        if (draggingId && draggingId !== id) {
-            dropTargetId = id;
-        }
-    }
-
-    function handleDragOver(event: DragEvent, id: string) {
-        event.preventDefault();
-        if (event.dataTransfer) {
-            event.dataTransfer.dropEffect = 'move';
-        }
-        if (!draggingId || draggingId === id) return;
-
-        // Calculate drop position
+    function handlePointerDown(event: PointerEvent, id: string) {
+        if (event.button !== 0) return;
         const target = event.currentTarget as HTMLElement;
-        const rect = target.getBoundingClientRect();
-        const midpoint = rect.top + rect.height / 2;
-        const pos = event.clientY < midpoint ? 'before' : 'after';
+        const card = target.closest('.task-card') as HTMLElement;
+        if (!card) return;
 
-        // Check if this is the same as the current position
-        const activeTask = data.tasks.find((t) => t.id === draggingId);
-        const targetTask = data.tasks.find((t) => t.id === id);
+        const rect = card.getBoundingClientRect();
+        const containerRect = scrollContainer!.getBoundingClientRect();
 
-        if (activeTask && targetTask && activeTask.status === targetTask.status) {
-            const column = grouped.find((c) => c.id === activeTask.status);
-            if (column) {
-                const activeIdx = column.tasks.findIndex((t) => t.id === draggingId);
-                const targetIdx = column.tasks.findIndex((t) => t.id === id);
+        dragState = {
+            id,
+            item: data.tasks.find((t) => t.id === id),
+            pointerOffsetY: event.clientY - rect.top,
+            containerRect,
+            width: rect.width,
+            height: rect.height,
+            currentTop: rect.top,
+            currentLeft: rect.left,
+            startX: event.clientX,
+            startY: event.clientY
+        };
 
-                if ((targetIdx === activeIdx - 1 && pos === 'after') || (targetIdx === activeIdx + 1 && pos === 'before')) {
-                    dropTargetId = null;
-                    dropPosition = null;
-                    return;
+        document.body.style.userSelect = 'none';
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+        if (!dragState) return;
+
+        const nextTop = event.clientY - dragState.pointerOffsetY;
+        const nextLeft = event.clientX - (dragState.startX - dragState.currentLeft);
+
+        dragState = {
+            ...dragState,
+            currentTop: nextTop,
+            currentLeft: nextLeft
+        };
+
+        // Hit testing for reordering
+        const columns = Array.from(scrollContainer!.querySelectorAll('.tasks-column')) as HTMLElement[];
+        let targetStatus: string | null = null;
+        let targetTaskId: string | null = null;
+        let position: 'before' | 'after' | null = null;
+
+        for (const col of columns) {
+            const rect = col.getBoundingClientRect();
+            if (event.clientX > rect.left && event.clientX < rect.right) {
+                targetStatus = COLUMNS[columns.indexOf(col)]?.id || null;
+                const cards = Array.from(col.querySelectorAll('.task-card:not([data-task-id="' + dragState.id + '"])')) as HTMLElement[];
+                for (const card of cards) {
+                    const cardRect = card.getBoundingClientRect();
+                    if (event.clientY > cardRect.top && event.clientY < cardRect.bottom) {
+                        targetTaskId = card.getAttribute('data-task-id');
+                        position = event.clientY < cardRect.top + cardRect.height / 2 ? 'before' : 'after';
+                        break;
+                    }
                 }
+                break;
             }
         }
 
-        dropTargetId = id;
-        dropPosition = pos;
-    }
-
-    function handleDragOverColumn(event: DragEvent, columnId: string) {
-        event.preventDefault();
-        if (event.dataTransfer) {
-            event.dataTransfer.dropEffect = 'move';
-        }
-        // If we reach here, it's because we're dragging over the column itself
-        // and not a card (which would have stopped propagation)
-        if (draggingId) {
-            dropTargetId = columnId;
-            dropPosition = null;
+        if (targetStatus) {
+            performLocalReorder(dragState.id, targetStatus, targetTaskId, position);
         }
     }
 
-    function handleDragLeave() {
-        dragEnterCount--;
-        if (dragEnterCount <= 0) {
-            dragEnterCount = 0;
-            dropTargetId = null;
-            dropPosition = null;
-        }
-    }
-
-    async function handleDrop(event: DragEvent, targetId: string, targetStatus: string) {
-        event.preventDefault();
-        const activeId = draggingId;
-        const position = dropPosition;
-        draggingId = null;
-        dropTargetId = null;
-        dropPosition = null;
-        dragEnterCount = 0;
-        isDragging = false;
-        if (!activeId || activeId === targetId) return;
-
+    function performLocalReorder(activeId: string, targetStatus: string, targetTaskId: string | null, position: 'before' | 'after' | null) {
         const activeTask = data.tasks.find((t) => t.id === activeId);
         if (!activeTask) return;
 
-        // Get all tasks and their current order
-        const allTasks = [...data.tasks];
+        let newTasks = data.tasks.filter((t) => t.id !== activeId);
+        const columnTasks = newTasks.filter((t) => t.status === targetStatus).sort((a, b) => a.order - b.order);
 
-        // Build new order array
-        const updates: Array<{ id: string; status: string; order: number }> = [];
-
-        if (activeTask.status !== targetStatus) {
-            // Moving to different column: update both source and target columns
-
-            // Update source column (remove the task)
-            const sourceColumnTasks = allTasks.filter((t) => t.status === activeTask.status).sort((a, b) => a.order - b.order);
-            sourceColumnTasks.forEach((t, idx) => {
-                if (t.id !== activeId) {
-                    updates.push({ id: t.id, status: t.status, order: idx });
-                }
-            });
-
-            // Update target column (insert the task at target position)
-            const targetColumnTasks = allTasks.filter((t) => t.status === targetStatus).sort((a, b) => a.order - b.order);
-            let targetIndex = targetColumnTasks.findIndex((t) => t.id === targetId);
-
-            // Adjust index based on drop position
-            if (position === 'after') {
-                targetIndex = targetIndex + 1;
-            }
-
-            // Insert active task at target position
-            targetColumnTasks.splice(targetIndex, 0, { ...activeTask, status: targetStatus as import('$lib/types/enums').TaskStatus });
-
-            // Assign new order values for target column
-            targetColumnTasks.forEach((t, idx) => {
-                updates.push({ id: t.id, status: t.status, order: idx });
-            });
+        if (targetTaskId) {
+            let targetIdx = columnTasks.findIndex((t) => t.id === targetTaskId);
+            if (position === 'after') targetIdx++;
+            columnTasks.splice(targetIdx, 0, { ...activeTask, status: targetStatus as any });
         } else {
-            // Reordering within same column
-            const columnTasks = allTasks.filter((t) => t.status === targetStatus).sort((a, b) => a.order - b.order);
-            let targetIndex = columnTasks.findIndex((t) => t.id === targetId);
-
-            // Remove active task from array
-            const newOrder = columnTasks.filter((t) => t.id !== activeId);
-
-            // Adjust target index if the active task was before the target
-            const activeIndex = columnTasks.findIndex((t) => t.id === activeId);
-            if (activeIndex < targetIndex && position !== 'after') {
-                targetIndex = targetIndex - 1;
-            } else if (position === 'after') {
-                targetIndex = targetIndex + 1;
-            }
-
-            // Insert at target position
-            newOrder.splice(targetIndex, 0, activeTask);
-
-            // Assign new order values
-            newOrder.forEach((t, idx) => {
-                updates.push({ id: t.id, status: t.status, order: idx });
-            });
+            columnTasks.push({ ...activeTask, status: targetStatus as any });
         }
 
-        try {
-            const formData = new FormData();
-            formData.append('updates', JSON.stringify(updates));
-            const response = await fetch('?/reorder', { method: 'POST', body: formData });
-            if (response.ok) {
-                await invalidateAll();
-            } else {
-                console.error('Reorder failed:', response.statusText);
+        // Update orders
+        columnTasks.forEach((t, i) => {
+            t.order = i;
+        });
+
+        // Update other columns orders just in case
+        COLUMNS.forEach((col) => {
+            if (col.id !== targetStatus) {
+                newTasks
+                    .filter((t) => t.status === col.id)
+                    .sort((a, b) => a.order - b.order)
+                    .forEach((t, i) => {
+                        t.order = i;
+                    });
             }
-        } catch (error) {
-            console.error('Drag operation failed:', error);
-        }
+        });
+
+        data.tasks = [...newTasks.filter((t) => t.status !== targetStatus), ...columnTasks];
     }
 
-    async function handleDropOnColumn(event: DragEvent, targetStatus: string) {
-        event.preventDefault();
-        const activeId = draggingId;
-        draggingId = null;
-        dropTargetId = null;
-        dragEnterCount = 0;
-        isDragging = false;
-        if (!activeId) return;
+    async function handlePointerUp() {
+        if (!dragState) return;
 
-        const activeTask = data.tasks.find((t) => t.id === activeId);
-        if (!activeTask) return;
-        if (activeTask.status === targetStatus) return;
+        const activeId = dragState.id;
+        dragState = null;
+        document.body.style.removeProperty('user-select');
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
 
-        // Get all tasks and their current order
-        const allTasks = [...data.tasks];
-
-        // Build new order array
-        const updates: Array<{ id: string; status: string; order: number }> = [];
-
-        // Update source column (remove the task)
-        const sourceColumnTasks = allTasks.filter((t) => t.status === activeTask.status).sort((a, b) => a.order - b.order);
-        sourceColumnTasks.forEach((t, idx) => {
-            if (t.id !== activeId) {
-                updates.push({ id: t.id, status: t.status, order: idx });
-            }
-        });
-
-        // Update target column (append the task at the end)
-        const targetColumnTasks = allTasks.filter((t) => t.status === targetStatus).sort((a, b) => a.order - b.order);
-        targetColumnTasks.push({ ...activeTask, status: targetStatus as import('$lib/types/enums').TaskStatus });
-
-        // Assign new order values for target column
-        targetColumnTasks.forEach((t, idx) => {
-            updates.push({ id: t.id, status: t.status, order: idx });
-        });
+        // Persist change
+        const updates = data.tasks.map((t) => ({
+            id: t.id,
+            status: t.status,
+            order: t.order
+        }));
 
         try {
             const formData = new FormData();
@@ -301,11 +210,9 @@
             const response = await fetch('?/reorder', { method: 'POST', body: formData });
             if (response.ok) {
                 await invalidateAll();
-            } else {
-                console.error('Reorder failed:', response.statusText);
             }
         } catch (error) {
-            console.error('Drag operation failed:', error);
+            console.error('Failed to persist reorder:', error);
         }
     }
 
@@ -413,49 +320,35 @@
 
 <PageHeader title="Tasks" sub="Personal todos and errands (not legal proceedings)." number={getPageNumber('/tasks')} />
 
-<div class="tasks-board" bind:this={scrollContainer} ontouchmove={handleTouchMove} role="application">
+<div class="tasks-board" bind:this={scrollContainer} role="application">
     {#each grouped as column (column.id)}
-        <div class="tasks-column">
+        <div class="tasks-column" data-status={column.id}>
             <div class="tasks-column-header">
                 <span class="pill {column.pillClass}">{column.label}</span>
                 <span class="tasks-column-count mono">{column.tasks.length}</span>
             </div>
-            <div
-                class="tasks-column-content"
-                ondragenter={(e) => handleDragEnter(e, column.id)}
-                ondragover={(e) => handleDragOverColumn(e, column.id)}
-                ondragleave={handleDragLeave}
-                ondrop={(e) => handleDropOnColumn(e, column.id)}
-                role="list"
-                aria-label={`${column.label} column`}
-                aria-dropeffect="move"
-            >
+            <div class="tasks-column-content" role="list" aria-label={`${column.label} column`}>
                 {#each column.tasks as task (task.id)}
-                    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-                    <div role="group" aria-label={`Task actions for ${task.title}`} onkeydown={(e) => handleTaskKeydown(e, task.id)}>
+                    <div
+                        role="group"
+                        tabindex="-1"
+                        aria-label={`Task actions for ${task.title}`}
+                        onkeydown={(e) => handleTaskKeydown(e, task.id)}
+                        style={dragState?.id === task.id ? 'opacity: 0.2; pointer-events: none;' : ''}
+                    >
                         <TaskCard
                             {task}
                             onEdit={async (id: string) => {
                                 await updateUrl(id);
                             }}
-                            draggable={true}
-                            onDragStart={handleDragStart}
-                            onDragEnter={handleDragEnter}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={(e: DragEvent, id: string) => handleDrop(e, id, column.id)}
-                            onDragEnd={handleDragEnd}
-                            isDragging={draggingId === task.id}
-                            isDropTarget={dropTargetId === task.id}
-                            isAnyDragging={draggingId !== null}
-                            dropPosition={dropTargetId === task.id ? dropPosition : null}
+                            onPointerDown={handlePointerDown}
+                            isDragging={dragState?.id === task.id}
+                            isAnyDragging={!!dragState}
                         />
                     </div>
                 {/each}
                 {#if column.tasks.length === 0}
-                    <div class="tasks-empty-placeholder {dropTargetId === column.id ? 'tasks-empty-box-drop-target' : ''}" role="listitem">
-                        {dropTargetId === column.id ? 'Drop here' : 'No tasks'}
-                    </div>
+                    <div class="tasks-empty-placeholder" role="listitem">No tasks</div>
                 {/if}
             </div>
             <Button
@@ -482,15 +375,12 @@
                 await updateUrl(null);
             }}
             action="?/update"
-            onenhance={({ formData, cancel }: { formData: FormData; cancel: () => void }) => {
-                return async () => {
-                    const response = await fetch('?/update', { method: 'POST', body: formData });
-                    if (response.ok) {
+            onenhance={() => {
+                return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+                    if (result.type === 'success') {
                         await invalidateAll();
                         showSuccessToast('Task updated successfully');
                         await updateUrl(null);
-                    } else {
-                        cancel();
                     }
                 };
             }}
@@ -532,4 +422,13 @@
             };
         }}
     />
+{/if}
+
+{#if dragState}
+    <div
+        class="task-drag-ghost"
+        style="position: fixed; pointer-events: none; z-index: 9999; width: {dragState.width}px; height: {dragState.height}px; left: {dragState.currentLeft}px; top: {dragState.currentTop}px; opacity: 0.9; transform: rotate(2deg); box-shadow: 0 12px 24px rgba(0,0,0,0.15);"
+    >
+        <TaskCard task={dragState.item} />
+    </div>
 {/if}
