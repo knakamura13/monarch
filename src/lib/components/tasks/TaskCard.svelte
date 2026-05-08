@@ -8,7 +8,8 @@
         onEdit,
         onPointerDown,
         isDragging = false,
-        isAnyDragging = false
+        isAnyDragging = false,
+        wasDragging = false
     }: {
         task: {
             id: string;
@@ -23,6 +24,7 @@
         onPointerDown?: (e: PointerEvent, id: string) => void;
         isDragging?: boolean;
         isAnyDragging?: boolean;
+        wasDragging?: boolean;
     } = $props();
 
     function hasMeaningfulDescription(description: string | null) {
@@ -43,12 +45,12 @@
         class={taskCardClasses}
         onpointerdown={(e) => onPointerDown && onPointerDown(e, task.id)}
         onclick={(e) => {
-            if (isAnyDragging) {
+            if (isAnyDragging || wasDragging) {
                 e.preventDefault();
                 e.stopPropagation();
                 return;
             }
-            onEdit && onEdit(task.id);
+            if (onEdit) onEdit(task.id);
         }}
         onkeydown={(e) => {
             if ((e.key === 'Enter' || e.key === ' ') && !isAnyDragging && onEdit) {
