@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onDestroy } from 'svelte';
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import TaskCard from '$lib/components/tasks/TaskCard.svelte';
@@ -40,19 +41,25 @@
     // Drag and drop state
     type DragState = {
         id: string;
-        item: any;
+        item: import('$lib/server/dynamo/types').TaskItem;
+        pointerOffsetX: number;
         pointerOffsetY: number;
         containerRect: DOMRect;
         width: number;
         height: number;
-        currentTop: number;
-        currentLeft: number;
+        currentX: number;
+        currentY: number;
         startX: number;
         startY: number;
+        isDragging: boolean;
+        rafId: number | null;
     };
 
+    const POINTER_MOVE_THRESHOLD_PX = 8;
+
     let dragState = $state<DragState | null>(null);
-    let isDragging = $derived(!!dragState);
+    let isDragging = $derived(!!dragState?.isDragging);
+    let wasDragging = $state(false);
     let liveRegionMessage = $state<string>('');
 
     async function updateUrl(id: string | null) {
@@ -95,35 +102,62 @@
         const rect = card.getBoundingClientRect();
         const containerRect = scrollContainer!.getBoundingClientRect();
 
+        wasDragging = false;
+
         dragState = {
             id,
             item: data.tasks.find((t) => t.id === id),
+            pointerOffsetX: event.clientX - rect.left,
             pointerOffsetY: event.clientY - rect.top,
             containerRect,
             width: rect.width,
             height: rect.height,
-            currentTop: rect.top,
-            currentLeft: rect.left,
+            currentX: event.clientX,
+            currentY: event.clientY,
             startX: event.clientX,
-            startY: event.clientY
+            startY: event.clientY,
+            isDragging: false,
+            rafId: null
         };
 
-        document.body.style.userSelect = 'none';
         window.addEventListener('pointermove', handlePointerMove);
         window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointercancel', handlePointerUp);
     }
 
     function handlePointerMove(event: PointerEvent) {
         if (!dragState) return;
 
-        const nextTop = event.clientY - dragState.pointerOffsetY;
-        const nextLeft = event.clientX - (dragState.startX - dragState.currentLeft);
+        const dx = event.clientX - dragState.startX;
+        const dy = event.clientY - dragState.startY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        dragState = {
-            ...dragState,
-            currentTop: nextTop,
-            currentLeft: nextLeft
-        };
+        if (!dragState.isDragging) {
+            if (distance > POINTER_MOVE_THRESHOLD_PX) {
+                dragState.isDragging = true;
+                document.body.style.userSelect = 'none';
+                document.body.style.touchAction = 'none';
+            } else {
+                return;
+            }
+        }
+
+        dragState.currentX = event.clientX;
+        dragState.currentY = event.clientY;
+
+        if (dragState.rafId === null) {
+            dragState.rafId = requestAnimationFrame(processPointerMove);
+        }
+    }
+
+    function processPointerMove() {
+        if (!dragState || !dragState.isDragging) {
+            if (dragState) dragState.rafId = null;
+            return;
+        }
+        dragState.rafId = null;
+
+        const { currentX, currentY } = dragState;
 
         // Hit testing for reordering
         const columns = Array.from(scrollContainer!.querySelectorAll('.tasks-column')) as HTMLElement[];
@@ -133,14 +167,14 @@
 
         for (const col of columns) {
             const rect = col.getBoundingClientRect();
-            if (event.clientX > rect.left && event.clientX < rect.right) {
+            if (currentX > rect.left && currentX < rect.right) {
                 targetStatus = COLUMNS[columns.indexOf(col)]?.id || null;
                 const cards = Array.from(col.querySelectorAll('.task-card:not([data-task-id="' + dragState.id + '"])')) as HTMLElement[];
                 for (const card of cards) {
                     const cardRect = card.getBoundingClientRect();
-                    if (event.clientY > cardRect.top && event.clientY < cardRect.bottom) {
+                    if (currentY > cardRect.top && currentY < cardRect.bottom) {
                         targetTaskId = card.getAttribute('data-task-id');
-                        position = event.clientY < cardRect.top + cardRect.height / 2 ? 'before' : 'after';
+                        position = currentY < cardRect.top + cardRect.height / 2 ? 'before' : 'after';
                         break;
                     }
                 }
@@ -153,6 +187,15 @@
         }
     }
 
+    onDestroy(() => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+        if (dragState?.rafId !== null && dragState?.rafId !== undefined) {
+            cancelAnimationFrame(dragState.rafId);
+        }
+    });
+
     function performLocalReorder(activeId: string, targetStatus: string, targetTaskId: string | null, position: 'before' | 'after' | null) {
         const activeTask = data.tasks.find((t) => t.id === activeId);
         if (!activeTask) return;
@@ -163,9 +206,9 @@
         if (targetTaskId) {
             let targetIdx = columnTasks.findIndex((t) => t.id === targetTaskId);
             if (position === 'after') targetIdx++;
-            columnTasks.splice(targetIdx, 0, { ...activeTask, status: targetStatus as any });
+            columnTasks.splice(targetIdx, 0, { ...activeTask, status: targetStatus as import('$lib/types/enums').TaskStatus });
         } else {
-            columnTasks.push({ ...activeTask, status: targetStatus as any });
+            columnTasks.push({ ...activeTask, status: targetStatus as import('$lib/types/enums').TaskStatus });
         }
 
         // Update orders
@@ -191,11 +234,23 @@
     async function handlePointerUp() {
         if (!dragState) return;
 
-        const activeId = dragState.id;
+        if (dragState.rafId !== null) {
+            cancelAnimationFrame(dragState.rafId);
+        }
+
+        const { isDragging } = dragState;
+        if (isDragging) {
+            wasDragging = true;
+        }
+
         dragState = null;
         document.body.style.removeProperty('user-select');
+        document.body.style.removeProperty('touch-action');
         window.removeEventListener('pointermove', handlePointerMove);
         window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+
+        if (!isDragging) return;
 
         // Persist change
         const updates = data.tasks.map((t) => ({
@@ -330,20 +385,21 @@
             <div class="tasks-column-content" role="list" aria-label={`${column.label} column`}>
                 {#each column.tasks as task (task.id)}
                     <div
-                        role="group"
+                        role="button"
                         tabindex="-1"
                         aria-label={`Task actions for ${task.title}`}
                         onkeydown={(e) => handleTaskKeydown(e, task.id)}
-                        style={dragState?.id === task.id ? 'opacity: 0.2; pointer-events: none;' : ''}
+                        style={dragState?.id === task.id && dragState.isDragging ? 'opacity: 0.2; pointer-events: none;' : ''}
                     >
                         <TaskCard
                             {task}
-                            onEdit={async (id: string) => {
-                                await updateUrl(id);
+                            onEdit={async () => {
+                                await updateUrl(task.id);
                             }}
                             onPointerDown={handlePointerDown}
-                            isDragging={dragState?.id === task.id}
-                            isAnyDragging={!!dragState}
+                            isDragging={dragState?.id === task.id && dragState.isDragging}
+                            isAnyDragging={isDragging}
+                            {wasDragging}
                         />
                     </div>
                 {/each}
@@ -424,10 +480,10 @@
     />
 {/if}
 
-{#if dragState}
+{#if dragState && dragState.isDragging}
     <div
         class="task-drag-ghost"
-        style="position: fixed; pointer-events: none; z-index: 9999; width: {dragState.width}px; height: {dragState.height}px; left: {dragState.currentLeft}px; top: {dragState.currentTop}px; opacity: 0.9; transform: rotate(2deg); box-shadow: 0 12px 24px rgba(0,0,0,0.15);"
+        style="position: fixed; pointer-events: none; z-index: 9999; width: {dragState.width}px; height: {dragState.height}px; left: {dragState.currentX - dragState.pointerOffsetX}px; top: {dragState.currentY - dragState.pointerOffsetY}px; opacity: 0.9; transform: rotate(2deg); box-shadow: 0 12px 24px rgba(0,0,0,0.15);"
     >
         <TaskCard task={dragState.item} />
     </div>
