@@ -24,10 +24,12 @@ export default defineConfig({
             registerType: 'autoUpdate',
             strategies: 'generateSW',
             workbox: {
+                navigateFallback: '/offline',
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
                 runtimeCaching: [
                     {
                         urlPattern: /\/_app\/immutable\/.*/,
-                        handler: 'NetworkFirst',
+                        handler: 'CacheFirst',
                         options: {
                             cacheName: 'sveltekit-immutable',
                             expiration: {
@@ -58,6 +60,12 @@ export default defineConfig({
                         purpose: 'any'
                     },
                     {
+                        src: '/pwa/icon-192.png',
+                        sizes: '192x192',
+                        type: 'image/png',
+                        purpose: 'maskable'
+                    },
+                    {
                         src: '/pwa/icon-512.png',
                         sizes: '512x512',
                         type: 'image/png',
@@ -68,6 +76,22 @@ export default defineConfig({
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'maskable'
+                    }
+                ],
+                screenshots: [
+                    {
+                        src: '/pwa/icon-512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        form_factor: 'wide',
+                        label: 'Monarch Dashboard'
+                    },
+                    {
+                        src: '/pwa/icon-512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        form_factor: 'narrow',
+                        label: 'Monarch Dashboard'
                     }
                 ]
             }

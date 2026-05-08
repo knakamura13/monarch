@@ -17,7 +17,7 @@
 >
     <div style="width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 32px;">
-            <img src="/monarch-logo.png" alt="" style="width: 32px; height: 32px;" aria-hidden="true" />
+            <img src="/monarch-logo.png" alt="" width="32" height="32" style="width: 32px; height: 32px;" aria-hidden="true" decoding="async" />
             <span class="display" style="font-size: 24px;">monarch</span>
         </div>
         <div class="card" style="width: 100%; padding: 32px; border-radius: var(--r-lg);">

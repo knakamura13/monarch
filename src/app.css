@@ -317,26 +317,18 @@ body,
     color: var(--surface);
     border-color: var(--ink);
 }
-.btn.primary:hover {
+.btn:active {
+    opacity: 0.8;
+    transform: translateY(1px);
+}
+
+.btn.primary:active {
     opacity: 0.9;
+    background: var(--ink-2);
 }
-.btn.ghost {
-    background: transparent;
-    border-color: transparent;
-    color: var(--ink-2);
-}
-.btn.ghost:hover {
-    background: var(--surface-2);
-}
-.btn.sm {
-    height: 28px;
-    padding: 0 10px;
-    font-size: 12px;
-}
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
+
+.btn:disabled:active {
+    transform: none;
 }
 
 /* Icon-only triggers (e.g. ⋮ menus): equal width/height, no horizontal stretch */
@@ -347,6 +339,15 @@ body,
     padding: 0;
     gap: 0;
     flex-shrink: 0;
+}
+
+/* Increase touch target size for icon buttons on touch devices */
+@media (pointer: coarse) {
+    .btn.icon {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+    }
 }
 
 /* Monarch Cards */

@@ -16,6 +16,8 @@
             width="40"
             height="32"
             style="flex-shrink: 0; display: block; object-fit: contain;"
+            loading="lazy"
+            decoding="async"
         />
         <div class="display" style="font-size: 24px; line-height: 1; letter-spacing: -0.01em;">monarch</div>
     </div>

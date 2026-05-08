@@ -36,7 +36,7 @@
     <div class="card tinted-blush">
         <div class="eyebrow">Heads up</div>
         <div class="heads-up-list">
-            {#each data.missingCritical as m}
+            {#each data.missingCritical as m (m)}
                 <div class="heads-up-item">
                     <AlertTriangle size={16} style="flex-shrink: 0; color: var(--blush-fill);" />
                     <span>{m}</span>
@@ -61,7 +61,7 @@
         <Widget title="Active Tasks" href="/tasks">
             {#snippet children()}
                 <div class="task-list">
-                    {#each data.tasksPreview as task}
+                    {#each data.tasksPreview as task (task.id)}
                         <div
                             class="task-item"
                             role="button"
