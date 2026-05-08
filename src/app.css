@@ -1033,6 +1033,7 @@ button.modal-checklist-text-btn {
     transition: all 150ms ease;
     width: 100%;
     resize: none;
+    outline: none;
 }
 
 /* Add cursor pointer to select elements */
@@ -1051,7 +1052,7 @@ select {
 .input:hover,
 .textarea:hover {
     border-color: var(--ink-3);
-    background: var(--surface);
+    background: var(--surface-2);
 }
 
 .input:focus,
@@ -1144,10 +1145,10 @@ select {
 
 .cmdpal-input {
     flex: 1;
-    border: 1px solid transparent;
+    border: 1px solid var(--hairline);
     border-radius: var(--r-sm);
     padding: 8px 12px;
-    background: transparent;
+    background: var(--surface-2);
     font-size: 16px;
     font-family: var(--font-ui);
     color: var(--ink);
@@ -1157,10 +1158,12 @@ select {
 
 .cmdpal-input:hover {
     background: var(--surface-2);
+    border-color: var(--ink-3);
 }
 
 .cmdpal-input:focus {
-    background: var(--surface-2);
+    outline: none;
+    background: var(--surface);
     border-color: var(--ink-2);
     box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
 }
