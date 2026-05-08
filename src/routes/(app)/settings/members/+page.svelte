@@ -1,5 +1,6 @@
 <script lang="ts">
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
+    import { showSuccessToast } from '$lib/stores/toast';
     import Button from '$lib/components/ui/Button.svelte';
     import Select from '$lib/components/ui/Select.svelte';
     import { Trash2, Copy, Shield, UserPlus } from 'lucide-svelte';
@@ -19,6 +20,7 @@
 
     async function copyToClipboard(url: string) {
         await navigator.clipboard.writeText(url);
+        showSuccessToast('Invite link copied to clipboard');
     }
 </script>
 

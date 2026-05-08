@@ -1048,14 +1048,14 @@ select {
     }
 }
 
-.dialog-content .input:hover,
-.dialog-content .textarea:hover {
+.input:hover,
+.textarea:hover {
     border-color: var(--ink-3);
     background: var(--surface);
 }
 
-.dialog-content .input:focus,
-.dialog-content .textarea:focus {
+.input:focus,
+.textarea:focus {
     outline: none;
     border-color: var(--ink-2);
     background: var(--surface);
@@ -1144,12 +1144,25 @@ select {
 
 .cmdpal-input {
     flex: 1;
-    border: none;
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    padding: 8px 12px;
     background: transparent;
     font-size: 16px;
     font-family: var(--font-ui);
     color: var(--ink);
     outline: none;
+    transition: all 150ms ease;
+}
+
+.cmdpal-input:hover {
+    background: var(--surface-2);
+}
+
+.cmdpal-input:focus {
+    background: var(--surface-2);
+    border-color: var(--ink-2);
+    box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
 }
 
 .cmdpal-results {

@@ -5,6 +5,8 @@
     export let requestId: string | undefined = undefined;
     export let stack: string | undefined = undefined;
 
+    import { showSuccessToast } from '$lib/stores/toast';
+
     async function copyError() {
         let errorReport = '## Error Details\n';
         errorReport += '- **Status**: ' + (status || 'Unknown') + '\n';
@@ -18,6 +20,7 @@
 
         try {
             await navigator.clipboard.writeText(errorReport);
+            showSuccessToast('Error report copied to clipboard');
         } catch {
             // ignore
         }
