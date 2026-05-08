@@ -32,8 +32,10 @@
           "open -a Docker || (echo 'Failed to open Docker Desktop')",
           "until docker info >/dev/null 2>&1; do sleep 2; done || (echo 'Docker daemon failed to start')",
           "docker ps -q --filter 'name=case-tracker-dynamodb' | xargs -r docker stop || (echo 'Failed to stop existing container')",
-          "docker ps -a -q --filter 'name=case-tracker-dynamodb' | xargs -r docker rm || (echo 'Failed to remove existing container')",
-          "docker compose up -d && exit"
+          "docker compose up -d",
+          "sleep 10",
+          "pnpm run db:create-table",
+          "exit"
         ]
       },
       {

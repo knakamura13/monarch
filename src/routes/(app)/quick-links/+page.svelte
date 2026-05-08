@@ -186,7 +186,9 @@
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style="display: flex; align-items: center; gap: 12px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1; text-decoration: none; color: inherit;"
+                            draggable="false"
+                            style="display: flex; align-items: center; gap: 12px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1; text-decoration: none; color: inherit; -webkit-user-drag: none; -khtml-user-drag: none; -moz-user-drag: none; -o-user-drag: none; user-drag: none;"
+                            ondragstart={(e) => e.preventDefault()}
                         >
                             <div
                                 style="width: 40px; height: 40px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; border-radius: 10px;"

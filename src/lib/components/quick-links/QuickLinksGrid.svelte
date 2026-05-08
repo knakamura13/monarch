@@ -3,8 +3,10 @@
     import { flip } from 'svelte/animate';
     import { Folder, Link2, Plus, Edit, Trash2 } from 'lucide-svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
+    import QuickLinkIcon from '$lib/components/quick-links/QuickLinkIcon.svelte';
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
     import { isInternalDomain } from '$lib/utils/url';
+    import { getAccentColor } from '$lib/utils/colors';
 
     type Size = 'compact' | 'large';
 
@@ -83,17 +85,12 @@
     const POINTER_MOVE_THRESHOLD_PX = 8;
     const TOUCH_CANCEL_MOVE_PX = 12;
 
-    let brokenFavicons = $state<Set<string>>(new Set());
-    let preloadedFavicons = $state<Set<string>>(new Set());
     let dragState = $state<DragState | null>(null);
     let wasDragging = $state(false);
     let hoveredMergeId = $state<string | null>(null);
     let lastReorderTargetId: string | null = null;
     // Status text announced via aria-live when keyboard reordering happens.
     let liveStatus = $state('');
-
-    const faviconCache = new Map<string, string>();
-    const fallbackFaviconCache = new Map<string, string>();
 
     let localLinks = $state<QuickLink[]>([]);
     let localFolders = $state<QuickLinkFolder[]>([]);
@@ -125,41 +122,6 @@
 
     function labelFor(link: QuickLink) {
         return link.title?.trim() ? link.title : prettyHostname(link.url);
-    }
-
-    function faviconForLink(link: QuickLink): string {
-        if (link.faviconUrl) return link.faviconUrl;
-        if (faviconCache.has(link.url)) return faviconCache.get(link.url) || '';
-        try {
-            const h = new URL(link.url).hostname;
-            if (isInternalDomain(h)) {
-                faviconCache.set(link.url, '');
-                return '';
-            }
-            const faviconUrl = `https://${h}/favicon.ico`;
-            faviconCache.set(link.url, faviconUrl);
-            return faviconUrl;
-        } catch {
-            faviconCache.set(link.url, '');
-            return '';
-        }
-    }
-
-    function getFallbackFavicon(link: QuickLink): string {
-        if (fallbackFaviconCache.has(link.url)) return fallbackFaviconCache.get(link.url) || '';
-        try {
-            const h = new URL(link.url).hostname;
-            if (isInternalDomain(h)) {
-                fallbackFaviconCache.set(link.url, '');
-                return '';
-            }
-            const fallbackUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(h)}&sz=128`;
-            fallbackFaviconCache.set(link.url, fallbackUrl);
-            return fallbackUrl;
-        } catch {
-            fallbackFaviconCache.set(link.url, '');
-            return '';
-        }
     }
 
     let gridContainer = $state<HTMLElement | null>(null);
@@ -489,77 +451,6 @@
             if (dragState.rafId != null) cancelAnimationFrame(dragState.rafId);
         }
     });
-
-    // Tracks link IDs whose favicon fetch is currently in-flight. Plain (non-reactive)
-    // so changes to it do not re-trigger the $effect below.
-    const _inFlight = new Set<string>();
-
-    $effect(() => {
-        // Only `links` is a reactive dependency here. preloadedFavicons and
-        // brokenFavicons are read via untrack() so completing a preload does not
-        // cause the effect to re-run and rebuild Image objects for all other links.
-        const toProcess = links.filter(
-            (link) =>
-                !_inFlight.has(link.id) &&
-                !untrack(() => preloadedFavicons.has(link.id) || brokenFavicons.has(link.id))
-        );
-
-        const imageEntries: { img: HTMLImageElement; id: string }[] = [];
-
-        const preloadPromises = toProcess.map((link) => {
-            _inFlight.add(link.id);
-            const url = faviconForLink(link);
-            if (!url) {
-                _inFlight.delete(link.id);
-                return Promise.resolve();
-            }
-            return new Promise<void>((resolve) => {
-                const img = new Image();
-                imageEntries.push({ img, id: link.id });
-                img.onload = () => {
-                    _inFlight.delete(link.id);
-                    preloadedFavicons = new Set([...preloadedFavicons, link.id]);
-                    resolve();
-                };
-                img.onerror = () => {
-                    const fallbackUrl = getFallbackFavicon(link);
-                    if (!fallbackUrl) {
-                        _inFlight.delete(link.id);
-                        brokenFavicons = new Set([...brokenFavicons, link.id]);
-                        resolve();
-                        return;
-                    }
-                    const fallbackImg = new Image();
-                    imageEntries.push({ img: fallbackImg, id: link.id });
-                    fallbackImg.onload = () => {
-                        _inFlight.delete(link.id);
-                        preloadedFavicons = new Set([...preloadedFavicons, link.id]);
-                        resolve();
-                    };
-                    fallbackImg.onerror = () => {
-                        _inFlight.delete(link.id);
-                        brokenFavicons = new Set([...brokenFavicons, link.id]);
-                        resolve();
-                    };
-                    fallbackImg.src = fallbackUrl;
-                };
-                img.src = url;
-            });
-        });
-
-        void Promise.all(preloadPromises);
-
-        return () => {
-            for (const { img, id } of imageEntries) {
-                img.src = '';
-                img.onload = null;
-                img.onerror = null;
-                // Remove from in-flight so the link can be retried if links changes
-                // while this preload was still pending.
-                _inFlight.delete(id);
-            }
-        };
-    });
 </script>
 
 <div
@@ -636,14 +527,19 @@
                 rel="noopener noreferrer"
                 class="ql-button ql-button--link"
                 draggable="false"
+                style="-webkit-user-drag: none; -khtml-user-drag: none; -moz-user-drag: none; -o-user-drag: none; user-drag: none;"
                 aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown"
                 ondragstart={(e) => e.preventDefault()}
-                onpointerdown={(e) => onPointerDown(e, link, 'link')}
+                onpointerdown={(e) => {
+                    // Prevent anchor's native drag behavior
+                    e.preventDefault();
+                    onPointerDown(e, link, 'link');
+                }}
                 onkeydown={(e) => onTileKeyDown(e, link, 'link')}
                 onclick={(e) => {
                     if (wasDragging) {
                         // A drag just ended — suppress the synthetic click so
-                        // the browser doesn't navigate after a reorder/merge.
+                        // browser doesn't navigate after a reorder/merge.
                         e.preventDefault();
                         e.stopPropagation();
                         return;
@@ -654,18 +550,7 @@
                 }}
             >
                 <div class="ql-icon ql-icon--link" style={`width: ${tileSize}px; height: ${tileSize}px;`}>
-                    {#if brokenFavicons.has(link.id) || !(link.faviconUrl || preloadedFavicons.has(link.id))}
-                        <Link2
-                            style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; color: var(--ink-3);`}
-                        />
-                    {:else}
-                        <img
-                            src={faviconForLink(link)}
-                            alt=""
-                            draggable="false"
-                            style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; object-fit: contain;`}
-                        />
-                    {/if}
+                    <QuickLinkIcon {link} size={size === 'compact' ? 'md' : 'lg'} />
                 </div>
                 <span class="ql-label" style={`font-size: ${labelSize}px;`}>{labelFor(link)}</span>
             </a>
@@ -714,17 +599,7 @@
                 />
             {:else}
                 {@const link = item as QuickLink}
-                {#if brokenFavicons.has(link.id) || !(link.faviconUrl || preloadedFavicons.has(link.id))}
-                    <Link2
-                        style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; color: var(--ink-3);`}
-                    />
-                {:else}
-                    <img
-                        src={faviconForLink(link)}
-                        alt=""
-                        style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; object-fit: contain;`}
-                    />
-                {/if}
+                <QuickLinkIcon {link} size={size === 'compact' ? 'md' : 'lg'} />
             {/if}
         </div>
         <span class="ql-label" style={`font-size: ${labelSize}px;`}>

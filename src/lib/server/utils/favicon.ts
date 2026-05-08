@@ -29,7 +29,7 @@ export function getFallbackFaviconUrl(url: string): string | null {
         if (isInternalDomain(hostname)) {
             return null;
         }
-        return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=128`;
+        return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=128&default=404`;
     } catch {
         return null;
     }

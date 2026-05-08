@@ -5,6 +5,7 @@
     import Dialog from '$lib/components/ui/Dialog.svelte';
     import QuickLinksManageDialog from '$lib/components/dashboard/QuickLinksManageDialog.svelte';
     import QuickLinksGrid from '$lib/components/quick-links/QuickLinksGrid.svelte';
+    import QuickLinkIcon from '$lib/components/quick-links/QuickLinkIcon.svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import Input from '$lib/components/ui/Input.svelte';
     import { showErrorToast } from '$lib/stores/toast';
@@ -193,9 +194,9 @@
                             style="display: flex; align-items: center; gap: 12px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1; text-decoration: none; color: inherit;"
                         >
                             <div
-                                style="width: 32px; height: 32px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; border-radius: 8px;"
+                                style="width: 32px; height: 32px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; border-radius: 8px; overflow: hidden;"
                             >
-                                <Link2 size={16} class="text-muted-foreground" />
+                                <QuickLinkIcon {link} size="sm" />
                             </div>
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-weight: 500; font-size: 14px;">{link.title || 'Link'}</span>

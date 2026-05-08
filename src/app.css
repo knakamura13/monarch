@@ -1467,8 +1467,8 @@ select {
 
 .widget-item-menu-wrap {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: -15px;
+    right: -5px;
     z-index: 1000;
     opacity: 0;
     pointer-events: none;
