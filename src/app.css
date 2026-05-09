@@ -317,6 +317,26 @@ body,
     color: var(--surface);
     border-color: var(--ink);
 }
+
+
+.btn.ghost {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--ink);
+}
+
+.btn.ghost:hover {
+    background: var(--surface-2);
+}
+
+
+.btn.sm {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
+}
+
+
 .btn:active {
     opacity: 0.8;
     transform: translateY(1px);
@@ -327,7 +347,14 @@ body,
     background: var(--ink-2);
 }
 
-.btn:disabled:active {
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn:disabled:active,
+.btn.disabled:active {
     transform: none;
 }
 
@@ -526,10 +553,15 @@ body,
     display: flex;
     align-items: center;
     gap: 4px;
-}
-
-.modal-shrink-0 {
-    flex-shrink: 0;
+    :global(a:focus-visible),
+    :global(input:focus-visible),
+    :global(select:focus-visible),
+    :global(textarea:focus-visible) {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+    transition: background-color 0.15s ease;
 }
 
 .modal-icon-btn {
@@ -933,7 +965,7 @@ button.modal-checklist-text-btn {
     border: 1px solid var(--hairline);
     border-radius: var(--r-lg);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+    overflow: visible;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -988,6 +1020,7 @@ button.modal-checklist-text-btn {
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    position: relative;
 }
 
 .dialog-content .modal-content {
@@ -1033,6 +1066,7 @@ button.modal-checklist-text-btn {
     transition: all 150ms ease;
     width: 100%;
     resize: none;
+    outline: none;
 }
 
 /* Add cursor pointer to select elements */
@@ -1051,19 +1085,19 @@ select {
 .input:hover,
 .textarea:hover {
     border-color: var(--ink-3);
-    background: var(--surface);
+    background: var(--surface-2);
 }
 
 .input:focus,
 .textarea:focus {
-    outline: none;
-    border-color: var(--ink-2);
-    background: var(--surface);
-    box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
-}
-
-.dialog-content .textarea {
-    resize: vertical;
+    :global(input:focus-visible),
+    :global(textarea:focus-visible),
+    :global(select:focus-visible) {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
+        border-color: var(--ink-2);
+        border-radius: 4px;
+    }
     min-height: 90px;
     font-family: inherit;
     line-height: 1.5;
@@ -1144,10 +1178,10 @@ select {
 
 .cmdpal-input {
     flex: 1;
-    border: 1px solid transparent;
+    border: 1px solid var(--hairline);
     border-radius: var(--r-sm);
     padding: 8px 12px;
-    background: transparent;
+    background: var(--surface-2);
     font-size: 16px;
     font-family: var(--font-ui);
     color: var(--ink);
@@ -1157,12 +1191,6 @@ select {
 
 .cmdpal-input:hover {
     background: var(--surface-2);
-}
-
-.cmdpal-input:focus {
-    background: var(--surface-2);
-    border-color: var(--ink-2);
-    box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
 }
 
 .cmdpal-results {
@@ -1317,6 +1345,10 @@ select {
 
 .timeline-milestone-node-active {
     background: var(--ink);
+}
+
+.timeline-milestone-node-blocked {
+    background: var(--blush-fill);
 }
 
 .timeline-milestone-node-future {

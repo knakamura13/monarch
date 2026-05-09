@@ -74,7 +74,7 @@
         target="_blank"
         rel="noreferrer"
         class="card logs-link-card"
-        style="padding: 16px; background: var(--surface-2); border-style: dashed; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600;"
+        style="padding: 16px; background: var(--surface-2); border-style: dashed; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; transition: all 150ms ease; cursor: pointer;"
     >
         <ExternalLink style="width: 14px; height: 14px;" /> Open Railway Cloud Logs
     </a>
@@ -119,7 +119,7 @@
                                 <td
                                     style="padding: 12px 20px;"
                                     class="mono"
-                                    title={new Date(e.occurredAt).toLocaleString()}
+                                    title={(d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`)(new Date(e.occurredAt))}
                                 >
                                     {new Date(e.occurredAt).toLocaleTimeString()}
                                 </td>
@@ -133,7 +133,7 @@
                                     style="padding: 12px 20px; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
                                     title={e.message}
                                 >
-                                    {e.message}
+                                    <span title={e.message}>{e.message}</span>
                                 </td>
                                 <td style="padding: 12px 20px; text-align: right;">
                                     <a
@@ -152,10 +152,18 @@
 
 <style>
     .logs-link-card {
+        padding: 16px;
+        background: var(--surface-2);
+        border-style: dashed;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: var(--ink);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
         transition: all 150ms ease;
-    }
-    .logs-link-card:hover {
-        background: var(--surface-3) !important;
-        border-color: var(--ink-3) !important;
+        cursor: pointer;
     }
 </style>

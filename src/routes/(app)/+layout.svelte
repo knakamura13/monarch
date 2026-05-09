@@ -212,8 +212,10 @@
     }
 
     /* Improve focus indicators */
-    :global(button:focus-visible),
-    :global(a:focus-visible) {
+    :global(a:focus-visible),
+    :global(input:focus-visible),
+    :global(select:focus-visible),
+    :global(textarea:focus-visible) {
         outline: 2px solid var(--ink);
         outline-offset: 2px;
         border-radius: 4px;

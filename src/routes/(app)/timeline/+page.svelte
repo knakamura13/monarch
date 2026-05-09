@@ -3,7 +3,7 @@
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import MilestoneModal from '$lib/components/timeline/MilestoneModal.svelte';
-    import { Plus, MapPin, Check, Clock, GripVertical } from 'lucide-svelte';
+    import { Plus, MapPin, Check, Clock, GripVertical, X } from 'lucide-svelte';
     import { fmtDate } from '$lib/utils/dates';
     import { PHASE_ORDER, PHASE_LABELS, PHASE_DESCRIPTIONS } from '$lib/constants/phases';
     import { page } from '$app/state';
@@ -86,6 +86,7 @@
     function milestoneNodeStatus(status: string) {
         if (status === 'DONE' || status === 'SKIPPED') return 'done';
         if (status === 'IN_PROGRESS' || status === 'PLANNED') return 'active';
+        if (status === 'BLOCKED') return 'blocked';
         return 'future';
     }
 
@@ -345,14 +346,16 @@
                                 <div
                                     class="timeline-milestone-node {nodeStatus === 'done'
                                         ? 'timeline-milestone-node-done'
-                                        : ''} {nodeStatus === 'active' ? 'timeline-milestone-node-active' : ''} {nodeStatus === 'future'
-                                        ? 'timeline-milestone-node-future'
-                                        : ''}"
+                                        : ''} {nodeStatus === 'active' ? 'timeline-milestone-node-active' : ''} {nodeStatus === 'blocked'
+                                        ? 'timeline-milestone-node-blocked'
+                                        : ''} {nodeStatus === 'future' ? 'timeline-milestone-node-future' : ''}"
                                 >
                                     {#if nodeStatus === 'done'}
                                         <Check style="width: 14px; height: 14px; color: var(--surface);" />
                                     {:else if nodeStatus === 'active'}
                                         <Clock style="width: 14px; height: 14px; color: var(--surface);" />
+                                    {:else if nodeStatus === 'blocked'}
+                                        <X style="width: 14px; height: 14px; color: var(--surface);" />
                                     {/if}
                                 </div>
                                 <button
@@ -555,6 +558,7 @@
         onenhance={() => {
             return async ({ result }: { result: { type: string } }) => {
                 if (result.type === 'success') {
+                    showSuccessToast('Milestone created successfully');
                     showCreateModal = false;
                     defaultPhase = undefined;
                 }

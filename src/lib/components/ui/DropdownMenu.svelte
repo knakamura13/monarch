@@ -124,10 +124,25 @@
                 const padding = 12;
                 let shift = 0;
 
-                if (rect.right > window.innerWidth - padding) {
-                    shift = window.innerWidth - padding - rect.right;
-                } else if (rect.left < padding) {
-                    shift = padding - rect.left;
+                // Find the nearest dialog container or fallback to window
+                let container = menuEl.closest('[role="dialog"]');
+                let containerRect;
+                
+                if (container) {
+                    containerRect = container.getBoundingClientRect();
+                    // Check if menu overflows the dialog container
+                    if (rect.right > containerRect.right - padding) {
+                        shift = containerRect.right - padding - rect.right;
+                    } else if (rect.left < containerRect.left + padding) {
+                        shift = containerRect.left + padding - rect.left;
+                    }
+                } else {
+                    // Fallback to window viewport
+                    if (rect.right > window.innerWidth - padding) {
+                        shift = window.innerWidth - padding - rect.right;
+                    } else if (rect.left < padding) {
+                        shift = padding - rect.left;
+                    }
                 }
 
                 horizontalShift = shift;
@@ -212,7 +227,7 @@
         box-shadow:
             0 4px 6px -1px rgb(0 0 0 / 0.1),
             0 2px 4px -2px rgb(0 0 0 / 0.1);
-        z-index: 99999;
+        z-index: 1000000;
         outline: none;
         min-width: fit-content;
         transform: translateX(var(--horizontal-shift, 0px));
