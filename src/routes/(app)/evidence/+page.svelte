@@ -127,8 +127,8 @@
                         position="bottom-left"
                         items={[
                             {
-                                id: 'rename',
-                                label: 'Rename',
+                                id: 'edit',
+                                label: 'Edit',
                                 icon: Edit2,
                                 action: () => startEdit(cat.category)
                             },
