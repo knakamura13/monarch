@@ -1322,6 +1322,10 @@ select {
     background: var(--ink);
 }
 
+.timeline-milestone-node-blocked {
+    background: var(--blush-fill);
+}
+
 .timeline-milestone-node-future {
     background: var(--surface-3);
 }
