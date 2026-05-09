@@ -16,6 +16,7 @@
     let newCategoryName = $state('');
     let editingCategory = $state<string | null>(null);
     let editCategoryName = $state('');
+    let editCategoryTarget = $state(0);
     let deleteConfirmCategory = $state<string | null>(null);
 
     function openAddModal() {
@@ -26,11 +27,16 @@
     function startEdit(category: string) {
         editingCategory = category;
         editCategoryName = category;
+        const cat = data.categories.find((c) => c.category === category);
+        if (cat) {
+            editCategoryTarget = cat.targetCount;
+        }
     }
 
     function cancelEdit() {
         editingCategory = null;
         editCategoryName = '';
+        editCategoryTarget = 0;
     }
 
     function openDeleteConfirm(category: string) {
@@ -58,7 +64,7 @@
 {/if}
 
 <div class="evidence-grid">
-    {#each data.categories as cat (cat.category)}
+    {#each data.categories as cat, i (cat.category)}
         <div class="card" style="padding: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                 <div style="display: flex; align-items: center; gap: 8px; color: var(--ink-3); flex: 1; min-width: 0;">
@@ -72,13 +78,15 @@
                                     if (e.key === 'Escape') cancelEdit();
                                     if (e.key === 'Enter') {
                                         e.preventDefault();
-                                        (e.target as HTMLFormElement).closest('form')?.requestSubmit();
+                                        const form = document.getElementById(`edit-form-${i}`) as HTMLFormElement;
+                                        form?.requestSubmit();
                                     }
                                 }}
                             />
                             <form
+                                id="edit-form-{i}"
                                 method="post"
-                                action="?/renameCategory"
+                                action="?/editCategory"
                                 use:enhance={({
                                     formElement: _formElement,
                                     formData: _formData,
@@ -96,8 +104,9 @@
                                 }}
                                 style="display: contents;"
                             >
-                                <input type="hidden" name="oldName" value={cat.category} />
-                                <input type="hidden" name="newName" value={editCategoryName} />
+                                <input type="hidden" name="oldCategory" value={cat.category} />
+                                <input type="hidden" name="newCategory" value={editCategoryName} />
+                                <input type="hidden" name="newTarget" value={editCategoryTarget} />
                                 <Button type="submit" variant="ghost" size="icon" class="modal-icon-btn-sm">
                                     <Check style="width: 14px; height: 14px;" />
                                 </Button>
@@ -136,9 +145,29 @@
                 {/if}
             </div>
             <div style="display: flex; align-items: baseline; gap: 4px; justify-content: space-between;">
-                <div style="font-family: var(--font-display); font-size: 44px; font-weight: 500; line-height: 1; margin-bottom: 4px;">
+                <div style="font-family: var(--font-display); font-size: 44px; font-weight: 500; line-height: 1; margin-bottom: 4px; display: flex; align-items: baseline; gap: 4px;">
                     {cat.currentCount}
-                    <span style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);">/ {cat.targetCount}</span>
+                    {#if editingCategory === cat.category}
+                        <div style="display: flex; align-items: center; gap: 2px;">
+                            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);">/</span>
+                            <Input
+                                type="number"
+                                bind:value={editCategoryTarget}
+                                min="0"
+                                style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); width: 40px; padding: 2px 4px; height: 20px; border: 1px solid var(--surface-3); background: var(--surface-1);"
+                                onkeydown={(e) => {
+                                    if (e.key === 'Escape') cancelEdit();
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        const form = document.getElementById(`edit-form-${i}`) as HTMLFormElement;
+                                        form?.requestSubmit();
+                                    }
+                                }}
+                            />
+                        </div>
+                    {:else}
+                        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);">/ {cat.targetCount}</span>
+                    {/if}
                 </div>
                 <form method="post" action="?/adjustCount" use:enhance style="display: flex; gap: 4px;">
                     <input type="hidden" name="category" value={cat.category} />

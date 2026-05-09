@@ -82,23 +82,6 @@ export const actions: Actions = {
             return fail(400, { error: e instanceof Error ? e.message : 'Failed to add category' });
         }
     },
-    renameCategory: async (event) => {
-        const { workspace, user } = requireOwner(event);
-        const formData = await event.request.formData();
-        const oldName = formData.get('oldName') as string;
-        const newName = formData.get('newName') as string;
-
-        if (!oldName || !newName) {
-            return fail(400, { error: 'Both old and new names are required' });
-        }
-
-        try {
-            await renameEvidenceCategory(workspace.id, user.id, oldName, newName);
-            return {};
-        } catch (e) {
-            return fail(400, { error: e instanceof Error ? e.message : 'Failed to rename category' });
-        }
-    },
     editCategory: async (event) => {
         const { workspace, user } = requireOwner(event);
         const raw = Object.fromEntries(await event.request.formData());
