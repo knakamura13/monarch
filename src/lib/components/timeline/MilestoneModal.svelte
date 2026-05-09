@@ -306,6 +306,9 @@
             <input type="hidden" name="location" value={currentLocation} />
             <input type="hidden" name="dueDate" value={dueDateValue} />
             <input type="hidden" name="scheduledAt" value={appointmentDateValue} />
+            <input type="hidden" name="phase" value={phaseValue} />
+            <input type="hidden" name="status" value={statusValue} />
+            <input type="hidden" name="priority" value={priorityValue} />
         </form>
     </Dialog>
 {:else}
