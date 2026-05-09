@@ -74,6 +74,7 @@
         target="_blank"
         rel="noreferrer"
         class="card logs-link-card"
+        style="padding: 16px; background: var(--surface-2); border-style: dashed; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; transition: all 150ms ease; cursor: pointer;"
     >
         <ExternalLink style="width: 14px; height: 14px;" /> Open Railway Cloud Logs
     </a>
@@ -164,13 +165,5 @@
         font-weight: 600;
         transition: all 150ms ease;
         cursor: pointer;
-    }
-    .logs-link-card:hover {
-        background: var(--surface-3);
-        border-color: var(--ink-3);
-        transform: translateY(-1px);
-    }
-    .logs-link-card:active {
-        transform: translateY(0);
     }
 </style>

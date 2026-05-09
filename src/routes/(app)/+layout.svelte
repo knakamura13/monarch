@@ -212,7 +212,6 @@
     }
 
     /* Improve focus indicators */
-    :global(button:focus-visible),
     :global(a:focus-visible),
     :global(input:focus-visible),
     :global(select:focus-visible),
@@ -229,6 +228,7 @@
         outline: none;
         box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
         border-color: var(--ink-2);
+        border-radius: 4px;
     }
 
     /* Mobile Sidebar Styles */

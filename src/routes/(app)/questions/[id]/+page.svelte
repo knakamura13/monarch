@@ -6,6 +6,7 @@
     import Card from '$lib/components/ui/Card.svelte';
     import { Trash2, ExternalLink } from 'lucide-svelte';
     import { enhance } from '$app/forms';
+    import { showSuccessToast } from '$lib/stores/toast';
     import { fmtDate } from '$lib/utils/dates';
     import { titleCase } from '$lib/utils/format';
     import type { ActionData, PageData } from './$types';
@@ -18,7 +19,18 @@
         <Badge>{titleCase(data.question.status)}</Badge>
         <Badge variant="outline">{titleCase(data.question.sourceType)}</Badge>
         <Button variant="outline" onclick={() => (editing = !editing)}>{editing ? 'Cancel' : 'Edit'}</Button>
-        <form method="post" action="?/delete" use:enhance>
+        <form
+            method="post"
+            action="?/delete"
+            use:enhance={() => {
+                return async ({ result, update }) => {
+                    await update();
+                    if (result.type === 'redirect' || result.type === 'success') {
+                        showSuccessToast('Question deleted');
+                    }
+                };
+            }}
+        >
             <Button type="submit" variant="destructive">
                 {#snippet children()}<Trash2 class="qdetail-icon-sm" /> Delete{/snippet}
             </Button>
@@ -30,9 +42,12 @@
     <QuestionForm
         action="?/update"
         onenhance={() =>
-            async ({ update }) => {
+            async ({ result, update }) => {
                 await update();
-                editing = false;
+                if (result.type === 'success') {
+                    showSuccessToast('Question updated');
+                    editing = false;
+                }
             }}
         initial={{
             question: data.question.question,

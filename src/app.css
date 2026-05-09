@@ -553,10 +553,15 @@ body,
     display: flex;
     align-items: center;
     gap: 4px;
-}
-
-.modal-shrink-0 {
-    flex-shrink: 0;
+    :global(a:focus-visible),
+    :global(input:focus-visible),
+    :global(select:focus-visible),
+    :global(textarea:focus-visible) {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+    transition: background-color 0.15s ease;
 }
 
 .modal-icon-btn {
@@ -1085,14 +1090,14 @@ select {
 
 .input:focus,
 .textarea:focus {
-    outline: none;
-    border-color: var(--ink-2);
-    background: var(--surface);
-    box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
-}
-
-.dialog-content .textarea {
-    resize: vertical;
+    :global(input:focus-visible),
+    :global(textarea:focus-visible),
+    :global(select:focus-visible) {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
+        border-color: var(--ink-2);
+        border-radius: 4px;
+    }
     min-height: 90px;
     font-family: inherit;
     line-height: 1.5;
@@ -1186,14 +1191,6 @@ select {
 
 .cmdpal-input:hover {
     background: var(--surface-2);
-    border-color: var(--ink-3);
-}
-
-.cmdpal-input:focus {
-    outline: none;
-    background: var(--surface);
-    border-color: var(--ink-2);
-    box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
 }
 
 .cmdpal-results {

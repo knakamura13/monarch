@@ -1,6 +1,7 @@
 <script lang="ts">
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import Button from '$lib/components/ui/Button.svelte';
+    import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
     import { authClient } from '$lib/client/auth-client';
     import { Fingerprint, ShieldCheck, Trash2, Plus } from 'lucide-svelte';
 
@@ -16,8 +17,10 @@
             const res = await authClient.passkey.addPasskey();
             if (res?.error) {
                 passkeyMsg = res.error.message ?? 'Failed';
+                showErrorToast(passkeyMsg);
             } else {
                 passkeyMsg = 'Passkey added.';
+                showSuccessToast('Passkey added');
                 await loadPasskeys();
             }
         } catch (err) {
@@ -36,8 +39,10 @@
         const res = await authClient.passkey.deletePasskey({ id });
         if (res.error) {
             passkeyMsg = res.error.message ?? 'Failed to delete passkey';
+            showErrorToast(passkeyMsg);
         } else {
             passkeyMsg = 'Passkey deleted.';
+            showSuccessToast('Passkey deleted');
             await loadPasskeys();
         }
     }
@@ -48,15 +53,27 @@
 
     async function enableTotp() {
         totpMsg = null;
-        const res = await authClient.twoFactor.enable({ password: prompt('Confirm your password') ?? '' });
-        if (res.error) totpMsg = res.error.message ?? 'Failed';
-        else totpSecret = res.data ?? null;
+        const password = prompt('Confirm your password');
+        if (!password) return;
+        const res = await authClient.twoFactor.enable({ password });
+        if (res.error) {
+            totpMsg = res.error.message ?? 'Failed';
+            showErrorToast(totpMsg);
+        } else {
+            totpSecret = res.data ?? null;
+        }
     }
 
     async function verifyTotp() {
         const res = await authClient.twoFactor.verifyTotp({ code: totpCode });
-        if (res.error) totpMsg = res.error.message ?? 'Invalid code';
-        else totpMsg = 'Two-factor enabled.';
+        if (res.error) {
+            totpMsg = res.error.message ?? 'Invalid code';
+            showErrorToast(totpMsg);
+        } else {
+            totpMsg = 'Two-factor enabled.';
+            showSuccessToast('Two-factor authentication enabled');
+            totpSecret = null;
+        }
     }
 </script>
 

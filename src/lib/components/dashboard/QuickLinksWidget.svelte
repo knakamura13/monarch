@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
-    import { Plus, Folder, Edit, Trash2, Link2 } from 'lucide-svelte';
+    import { Plus, Folder, Edit, Trash2 } from 'lucide-svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import Dialog from '$lib/components/ui/Dialog.svelte';
     import QuickLinksManageDialog from '$lib/components/dashboard/QuickLinksManageDialog.svelte';
@@ -8,7 +8,7 @@
     import QuickLinkIcon from '$lib/components/quick-links/QuickLinkIcon.svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import Input from '$lib/components/ui/Input.svelte';
-    import { showErrorToast } from '$lib/stores/toast';
+    import { showErrorToast, showSuccessToast } from '$lib/stores/toast';
 
     type ActionForm = { error?: string; errorId?: string | null } | undefined;
     let {
@@ -58,6 +58,7 @@
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
+            showSuccessToast('Link moved');
         } else {
             throw new Error('Failed to move link');
         }
@@ -70,6 +71,7 @@
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
+            showSuccessToast('Link order updated');
         } else {
             throw new Error('Failed to reorder links');
         }
@@ -82,6 +84,7 @@
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
+            showSuccessToast('Folder order updated');
         } else {
             throw new Error('Failed to reorder folders');
         }
@@ -98,6 +101,7 @@
         if (!response.ok) throw new Error('Failed to create folder');
         const { invalidateAll } = await import('$app/navigation');
         await invalidateAll();
+        showSuccessToast('Folder created from links');
     }
 
     function handleDeleteFolder(folderId: string, folderName: string) {
@@ -116,6 +120,7 @@
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
+            showSuccessToast('Folder name updated');
         } else {
             showErrorToast('Failed to update folder name');
         }

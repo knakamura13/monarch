@@ -8,7 +8,7 @@
     import Dialog from '$lib/components/ui/Dialog.svelte';
     import Input from '$lib/components/ui/Input.svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
-    import { showErrorToast } from '$lib/stores/toast';
+    import { showErrorToast, showSuccessToast } from '$lib/stores/toast';
     import { getPageNumber } from '$lib/constants/navigation';
     import type { PageData } from './$types';
 
@@ -46,6 +46,7 @@
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
+            showSuccessToast('Link moved');
         } else {
             throw new Error('Failed to move link');
         }
@@ -58,6 +59,7 @@
         if (!response.ok) throw new Error('Failed to reorder links');
         const { invalidateAll } = await import('$app/navigation');
         await invalidateAll();
+        showSuccessToast('Link order updated');
     }
 
     async function reorderFolders(folderIds: string[]) {
@@ -67,6 +69,7 @@
         if (!response.ok) throw new Error('Failed to reorder folders');
         const { invalidateAll } = await import('$app/navigation');
         await invalidateAll();
+        showSuccessToast('Folder order updated');
     }
 
     async function createFolderFromLinks(activeId: string, targetId: string) {
@@ -80,6 +83,7 @@
         if (!response.ok) throw new Error('Failed to create folder');
         const { invalidateAll } = await import('$app/navigation');
         await invalidateAll();
+        showSuccessToast('Folder created from links');
     }
 
     function handleDeleteFolder(folderId: string, folderName: string) {
@@ -98,6 +102,7 @@
         if (response.ok) {
             const { invalidateAll } = await import('$app/navigation');
             await invalidateAll();
+            showSuccessToast('Folder name updated');
         } else {
             showErrorToast('Failed to update folder name');
         }
