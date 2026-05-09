@@ -317,6 +317,26 @@ body,
     color: var(--surface);
     border-color: var(--ink);
 }
+
+
+.btn.ghost {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--ink);
+}
+
+.btn.ghost:hover {
+    background: var(--surface-2);
+}
+
+
+.btn.sm {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
+}
+
+
 .btn:active {
     opacity: 0.8;
     transform: translateY(1px);
@@ -327,7 +347,14 @@ body,
     background: var(--ink-2);
 }
 
-.btn:disabled:active {
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn:disabled:active,
+.btn.disabled:active {
     transform: none;
 }
 
