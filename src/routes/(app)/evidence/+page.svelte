@@ -4,6 +4,7 @@
     import { enhance } from '$app/forms';
     import { Plus, Check, Trash2, Edit2 } from 'lucide-svelte';
     import { getPageNumber } from '$lib/constants/navigation';
+    import { showSuccessToast } from '$lib/stores/toast';
     import type { PageData } from './$types';
     import Input from '$lib/components/ui/Input.svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
@@ -89,6 +90,7 @@
                                     return async ({ result, update }) => {
                                         await update();
                                         if (result.type === 'success') {
+                                            showSuccessToast('Category renamed');
                                             editingCategory = null;
                                             editCategoryName = '';
                                         }
@@ -140,7 +142,19 @@
                     {cat.currentCount}
                     <span style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);">/ {cat.targetCount}</span>
                 </div>
-                <form method="post" action="?/adjustCount" use:enhance style="display: flex; gap: 4px;">
+                <form
+                    method="post"
+                    action="?/adjustCount"
+                    use:enhance={() => {
+                        return async ({ result, update }) => {
+                            await update();
+                            if (result.type === 'success') {
+                                showSuccessToast('Evidence count updated');
+                            }
+                        };
+                    }}
+                    style="display: flex; gap: 4px;"
+                >
                     <input type="hidden" name="category" value={cat.category} />
                     <Button type="submit" name="delta" value="-1" variant="ghost" size="sm" disabled={cat.currentCount <= 0}>-</Button>
                     <Button type="submit" name="delta" value="1" variant="ghost" size="sm">+</Button>
@@ -194,6 +208,7 @@
                         await update();
                         // Close modal on successful submission
                         if (result.type === 'success') {
+                            showSuccessToast('Category added');
                             showAddModal = false;
                         }
                     };
@@ -233,6 +248,7 @@
                 return async ({ result, update }) => {
                     await update();
                     if (result.type === 'success') {
+                        showSuccessToast('Category deleted');
                         deleteConfirmCategory = null;
                     }
                 };

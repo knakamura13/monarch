@@ -1,5 +1,6 @@
 <script lang="ts">
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
+    import { showSuccessToast } from '$lib/stores/toast';
     import Button from '$lib/components/ui/Button.svelte';
     import Select from '$lib/components/ui/Select.svelte';
     import { Trash2, Copy, Shield, UserPlus } from 'lucide-svelte';
@@ -19,6 +20,7 @@
 
     async function copyToClipboard(url: string) {
         await navigator.clipboard.writeText(url);
+        showSuccessToast('Invite link copied to clipboard');
     }
 </script>
 
@@ -41,7 +43,18 @@
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <span class="pill {m.role === 'OWNER' ? 's-active' : 's-note'}" style="font-size: 10px;">{m.role}</span>
                         {#if isOwner && m.user.id !== page.data.user?.id}
-                            <form method="post" action="?/removeMember" use:enhance>
+                            <form
+                                method="post"
+                                action="?/removeMember"
+                                use:enhance={() => {
+                                    return async ({ result, update }) => {
+                                        await update();
+                                        if (result.type === 'success') {
+                                            showSuccessToast('Member removed');
+                                        }
+                                    };
+                                }}
+                            >
                                 <input type="hidden" name="userId" value={m.user.id} />
                                 <button type="submit" style="background: none; border: none; cursor: pointer; color: var(--blush-d);">
                                     <Trash2 style="width: 16px; height: 16px;" />
@@ -63,7 +76,19 @@
     {#if isOwner}
         <div class="card" style="padding: 24px;">
             <h2 class="display" style="font-size: 24px; margin-top: 0; margin-bottom: 20px;">Invite a user</h2>
-            <form method="post" action="?/invite" use:enhance class="invite-form">
+            <form
+                method="post"
+                action="?/invite"
+                use:enhance={() => {
+                    return async ({ result, update }) => {
+                        await update();
+                        if (result.type === 'success') {
+                            showSuccessToast('Invite link created');
+                        }
+                    };
+                }}
+                class="invite-form"
+            >
                 <div>
                     <label for="invite-email" style="display: block; font-size: 13px; margin-bottom: 4px;">Email</label>
                     <input id="invite-email" name="email" type="email" class="input" style="width: 100%;" required />

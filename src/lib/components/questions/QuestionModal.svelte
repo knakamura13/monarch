@@ -9,6 +9,7 @@
     import { questionStatusLabel, questionStatusPillClass } from '$lib/questions/questionStatusDisplay';
     import type { ManualEnhanceHandler } from '$lib/utils/enhanceSubmit';
     import { HelpCircle } from 'lucide-svelte';
+    import { showSuccessToast } from '$lib/stores/toast';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
 
@@ -34,7 +35,18 @@
         onenhance?: SubmitFunction | ManualEnhanceHandler;
     } = $props();
 
-    const submitEnhance = $derived(mode === 'create' ? (onenhance as SubmitFunction | undefined) : undefined);
+    const submitEnhance = $derived(() => {
+        const handler = (onenhance as SubmitFunction) || (async ({ update }) => await update());
+        return async (args) => {
+            const inner = await handler(args);
+            return async (resultArgs) => {
+                if (inner) await inner(resultArgs);
+                if (resultArgs.result.type === 'success' && mode === 'create') {
+                    showSuccessToast('Question created');
+                }
+            };
+        };
+    });
 
     const QUESTION_ALLOWED = [
         'id',

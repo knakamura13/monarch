@@ -213,12 +213,19 @@
 
     /* Improve focus indicators */
     :global(button:focus-visible),
-    :global(a:focus-visible),
-    :global(input:focus-visible),
-    :global(select:focus-visible),
-    :global(textarea:focus-visible) {
-        outline: 3px solid var(--ink);
+    :global(a:focus-visible) {
+        outline: 2px solid var(--ink);
         outline-offset: 2px;
+        border-radius: 4px;
+    }
+
+    /* Input focus specifically - we want the app.css focus ring for .input, but this covers raw elements */
+    :global(input:focus-visible),
+    :global(textarea:focus-visible),
+    :global(select:focus-visible) {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
+        border-color: var(--ink-2);
         border-radius: 4px;
     }
 

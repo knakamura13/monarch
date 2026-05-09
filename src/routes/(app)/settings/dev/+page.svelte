@@ -69,16 +69,15 @@
     </div>
 
     <!-- Logs Link -->
-    <div class="card" style="padding: 16px; background: var(--surface-2); border-style: dashed;">
-        <a
-            href={data.railwayProjectUrl}
-            target="_blank"
-            rel="noreferrer"
-            style="display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600;"
-        >
-            <ExternalLink style="width: 14px; height: 14px;" /> Open Railway Cloud Logs
-        </a>
-    </div>
+    <a
+        href={data.railwayProjectUrl}
+        target="_blank"
+        rel="noreferrer"
+        class="card logs-link-card"
+        style="padding: 16px; background: var(--surface-2); border-style: dashed; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600;"
+    >
+        <ExternalLink style="width: 14px; height: 14px;" /> Open Railway Cloud Logs
+    </a>
 
     <!-- Error Table -->
     <div class="card" style="padding: 0; overflow: hidden;">
@@ -117,7 +116,13 @@
                                 onmouseenter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
                                 onmouseleave={(e) => (e.currentTarget.style.background = 'transparent')}
                             >
-                                <td style="padding: 12px 20px;" class="mono">{new Date(e.occurredAt).toLocaleTimeString()}</td>
+                                <td
+                                    style="padding: 12px 20px;"
+                                    class="mono"
+                                    title={new Date(e.occurredAt).toLocaleString()}
+                                >
+                                    {new Date(e.occurredAt).toLocaleTimeString()}
+                                </td>
                                 <td style="padding: 12px 20px;">
                                     <span class="pill {e.status && e.status >= 500 ? 's-urgent' : 's-note'}">
                                         {e.status ?? 'ERR'}
@@ -126,6 +131,7 @@
                                 <td style="padding: 12px 20px;" class="mono">{e.source}</td>
                                 <td
                                     style="padding: 12px 20px; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                    title={e.message}
                                 >
                                     {e.message}
                                 </td>
@@ -143,3 +149,13 @@
         </div>
     </div>
 </div>
+
+<style>
+    .logs-link-card {
+        transition: all 150ms ease;
+    }
+    .logs-link-card:hover {
+        background: var(--surface-3) !important;
+        border-color: var(--ink-3) !important;
+    }
+</style>

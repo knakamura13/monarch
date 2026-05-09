@@ -406,10 +406,6 @@
         border-color: var(--ink-3);
     }
 
-    .task-date-icon {
-        opacity: 0.6;
-    }
-
     .task-date-clear {
         display: flex;
         align-items: center;
