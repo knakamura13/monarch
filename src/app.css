@@ -221,7 +221,7 @@ body,
 
     /* === Typography === */
     --font-display: 'Playfair Display', 'Georgia', 'Times New Roman', serif;
-    --font-ui: 'Inter', system-ui, sans-serif;
+    --font-ui: 'Georgia', 'Times New Roman', serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
     /* === Shape === */
