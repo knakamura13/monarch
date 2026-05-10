@@ -62,6 +62,13 @@
     let wasDragging = $state(false);
     let liveRegionMessage = $state<string>('');
 
+    // Drop indicator state - single source of truth for drop preview
+    let dropTarget = $state<{
+        targetStatus: string | null;
+        targetTaskId: string | null;
+        position: 'before' | 'after' | null;
+    }>({ targetStatus: null, targetTaskId: null, position: null });
+
     async function updateUrl(id: string | null) {
         const url = new URL(page.url.href);
         if (id) {
@@ -166,7 +173,7 @@
 
         const { currentX, currentY } = dragState;
 
-        // Hit testing for reordering
+        // Hit testing for drop indicator (preview only - no state mutation)
         const columns = Array.from(scrollContainer!.querySelectorAll('.tasks-column')) as HTMLElement[];
         let targetStatus: string | null = null;
         let targetTaskId: string | null = null;
@@ -189,9 +196,8 @@
             }
         }
 
-        if (targetStatus) {
-            performLocalReorder(dragState.id, targetStatus, targetTaskId, position);
-        }
+        // Update drop indicator state (preview only)
+        dropTarget = { targetStatus, targetTaskId, position };
     }
 
     onDestroy(() => {
@@ -247,32 +253,67 @@
             cancelAnimationFrame(dragState.rafId);
         }
 
-        const { isDragging } = dragState;
+        const { isDragging, id: draggedId, currentX, currentY } = dragState;
         if (isDragging) {
             wasDragging = true;
         }
 
+        // Run hit testing directly on drop to get final position
+        let targetStatus: string | null = null;
+        let targetTaskId: string | null = null;
+        let position: 'before' | 'after' | null = null;
+
+        const columns = Array.from(scrollContainer!.querySelectorAll('.tasks-column')) as HTMLElement[];
+        for (const col of columns) {
+            const rect = col.getBoundingClientRect();
+            if (currentX > rect.left && currentX < rect.right) {
+                targetStatus = COLUMNS[columns.indexOf(col)]?.id || null;
+                const cards = Array.from(col.querySelectorAll('.task-card:not([data-task-id="' + draggedId + '"])')) as HTMLElement[];
+                for (const card of cards) {
+                    const cardRect = card.getBoundingClientRect();
+                    if (currentY > cardRect.top && currentY < cardRect.bottom) {
+                        targetTaskId = card.getAttribute('data-task-id');
+                        position = currentY < cardRect.top + cardRect.height / 2 ? 'before' : 'after';
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
         dragState = null;
+        dropTarget = { targetStatus: null, targetTaskId: null, position: null };
         document.body.style.removeProperty('user-select');
         document.body.style.removeProperty('touch-action');
         window.removeEventListener('pointermove', handlePointerMove);
         window.removeEventListener('pointerup', handlePointerUp);
         window.removeEventListener('pointercancel', handlePointerUp);
 
-        if (!isDragging) return;
+        if (!isDragging || !targetStatus) return;
 
-        // Persist change
-        const updates = data.tasks.map((t) => ({
-            id: t.id,
-            status: t.status,
-            order: t.order
-        }));
+        // Perform the actual reorder on drop (not during drag)
+        performLocalReorder(draggedId, targetStatus, targetTaskId, position);
+
+        // Persist change (don't invalidate since we've already updated local state)
+        const validStatuses = ['To do', 'Doing', 'On hold', 'Done'];
+        const updates = data.tasks
+            .filter((t) => validStatuses.includes(t.status))
+            .map((t) => ({
+                id: t.id,
+                status: t.status,
+                order: t.order
+            }));
 
         try {
             const formData = new FormData();
             formData.append('updates', JSON.stringify(updates));
             const response = await fetch('?/reorder', { method: 'POST', body: formData });
-            if (response.ok) {
+            if (!response.ok) {
+                console.error('Failed to persist reorder:', response.statusText);
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+            } else {
+                // Invalidate to ensure UI shows persisted state from server
                 await invalidateAll();
             }
         } catch (error) {
@@ -404,6 +445,10 @@
                         onkeydown={(e) => handleTaskKeydown(e, task.id)}
                         style={dragState?.id === task.id && dragState.isDragging ? 'opacity: 0.2; pointer-events: none;' : ''}
                     >
+                        <!-- Drop indicator before this card -->
+                        {#if isDragging && dropTarget.targetStatus === column.id && dropTarget.targetTaskId === task.id && dropTarget.position === 'before'}
+                            <div class="task-card-drop-indicator"></div>
+                        {/if}
                         <TaskCard
                             {task}
                             onEdit={async () => {
@@ -414,8 +459,16 @@
                             isAnyDragging={isDragging}
                             {wasDragging}
                         />
+                        <!-- Drop indicator after this card -->
+                        {#if isDragging && dropTarget.targetStatus === column.id && dropTarget.targetTaskId === task.id && dropTarget.position === 'after'}
+                            <div class="task-card-drop-indicator task-card-drop-indicator-bottom"></div>
+                        {/if}
                     </div>
                 {/each}
+                <!-- Drop indicator at end of column (no target task) -->
+                {#if isDragging && dropTarget.targetStatus === column.id && !dropTarget.targetTaskId}
+                    <div class="task-card-drop-indicator"></div>
+                {/if}
                 {#if column.tasks.length === 0}
                     <div class="tasks-empty-placeholder" role="listitem">No tasks</div>
                 {/if}
