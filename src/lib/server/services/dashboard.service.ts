@@ -63,7 +63,7 @@ export async function dashboardFor(workspaceId: string) {
     const phaseProgress = PHASE_ORDER.map((p) => {
         const items = milestonesByPhase[p] ?? [];
         if (items.length === 0) return { phase: p, label: PHASE_LABELS[p], total: 0, done: 0 };
-        const done = items.filter((m) => m.status === 'DONE' || m.status === ('SKIPPED' as MilestoneStatus)).length;
+        const done = items.filter((m) => m.status === 'Done').length;
         return { phase: p, label: PHASE_LABELS[p], total: items.length, done };
     });
 
@@ -81,7 +81,7 @@ export async function dashboardFor(workspaceId: string) {
             kind: 'meeting' as const
         })),
         ...milestonesAll
-            .filter((m) => m.dueDate && new Date(m.dueDate) >= now && m.status !== 'DONE' && m.status !== ('SKIPPED' as MilestoneStatus))
+            .filter((m) => m.dueDate && new Date(m.dueDate) >= now && m.status !== 'Done')
             .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
             .slice(0, 3)
             .map((m) => ({
@@ -99,11 +99,11 @@ export async function dashboardFor(workspaceId: string) {
     const tasksToPreview = [];
 
     for (const task of tasks) {
-        if (task.status === 'TODO') taskSummary.pending++;
-        else if (task.status === ('IN_PROGRESS' as TaskStatus)) taskSummary.inProgress++;
-        else if (task.status === 'DONE') taskSummary.completed++;
+        if (task.status === 'To do') taskSummary.pending++;
+        else if (task.status === ('Doing' as TaskStatus)) taskSummary.inProgress++;
+        else if (task.status === 'Done') taskSummary.completed++;
 
-        if (task.status !== 'DONE') {
+        if (task.status !== 'Done') {
             tasksToPreview.push(task);
         }
     }
@@ -113,7 +113,7 @@ export async function dashboardFor(workspaceId: string) {
             const dueA = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
             const dueB = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
             if (a.status !== b.status) {
-                return a.status === 'IN_PROGRESS' ? -1 : 1;
+                return a.status === 'Doing' ? -1 : 1;
             }
             if (dueA !== dueB) return dueA - dueB;
             return a.order - b.order;

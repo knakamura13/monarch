@@ -88,9 +88,9 @@ export async function updateMilestone(workspaceId: string, actorId: string, id: 
     if (!existing) throw new Error('Milestone not found');
     if (existing.deletedAt) throw new Error('Milestone not found');
     const completedAt =
-        input.status === 'DONE' && !existing.completedAt
+        input.status === 'Done' && !existing.completedAt
             ? new Date().toISOString()
-            : input.status && input.status !== 'DONE'
+            : input.status && input.status !== 'Done'
               ? null
               : undefined;
     const patch: Record<string, unknown> = { ...input, updatedAt: new Date().toISOString() };
@@ -180,11 +180,11 @@ export async function softDeleteMilestone(workspaceId: string, actorId: string, 
 }
 
 export function currentPhase(milestones: { phase: MilestonePhase; status: MilestoneStatus }[]): MilestonePhase {
-    // Current phase = the earliest phase with any non-DONE milestone; else OUTCOME.
+    // Current phase = the earliest phase with any non-Done milestone; else OUTCOME.
     for (const phase of PHASE_ORDER) {
         const inPhase = milestones.filter((m) => m.phase === phase);
         if (inPhase.length === 0) continue;
-        if (inPhase.some((m) => m.status !== 'DONE' && m.status !== 'SKIPPED')) return phase;
+        if (inPhase.some((m) => m.status !== 'Done')) return phase;
     }
     return 'OUTCOME';
 }

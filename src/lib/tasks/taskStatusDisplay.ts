@@ -1,12 +1,12 @@
 export function taskStatusPillClass(status: string): string {
     switch (status) {
-        case 'TODO':
-            return 's-active';
-        case 'IN_PROGRESS':
+        case 'To do':
             return 's-note';
-        case 'WAITING':
+        case 'Doing':
+            return 's-active';
+        case 'On hold':
             return 's-waiting';
-        case 'DONE':
+        case 'Done':
             return 's-done';
         default:
             return '';
@@ -15,14 +15,11 @@ export function taskStatusPillClass(status: string): string {
 
 export function taskStatusLabel(status: string): string {
     switch (status) {
-        case 'TODO':
-            return 'This week';
-        case 'IN_PROGRESS':
-            return 'Soon';
-        case 'WAITING':
-            return 'Waiting';
-        case 'DONE':
-            return 'Done';
+        case 'To do':
+        case 'Doing':
+        case 'On hold':
+        case 'Done':
+            return status;
         default:
             return status;
     }

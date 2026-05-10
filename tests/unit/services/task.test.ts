@@ -24,13 +24,13 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
 
             expect(task.id).toBeTruthy();
             expect(task.title).toBe('Gather documents');
-            expect(task.status).toBe('TODO');
+            expect(task.status).toBe('To do');
             expect(task.workspaceId).toBe(ws);
         });
 
@@ -42,7 +42,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
             const t2 = await createTask(ws, actorId, {
@@ -50,7 +50,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
             const t3 = await createTask(ws, actorId, {
@@ -58,7 +58,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'IN_PROGRESS',
+                status: 'Doing',
                 checklist: []
             });
 
@@ -75,11 +75,11 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'LOW',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
 
-            expect(task.status).toBe('TODO');
+            expect(task.status).toBe('To do');
         });
 
         it('stores the task so listTasks can retrieve it', async () => {
@@ -89,7 +89,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'HIGH',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
 
@@ -110,7 +110,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
             const t2 = await createTask(ws, actorId, {
@@ -118,14 +118,14 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
 
             // Swap them: t2 goes to position 0, t1 goes to position 1; both move to IN_PROGRESS
             await reorderOnBoard(ws, actorId, [
-                { id: t2.id, status: 'IN_PROGRESS', order: 0 },
-                { id: t1.id, status: 'IN_PROGRESS', order: 1 }
+                { id: t2.id, status: 'Doing', order: 0 },
+                { id: t1.id, status: 'Doing', order: 1 }
             ]);
 
             const tasks = await listTasks(ws);
@@ -134,14 +134,14 @@ describe('task.service', () => {
 
             expect(updated2.order).toBe(0);
             expect(updated1.order).toBe(1);
-            expect(updated1.status).toBe('IN_PROGRESS');
-            expect(updated2.status).toBe('IN_PROGRESS');
+            expect(updated1.status).toBe('Doing');
+            expect(updated2.status).toBe('Doing');
         });
 
         it('throws when a task ID in the update list does not exist', async () => {
             const ws = workspaceId();
 
-            await expect(reorderOnBoard(ws, actorId, [{ id: 'nonexistent-id', status: 'TODO', order: 0 }])).rejects.toThrow(
+            await expect(reorderOnBoard(ws, actorId, [{ id: 'nonexistent-id', status: 'To do', order: 0 }])).rejects.toThrow(
                 'Task not found'
             );
         });
@@ -154,12 +154,12 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
             await softDeleteTask(ws, actorId, task.id);
 
-            await expect(reorderOnBoard(ws, actorId, [{ id: task.id, status: 'TODO', order: 0 }])).rejects.toThrow('Task not found');
+            await expect(reorderOnBoard(ws, actorId, [{ id: task.id, status: 'To do', order: 0 }])).rejects.toThrow('Task not found');
         });
     });
 
@@ -175,7 +175,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
 
@@ -196,7 +196,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
 
@@ -220,7 +220,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
 
@@ -247,7 +247,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
 
@@ -280,7 +280,7 @@ describe('task.service', () => {
                 description: null,
                 dueDate: null,
                 priority: 'MEDIUM',
-                status: 'TODO',
+                status: 'To do',
                 checklist: []
             });
 

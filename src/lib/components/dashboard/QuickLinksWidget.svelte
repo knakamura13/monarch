@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
-    import { Plus, Folder, Edit, Trash2 } from 'lucide-svelte';
+    import { Plus, Folder, Edit, Trash2, Undo2 } from 'lucide-svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import Dialog from '$lib/components/ui/Dialog.svelte';
     import QuickLinksManageDialog from '$lib/components/dashboard/QuickLinksManageDialog.svelte';
@@ -190,7 +190,8 @@
             <div class="folder-links-grid" style="display: grid; grid-template-columns: 1fr; gap: 8px;">
                 {#each folderLinks as link (link.id)}
                     <div
-                        style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: var(--surface-2); border-radius: 8px;"
+                        class="folder-link-row"
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: var(--surface-2); border-radius: 8px; transition: background-color 150ms ease;"
                     >
                         <a
                             href={link.url}
@@ -209,13 +210,22 @@
                             </div>
                         </a>
                         <div style="display: flex; gap: 4px;">
-                            <Button variant="ghost" size="icon" onclick={() => openEdit(link)}>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Remove from folder"
+                                onclick={() => moveToFolder(link.id, null)}
+                            >
+                                <Undo2 size={14} />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Edit link" onclick={() => openEdit(link)}>
                                 <Edit size={14} />
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 class="text-destructive"
+                                title="Delete link"
                                 onclick={() => qlDialog?.openDelete('link', link.id, link.title || 'Link')}
                             >
                                 <Trash2 size={14} />
@@ -233,3 +243,9 @@
 {/if}
 
 <QuickLinksManageDialog bind:this={qlDialog} {links} {form} />
+
+<style>
+    .folder-link-row:hover {
+        background: var(--surface-3) !important;
+    }
+</style>

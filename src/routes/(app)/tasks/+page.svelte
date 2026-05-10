@@ -73,10 +73,10 @@
     }
 
     const COLUMNS = [
-        { id: 'TODO', label: 'This week', pillClass: 's-active' },
-        { id: 'IN_PROGRESS', label: 'Soon', pillClass: 's-note' },
-        { id: 'WAITING', label: 'Waiting', pillClass: 's-waiting' },
-        { id: 'DONE', label: 'Done', pillClass: 's-done' }
+        { id: 'To do', label: 'To do', pillClass: 's-note' },
+        { id: 'Doing', label: 'Doing', pillClass: 's-active' },
+        { id: 'On hold', label: 'On hold', pillClass: 's-waiting' },
+        { id: 'Done', label: 'Done', pillClass: 's-done' }
     ] as const;
 
     const grouped = $derived(

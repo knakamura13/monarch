@@ -45,10 +45,10 @@
     const TASK_ALLOWED = ['id', 'title', 'description', 'status', 'priority', 'dueDate', 'checklist'] as const;
 
     const taskStatusOptions = [
-        { value: 'TODO', label: 'This week' },
-        { value: 'IN_PROGRESS', label: 'Soon' },
-        { value: 'WAITING', label: 'Waiting' },
-        { value: 'DONE', label: 'Done' }
+        { value: 'To do', label: 'To do' },
+        { value: 'Doing', label: 'Doing' },
+        { value: 'On hold', label: 'On hold' },
+        { value: 'Done', label: 'Done' }
     ];
 
     function val(name: string, fallback = '') {
@@ -61,7 +61,7 @@
     let dueDateValue = $state('');
     let titleValue = $state('');
     let descriptionValue = $state('');
-    let statusValue = $state('TODO');
+    let statusValue = $state('To do');
     let priorityValue = $state('MEDIUM');
 
     let dateInput: HTMLInputElement;
@@ -142,14 +142,14 @@
             if (mode === 'create') {
                 titleValue = '';
                 descriptionValue = '';
-                statusValue = defaultStatus || 'TODO';
+                statusValue = defaultStatus || 'To do';
                 priorityValue = 'MEDIUM';
                 dueDateValue = '';
                 editableChecklist = [];
             } else {
                 titleValue = val('title');
                 descriptionValue = val('description');
-                statusValue = val('status', 'TODO');
+                statusValue = val('status', 'To do');
                 priorityValue = val('priority', 'MEDIUM');
                 editableChecklist = parseTaskChecklist(initial.checklist);
                 dueDateValue = val('dueDate');

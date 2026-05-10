@@ -26,7 +26,7 @@ describe('date utils', () => {
 
 describe('format utils', () => {
     it('titleCase converts SNAKE_CASE', () => {
-        expect(titleCase('IN_PROGRESS')).toBe('In Progress');
+        expect(titleCase('SOME_SNAKE_CASE')).toBe('Some Snake Case');
     });
 
     it('initials picks first two name parts', () => {

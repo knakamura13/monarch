@@ -23,7 +23,7 @@ describe('MilestoneModal (edit)', () => {
             title: 'Test Milestone',
             description: 'Test description',
             phase: 'PREPARATION',
-            status: 'PLANNED',
+            status: 'To do',
             priority: 'MEDIUM',
             ownerId: '1',
             dueDate: '2026-12-31',
@@ -75,12 +75,12 @@ describe('MilestoneModal (edit)', () => {
         render(MilestoneModal, { props: defaultProps });
 
         await fireEvent.click(screen.getByRole('button', { name: 'Milestone status' }));
-        await fireEvent.click(screen.getByRole('option', { name: 'Blocked' }));
+        await fireEvent.click(screen.getByRole('option', { name: 'On hold' }));
 
         const form = screen.getByRole('dialog').querySelector('form');
         const statusInput = form?.querySelector('input[type="hidden"][name="status"]') as HTMLInputElement;
 
-        expect(screen.getByRole('button', { name: 'Milestone status' })).toHaveTextContent('Blocked');
-        expect(statusInput.value).toBe('BLOCKED');
+        expect(screen.getByRole('button', { name: 'Milestone status' })).toHaveTextContent('On hold');
+        expect(statusInput.value).toBe('On hold');
     });
 });

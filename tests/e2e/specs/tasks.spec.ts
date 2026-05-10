@@ -16,7 +16,7 @@ test.describe('Tasks Workflow', () => {
         const editedTitle = `${title} Edited`;
 
         // 1. Create
-        await tasksPage.getAddTaskButton('TODO').click();
+        await tasksPage.getAddTaskButton('To do').click();
         await tasksPage.dialog.expectVisible();
         await tasksPage.dialog.fillInput(/title/i, title);
         await tasksPage.dialog.submit(/create|save/i);
@@ -25,15 +25,15 @@ test.describe('Tasks Workflow', () => {
         const taskCard = tasksPage.getTaskCard(title);
         await expect(taskCard).toBeVisible();
 
-        // 2. Drag and Drop to 'IN_PROGRESS'
-        await tasksPage.dragTaskToColumn(title, 'IN_PROGRESS');
+        // 2. Drag and Drop to 'Doing'
+        await tasksPage.dragTaskToColumn(title, 'Doing');
         
         // Wait for potential reorder request
         await page.waitForTimeout(500);
 
         // 3. Verify Persistence on Reload
         await tasksPage.reload();
-        const soonColumn = tasksPage.getColumn('IN_PROGRESS');
+        const soonColumn = tasksPage.getColumn('Doing');
         await expect(soonColumn.locator('.task-card').filter({ has: page.getByText(title, { exact: true }) }).first()).toBeVisible();
 
         // 4. Edit

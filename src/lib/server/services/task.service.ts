@@ -30,7 +30,7 @@ export async function getTask(workspaceId: string, id: string) {
 
 export async function createTask(workspaceId: string, actorId: string, input: TaskCreate) {
     const existingTasks = await listTasks(workspaceId);
-    const statusTasks = existingTasks.filter((t) => t.status === (input.status || 'TODO'));
+    const statusTasks = existingTasks.filter((t) => t.status === (input.status || 'To do'));
     const order = statusTasks.length;
 
     const now = new Date().toISOString();

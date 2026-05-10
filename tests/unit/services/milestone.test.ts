@@ -19,20 +19,20 @@ describe('currentPhase', () => {
     it('returns the earliest phase that still has open work', () => {
         expect(
             currentPhase([
-                { phase: 'PREPARATION', status: 'DONE' },
-                { phase: 'PREPARATION', status: 'DONE' },
-                { phase: 'RELATIONSHIP_EVIDENCE', status: 'IN_PROGRESS' },
-                { phase: 'PACKET_DRAFTING', status: 'PLANNED' }
+                { phase: 'PREPARATION', status: 'Done' },
+                { phase: 'PREPARATION', status: 'Done' },
+                { phase: 'RELATIONSHIP_EVIDENCE', status: 'Doing' },
+                { phase: 'PACKET_DRAFTING', status: 'To do' }
             ])
         ).toBe('RELATIONSHIP_EVIDENCE');
     });
 
-    it('skips phases with all DONE/SKIPPED milestones', () => {
+    it('skips phases with all Done milestones', () => {
         expect(
             currentPhase([
-                { phase: 'PREPARATION', status: 'DONE' },
-                { phase: 'RELATIONSHIP_EVIDENCE', status: 'SKIPPED' },
-                { phase: 'FILING', status: 'PLANNED' }
+                { phase: 'PREPARATION', status: 'Done' },
+                { phase: 'RELATIONSHIP_EVIDENCE', status: 'Done' },
+                { phase: 'FILING', status: 'To do' }
             ])
         ).toBe('FILING');
     });
@@ -40,8 +40,8 @@ describe('currentPhase', () => {
     it('returns OUTCOME when everything is done', () => {
         expect(
             currentPhase([
-                { phase: 'PREPARATION', status: 'DONE' },
-                { phase: 'OUTCOME', status: 'DONE' }
+                { phase: 'PREPARATION', status: 'Done' },
+                { phase: 'OUTCOME', status: 'Done' }
             ])
         ).toBe('OUTCOME');
     });
@@ -61,7 +61,7 @@ describe('reorderMilestonesInPhase', () => {
             phase: 'PREPARATION',
             dueDate: null,
             scheduledAt: null,
-            status: 'PLANNED',
+            status: 'To do',
             priority: 'MEDIUM',
             subTasks: [],
             location: null
@@ -72,7 +72,7 @@ describe('reorderMilestonesInPhase', () => {
             phase: 'PREPARATION',
             dueDate: null,
             scheduledAt: null,
-            status: 'PLANNED',
+            status: 'To do',
             priority: 'MEDIUM',
             subTasks: [],
             location: null
@@ -83,7 +83,7 @@ describe('reorderMilestonesInPhase', () => {
             phase: 'FILING',
             dueDate: null,
             scheduledAt: null,
-            status: 'PLANNED',
+            status: 'To do',
             priority: 'MEDIUM',
             subTasks: [],
             location: null
@@ -108,7 +108,7 @@ describe('reorderMilestonesInPhase', () => {
             phase: 'PREPARATION',
             dueDate: null,
             scheduledAt: null,
-            status: 'PLANNED',
+            status: 'To do',
             priority: 'MEDIUM',
             subTasks: [],
             location: null
@@ -119,7 +119,7 @@ describe('reorderMilestonesInPhase', () => {
             phase: 'PREPARATION',
             dueDate: null,
             scheduledAt: null,
-            status: 'PLANNED',
+            status: 'To do',
             priority: 'MEDIUM',
             subTasks: [],
             location: null

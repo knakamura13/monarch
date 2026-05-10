@@ -54,11 +54,10 @@
     ] as const;
 
     const milestoneStatusOptions = [
-        { value: 'PLANNED', label: 'Planned' },
-        { value: 'IN_PROGRESS', label: 'In progress' },
-        { value: 'DONE', label: 'Done' },
-        { value: 'BLOCKED', label: 'Blocked' },
-        { value: 'SKIPPED', label: 'Skipped' }
+        { value: 'To do', label: 'To do' },
+        { value: 'Doing', label: 'Doing' },
+        { value: 'On hold', label: 'On hold' },
+        { value: 'Done', label: 'Done' }
     ];
 
     function val(name: string, fallback = '') {
@@ -66,10 +65,18 @@
     }
 
     function milestoneStatusPillClass(status: string) {
-        if (status === 'DONE' || status === 'SKIPPED') return 's-done';
-        if (status === 'IN_PROGRESS' || status === 'PLANNED') return 's-active';
-        if (status === 'BLOCKED') return 's-urgent';
-        return 's-note';
+        switch (status) {
+            case 'To do':
+                return 's-note';
+            case 'Doing':
+                return 's-active';
+            case 'On hold':
+                return 's-waiting';
+            case 'Done':
+                return 's-done';
+            default:
+                return '';
+        }
     }
 
     let editableSubTasks = $state<TaskChecklistItem[]>([]);
@@ -88,7 +95,7 @@
     let titleValue = $state('');
     let descriptionValue = $state('');
     let phaseValue = $state('PREPARATION');
-    let statusValue = $state('PLANNED');
+    let statusValue = $state('To do');
     let priorityValue = $state('MEDIUM');
 
     let dueDateInputEl = $state<HTMLInputElement | null>(null);
@@ -145,7 +152,7 @@
                 titleValue = '';
                 descriptionValue = '';
                 phaseValue = defaultPhase || 'PREPARATION';
-                statusValue = 'PLANNED';
+                statusValue = 'To do';
                 priorityValue = 'MEDIUM';
                 editableSubTasks = [];
                 dueDateValue = '';
@@ -159,7 +166,7 @@
                 titleValue = val('title');
                 descriptionValue = val('description');
                 phaseValue = val('phase', 'PREPARATION');
-                statusValue = val('status', 'PLANNED');
+                statusValue = val('status', 'To do');
                 priorityValue = val('priority', 'MEDIUM');
                 editableSubTasks = (initial.subTasks as TaskChecklistItem[]) || [];
                 dueDateValue = val('dueDate');

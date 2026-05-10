@@ -12,7 +12,7 @@ test.describe('Components Smoke Test', () => {
         await tasksPage.goto();
 
         // Open Add Task Dialog
-        await tasksPage.getAddTaskButton('TODO').click();
+        await tasksPage.getAddTaskButton('To do').click();
         await tasksPage.dialog.expectVisible();
 
         // Close it
@@ -24,6 +24,6 @@ test.describe('Components Smoke Test', () => {
         
         // Reload to test "pages stop refreshing" bug
         await tasksPage.reload();
-        await expect(tasksPage.getAddTaskButton('TODO')).toBeVisible();
+        await expect(tasksPage.getAddTaskButton('To do')).toBeVisible();
     });
 });

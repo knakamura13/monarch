@@ -1096,11 +1096,8 @@ select {
         outline: none;
         box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
         border-color: var(--ink-2);
-        border-radius: 4px;
     }
-    min-height: 90px;
     font-family: inherit;
-    line-height: 1.5;
 }
 
 /* Title input in header */

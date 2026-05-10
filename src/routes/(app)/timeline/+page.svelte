@@ -3,7 +3,7 @@
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import MilestoneModal from '$lib/components/timeline/MilestoneModal.svelte';
-    import { Plus, MapPin, Check, Clock, GripVertical, X } from 'lucide-svelte';
+    import { Plus, MapPin, Check, Clock, GripVertical, Pause } from 'lucide-svelte';
     import { fmtDate } from '$lib/utils/dates';
     import { PHASE_ORDER, PHASE_LABELS, PHASE_DESCRIPTIONS } from '$lib/constants/phases';
     import { page } from '$app/state';
@@ -70,39 +70,53 @@
 
     function phaseProgress(items: { status: string }[]) {
         if (items.length === 0) return 0;
-        const done = items.filter((i) => i.status === 'DONE' || i.status === 'SKIPPED').length;
+        const done = items.filter((i) => i.status === 'Done').length;
         return Math.round((done / items.length) * 100);
     }
 
     function phaseStatus(items: { status: string }[]) {
         if (items.length === 0) return 'future';
-        const hasActive = items.some((i) => i.status === 'IN_PROGRESS' || i.status === 'PLANNED');
-        const allDone = items.every((i) => i.status === 'DONE' || i.status === 'SKIPPED');
+        const hasActive = items.some((i) => i.status === 'Doing' || i.status === 'To do');
+        const allDone = items.every((i) => i.status === 'Done');
         if (allDone) return 'done';
         if (hasActive) return 'active';
         return 'future';
     }
 
     function milestoneNodeStatus(status: string) {
-        if (status === 'DONE' || status === 'SKIPPED') return 'done';
-        if (status === 'IN_PROGRESS' || status === 'PLANNED') return 'active';
-        if (status === 'BLOCKED') return 'blocked';
-        return 'future';
+        switch (status) {
+            case 'Done':
+                return 'done';
+            case 'Doing':
+            case 'To do':
+                return 'active';
+            case 'On hold':
+                return 'blocked';
+            default:
+                return 'future';
+        }
     }
 
     function statusPillClass(status: string) {
-        if (status === 'DONE' || status === 'SKIPPED') return 's-done';
-        if (status === 'IN_PROGRESS' || status === 'PLANNED') return 's-active';
-        if (status === 'BLOCKED') return 's-urgent';
-        return 's-note';
+        switch (status) {
+            case 'To do':
+                return 's-note';
+            case 'Doing':
+                return 's-active';
+            case 'On hold':
+                return 's-waiting';
+            case 'Done':
+                return 's-done';
+            default:
+                return '';
+        }
     }
 
     function statusLabel(status: string) {
-        if (status === 'DONE') return 'Done';
-        if (status === 'SKIPPED') return 'Skipped';
-        if (status === 'IN_PROGRESS') return 'In progress';
-        if (status === 'PLANNED') return 'Planned';
-        if (status === 'BLOCKED') return 'Blocked';
+        if (status === 'Done') return 'Done';
+        if (status === 'Doing') return 'Doing';
+        if (status === 'To do') return 'To do';
+        if (status === 'On hold') return 'On hold';
         return status;
     }
 
@@ -324,7 +338,7 @@
                     <p class="timeline-phase-subtitle">{PHASE_DESCRIPTIONS[g.phase]}</p>
                     <div class="timeline-phase-meta">
                         {#if g.items.length > 0}
-                            <span class="pill {statusPillClass(g.items[0]?.status ?? 'PLANNED')}">{progress}% complete</span>
+                            <span class="pill {statusPillClass(g.items[0]?.status ?? 'To do')}">{progress}% complete</span>
                             <span class="mono milestone-count">{g.items.length} milestones</span>
                         {/if}
                     </div>
@@ -355,7 +369,7 @@
                                     {:else if nodeStatus === 'active'}
                                         <Clock style="width: 14px; height: 14px; color: var(--surface);" />
                                     {:else if nodeStatus === 'blocked'}
-                                        <X style="width: 14px; height: 14px; color: var(--surface);" />
+                                        <Pause style="width: 12px; height: 12px; color: var(--surface);" />
                                     {/if}
                                 </div>
                                 <button

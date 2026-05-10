@@ -41,14 +41,14 @@ describe('cross-domain DynamoDB smoke', () => {
             phase: 'MARRIAGE_LICENSE',
             dueDate: undefined,
             scheduledAt: undefined,
-            status: 'PLANNED',
+            status: 'To do',
             priority: 'MEDIUM',
             subTasks: [],
             location: ''
         });
 
         expect((await listMilestones(ws)).some((m) => m.id === created.id)).toBe(true);
-        await updateMilestone(ws, actorId, created.id, { status: 'IN_PROGRESS' });
+        await updateMilestone(ws, actorId, created.id, { status: 'Doing' });
         await softDeleteMilestone(ws, actorId, created.id);
         expect((await listMilestones(ws)).length).toBe(0);
     });
@@ -105,7 +105,7 @@ describe('cross-domain DynamoDB smoke', () => {
             phase: 'PREPARATION',
             dueDate: undefined,
             scheduledAt: undefined,
-            status: 'PLANNED',
+            status: 'To do',
             priority: 'MEDIUM',
             subTasks: [],
             location: ''

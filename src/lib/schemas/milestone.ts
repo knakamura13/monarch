@@ -14,7 +14,7 @@ export const milestonePhaseEnum = z.enum([
     'OUTCOME'
 ]);
 
-export const milestoneStatusEnum = z.enum(['PLANNED', 'IN_PROGRESS', 'DONE', 'BLOCKED', 'SKIPPED']);
+export const milestoneStatusEnum = z.enum(['To do', 'Doing', 'On hold', 'Done']);
 
 export const subTaskSchema = z.object({
     id: z.string().uuid(),
@@ -28,7 +28,7 @@ export const milestoneCreateSchema = z.object({
     phase: milestonePhaseEnum,
     dueDate: optionalDateOnly,
     scheduledAt: optionalDateOnly,
-    status: milestoneStatusEnum.default('PLANNED'),
+    status: milestoneStatusEnum.default('To do'),
     priority: priorityEnum.default('MEDIUM'),
     subTasks: z.array(subTaskSchema).default([]),
     location: stringOrEmpty(500)

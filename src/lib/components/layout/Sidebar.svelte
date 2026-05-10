@@ -67,7 +67,7 @@
                 if (!milestones) return null;
                 for (const phase of PHASE_ORDER) {
                     const inPhase = milestones.filter((m: any) => m.phase === phase);
-                    const incomplete = inPhase.find((m: any) => m.status !== 'DONE' && m.status !== 'SKIPPED');
+                    const incomplete = inPhase.find((m: any) => m.status !== 'Done');
                     if (incomplete) return incomplete;
                 }
                 return null;

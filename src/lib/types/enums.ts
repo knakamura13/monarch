@@ -15,14 +15,14 @@ export type MilestonePhase =
     | 'POST_INTERVIEW'
     | 'OUTCOME';
 
-export type MilestoneStatus = 'PLANNED' | 'IN_PROGRESS' | 'DONE' | 'BLOCKED' | 'SKIPPED';
+export type MilestoneStatus = 'To do' | 'Doing' | 'On hold' | 'Done';
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 // NOTE: This must stay in sync with taskStatusEnum in src/lib/schemas/task.ts.
 // Consolidation was skipped because task.ts importing from enums.ts would create
 // a circular dependency (enums.ts ← schemas/* ← common.ts ← schemas/task.ts).
-export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'WAITING' | 'DONE';
+export type TaskStatus = 'To do' | 'Doing' | 'On hold' | 'Done';
 
 export type FormFilingStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'READY_FOR_REVIEW' | 'FILED' | 'RECEIVED' | 'REPLACED' | 'NOT_NEEDED';
 

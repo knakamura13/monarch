@@ -32,11 +32,11 @@
     }
 
     const isOverdue = $derived(
-        task.dueDate && task.status !== 'DONE' && new Date(task.dueDate) < new Date(new Date().setHours(0, 0, 0, 0))
+        task.dueDate && task.status !== 'Done' && new Date(task.dueDate) < new Date(new Date().setHours(0, 0, 0, 0))
     );
 
     const taskCardClasses = $derived(
-        `task-card-inner ${!isAnyDragging ? 'task-card-hoverable' : ''} ${isDragging ? 'task-card-dragging' : ''} ${task.status === 'DONE' ? 'task-card-done' : ''}`.trim()
+        `task-card-inner ${!isAnyDragging ? 'task-card-hoverable' : ''} ${isDragging ? 'task-card-dragging' : ''} ${task.status === 'Done' ? 'task-card-done' : ''}`.trim()
     );
 </script>
 

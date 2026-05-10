@@ -33,7 +33,7 @@ export const POST = async () => {
         description: null,
         dueDate: null,
         priority: 'MEDIUM',
-        status: 'TODO',
+        status: 'To do',
         linkedEvidenceId: null,
         linkedMilestoneId: null,
         order: 0,
