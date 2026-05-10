@@ -104,7 +104,7 @@
 
     let horizontalShift = $state(0);
 
-    // Prevent horizontal overflow
+    // Prevent horizontal overflow and position dropdown correctly
     $effect(() => {
         if (!isOpen) {
             horizontalShift = 0;
@@ -114,34 +114,72 @@
         const updatePosition = () => {
             if (!menuEl) return;
 
+            // Get trigger element position
+            const triggerEl = document.getElementById(triggerId);
+            if (!triggerEl) return;
+
             // Reset shift to get natural position
             horizontalShift = 0;
 
             // Wait for DOM to update with reset shift
             requestAnimationFrame(() => {
                 if (!menuEl) return;
-                const rect = menuEl.getBoundingClientRect();
+                
+                const triggerRect = triggerEl.getBoundingClientRect();
+                const menuRect = menuEl.getBoundingClientRect();
                 const padding = 12;
                 let shift = 0;
+                let top = 0;
+                let left = 0;
 
-                // Find the nearest dialog container or fallback to window
-                let container = menuEl.closest('[role="dialog"]');
-                let containerRect;
+                // Calculate position based on position prop
+                const isBottomPosition = position.includes('bottom');
+                if (position === 'bottom-start' || position === 'top-start') {
+                    left = triggerRect.left;
+                    top = isBottomPosition ? triggerRect.bottom + 4 : triggerRect.top - menuRect.height - 4;
+                } else if (position === 'bottom-end' || position === 'top-end') {
+                    left = triggerRect.right - menuRect.width;
+                    top = isBottomPosition ? triggerRect.bottom + 4 : triggerRect.top - menuRect.height - 4;
+                } else if (position === 'bottom-center' || position === 'top-center') {
+                    left = triggerRect.left + (triggerRect.width / 2) - (menuRect.width / 2);
+                    top = isBottomPosition ? triggerRect.bottom + 4 : triggerRect.top - menuRect.height - 4;
+                }
+
+                // Apply viewport constraints
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
                 
+                // Prevent horizontal overflow
+                if (left + menuRect.width > viewportWidth - padding) {
+                    left = viewportWidth - padding - menuRect.width;
+                } else if (left < padding) {
+                    left = padding;
+                }
+
+                // Prevent vertical overflow
+                if (top + menuRect.height > viewportHeight - padding) {
+                    top = viewportHeight - padding - menuRect.height;
+                } else if (top < padding) {
+                    top = padding;
+                }
+
+                // Apply position
+                menuEl.style.top = `${top}px`;
+                menuEl.style.left = `${left}px`;
+
+                // Check for dialog container overflow
+                const container = menuEl.closest('[role="dialog"]');
                 if (container) {
-                    containerRect = container.getBoundingClientRect();
-                    // Check if menu overflows the dialog container
-                    if (rect.right > containerRect.right - padding) {
-                        shift = containerRect.right - padding - rect.right;
-                    } else if (rect.left < containerRect.left + padding) {
-                        shift = containerRect.left + padding - rect.left;
-                    }
-                } else {
-                    // Fallback to window viewport
-                    if (rect.right > window.innerWidth - padding) {
-                        shift = window.innerWidth - padding - rect.right;
-                    } else if (rect.left < padding) {
-                        shift = padding - rect.left;
+                    const containerRect = container.getBoundingClientRect();
+                    const menuRight = left + menuRect.width;
+                    
+                    // Adjust if still overflowing dialog container
+                    if (menuRight > containerRect.right - padding) {
+                        const overflow = menuRight - (containerRect.right - padding);
+                        horizontalShift = -overflow;
+                    } else if (left < containerRect.left + padding) {
+                        const overflow = containerRect.left + padding - left;
+                        horizontalShift = overflow;
                     }
                 }
 
@@ -219,7 +257,7 @@
     }
 
     .dropdown-menu {
-        position: absolute;
+        position: fixed;
         background: var(--surface);
         border: 1px solid var(--hairline);
         border-radius: 6px;
@@ -231,6 +269,8 @@
         outline: none;
         min-width: fit-content;
         transform: translateX(var(--horizontal-shift, 0px));
+        max-height: 50vh;
+        overflow-y: auto;
     }
 
     .dropdown-menu--size-sm {

@@ -749,6 +749,9 @@
         background: var(--surface-3);
         border: 1px dashed var(--hairline);
     }
+    .ql-icon--add-folder {
+        border: 1px dashed var(--hairline);
+    }
     .ql-label {
         text-align: center;
         font-weight: 500;
