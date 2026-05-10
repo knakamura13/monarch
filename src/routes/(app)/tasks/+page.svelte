@@ -63,7 +63,7 @@
     let liveRegionMessage = $state<string>('');
 
     async function updateUrl(id: string | null) {
-        const url = new URL(window.location.href);
+        const url = new URL(page.url.href);
         if (id) {
             url.searchParams.set('edit', id);
         } else {
@@ -104,9 +104,12 @@
 
         wasDragging = false;
 
+        const taskItem = data.tasks.find((t) => t.id === id);
+        if (!taskItem) return;
+
         dragState = {
             id,
-            item: data.tasks.find((t) => t.id === id),
+            item: taskItem,
             pointerOffsetX: event.clientX - rect.left,
             pointerOffsetY: event.clientY - rect.top,
             containerRect,
@@ -188,9 +191,11 @@
     }
 
     onDestroy(() => {
-        window.removeEventListener('pointermove', handlePointerMove);
-        window.removeEventListener('pointerup', handlePointerUp);
-        window.removeEventListener('pointercancel', handlePointerUp);
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+            window.removeEventListener('pointercancel', handlePointerUp);
+        }
         if (dragState?.rafId !== null && dragState?.rafId !== undefined) {
             cancelAnimationFrame(dragState.rafId);
         }
@@ -277,12 +282,16 @@
         const activeTask = data.tasks.find((t) => t.id === taskId);
         if (!activeTask) return;
 
+        // Safe to access activeTask.status since we confirmed it exists above
         const currentColumnIdx = COLUMNS.findIndex((c) => c.id === activeTask.status);
-        const currentColumn = grouped[currentColumnIdx];
-        if (!currentColumn || currentColumnIdx === -1) return;
+        if (currentColumnIdx === -1) return;
+
+        // Get the current column safely
+        const currentColumnValue = grouped[currentColumnIdx];
+        if (!currentColumnValue) return;
 
         const allTasks = [...data.tasks];
-        const currentTaskIdx = currentColumn.tasks.findIndex((t) => t.id === taskId);
+        const currentTaskIdx = currentColumnValue.tasks.findIndex((t) => t.id === taskId);
         const updates: Array<{ id: string; status: string; order: number }> = [];
 
         switch (event.key) {
@@ -328,14 +337,14 @@
             }
             case 'ArrowDown': {
                 event.preventDefault();
-                if (currentTaskIdx >= currentColumn.tasks.length - 1) return;
+                if (currentTaskIdx >= currentColumnValue.tasks.length - 1) return;
                 const columnTasks = allTasks.filter((t) => t.status === activeTask.status).sort((a, b) => a.order - b.order);
                 const newOrder = columnTasks.filter((t) => t.id !== taskId);
                 newOrder.splice(currentTaskIdx + 1, 0, activeTask);
                 newOrder.forEach((t, idx) => {
                     updates.push({ id: t.id, status: t.status, order: idx });
                 });
-                liveRegionMessage = `Moved "${activeTask.title}" down in ${currentColumn.label}`;
+                liveRegionMessage = `Moved "${activeTask.title}" down in ${currentColumnValue.label}`;
                 break;
             }
             case 'ArrowUp': {
@@ -347,7 +356,7 @@
                 newOrder.forEach((t, idx) => {
                     updates.push({ id: t.id, status: t.status, order: idx });
                 });
-                liveRegionMessage = `Moved "${activeTask.title}" up in ${currentColumn.label}`;
+                liveRegionMessage = `Moved "${activeTask.title}" up in ${currentColumnValue.label}`;
                 break;
             }
             default:
@@ -433,7 +442,7 @@
             action="?/update"
             onenhance={() => {
                 return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
-                    if (result.type === 'success') {
+                    if (result.type === 'success' || result.type === 'redirect') {
                         await invalidateAll();
                         showSuccessToast('Task updated successfully');
                         await updateUrl(null);
@@ -469,7 +478,7 @@
         errorId={form?.errorId}
         onenhance={() => {
             return async ({ result }: { result: { type: string } }) => {
-                if (result.type === 'success') {
+                if (result.type === 'success' || result.type === 'redirect') {
                     showCreateModal = false;
                     defaultStatus = undefined;
                     await invalidateAll();
@@ -483,7 +492,9 @@
 {#if dragState && dragState.isDragging}
     <div
         class="task-drag-ghost"
-        style="position: fixed; pointer-events: none; z-index: 9999; width: {dragState.width}px; height: {dragState.height}px; left: {dragState.currentX - dragState.pointerOffsetX}px; top: {dragState.currentY - dragState.pointerOffsetY}px; opacity: 0.9; transform: rotate(2deg); box-shadow: 0 12px 24px rgba(0,0,0,0.15);"
+        style="position: fixed; pointer-events: none; z-index: 9999; width: {dragState.width}px; height: {dragState.height}px; left: {dragState.currentX -
+            dragState.pointerOffsetX}px; top: {dragState.currentY -
+            dragState.pointerOffsetY}px; opacity: 0.9; transform: rotate(2deg); box-shadow: 0 12px 24px rgba(0,0,0,0.15);"
     >
         <TaskCard task={dragState.item} />
     </div>
