@@ -10,15 +10,17 @@
 <div class="sidebar">
     <!-- Header -->
     <div style="display: flex; align-items: center; gap: 12px; padding: 0 8px;">
-        <img
-            src="/monarch-logo.png"
-            alt="Monarch"
-            width="40"
-            height="32"
-            style="flex-shrink: 0; display: block; object-fit: contain;"
-            loading="lazy"
-            decoding="async"
-        />
+        <a href="/" style="display: block; line-height: 0;">
+            <img
+                src="/monarch-logo.png"
+                alt="Monarch"
+                width="40"
+                height="32"
+                style="flex-shrink: 0; display: block; object-fit: contain;"
+                loading="lazy"
+                decoding="async"
+            />
+        </a>
         <div class="display" style="font-size: 24px; line-height: 1; letter-spacing: -0.01em;">monarch</div>
     </div>
 
