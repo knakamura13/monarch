@@ -4,6 +4,7 @@
     import { getPageNumber } from '$lib/constants/navigation';
     import { CheckSquare, AlertTriangle } from 'lucide-svelte';
     import QuickLinksWidget from '$lib/components/dashboard/QuickLinksWidget.svelte';
+    import { goto } from '$app/navigation';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -67,11 +68,11 @@
                             role="button"
                             tabindex="0"
                             aria-label={`Task: ${task.title}`}
-                            onclick={() => (window.location.href = `/tasks?edit=${task.id}`)}
+                            onclick={() => goto(`/tasks?edit=${task.id}`)}
                             onkeydown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    window.location.href = `/tasks?edit=${task.id}`;
+                                    goto(`/tasks?edit=${task.id}`);
                                 }
                             }}
                         >

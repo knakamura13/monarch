@@ -52,7 +52,7 @@
     const editingMilestone = $derived(editParam && milestones.some((m) => m.id === editParam) ? { id: editParam } : null);
 
     async function updateUrl(id: string | null) {
-        const url = new URL(window.location.href);
+        const url = new URL(page.url.href);
         if (id) {
             url.searchParams.set('edit', id);
         } else {
@@ -557,7 +557,7 @@
         errorId={form?.errorId}
         onenhance={() => {
             return async ({ result }: { result: { type: string } }) => {
-                if (result.type === 'success') {
+                if (result.type === 'success' || result.type === 'redirect') {
                     showSuccessToast('Milestone created successfully');
                     showCreateModal = false;
                     defaultPhase = undefined;
