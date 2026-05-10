@@ -27,7 +27,8 @@
         initial = {},
         error,
         errorId,
-        onenhance
+        onenhance,
+        onDeleteSuccess
     }: {
         mode: 'create' | 'edit';
         open: boolean;
@@ -38,6 +39,7 @@
         error?: string;
         errorId?: string;
         onenhance?: SubmitFunction | ManualEnhanceHandler;
+        onDeleteSuccess?: (id: string) => void | Promise<void>;
     } = $props();
 
     const submitEnhance = $derived(onenhance as SubmitFunction | undefined);
@@ -118,12 +120,13 @@
             }
 
             if (result.type === 'success' || (result.type === 'redirect' && !result.error)) {
+                await onDeleteSuccess?.(id);
                 showSuccessToast('Task deleted');
             } else {
                 const data = result.data ? (typeof result.data === 'string' ? JSON.parse(result.data) : result.data) : {};
                 showErrorToast(data.error || 'Failed to delete task');
             }
-        } catch (e) {
+        } catch {
             showErrorToast('Failed to delete task');
         }
     }

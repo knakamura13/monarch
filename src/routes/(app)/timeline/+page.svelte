@@ -149,6 +149,19 @@
         }
     }
 
+    function removeMilestoneFromPage(id: string) {
+        const deletedMilestone = milestones.find((m) => m.id === id);
+        milestones = milestones.filter((m) => m.id !== id);
+        lastSyncedMilestoneSignature = milestoneDataSignature(milestones);
+
+        if (deletedMilestone) {
+            confirmedOrders.set(
+                deletedMilestone.phase,
+                milestones.filter((m) => m.phase === deletedMilestone.phase).map((m) => m.id)
+            );
+        }
+    }
+
     $effect(() => {
         const signature = milestoneDataSignature(data.milestones);
         if (!dragState && signature !== lastSyncedMilestoneSignature) {
@@ -565,6 +578,7 @@
             }}
             error={form?.error}
             errorId={form?.errorId}
+            onDeleteSuccess={removeMilestoneFromPage}
         />
     {/if}
 {/if}
@@ -582,7 +596,13 @@
         error={form?.error}
         errorId={form?.errorId}
         onenhance={() => {
-            return async ({ result, update }) => {
+            return async ({
+                result,
+                update
+            }: {
+                result: import('@sveltejs/kit').ActionResult;
+                update: () => Promise<void>;
+            }) => {
                 if (result.type === 'success' || result.type === 'redirect') {
                     await update();
                     showSuccessToast('Milestone created successfully');

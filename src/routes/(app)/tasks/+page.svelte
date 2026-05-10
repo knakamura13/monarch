@@ -72,6 +72,10 @@
         await goto(url.toString(), { replaceState: true, noScroll: true });
     }
 
+    function removeTaskFromPage(id: string) {
+        data.tasks = data.tasks.filter((t) => t.id !== id);
+    }
+
     const COLUMNS = [
         { id: 'To do', label: 'To do', pillClass: 's-note' },
         { id: 'Doing', label: 'Doing', pillClass: 's-active' },
@@ -460,6 +464,7 @@
             }}
             error={form?.error}
             errorId={form?.errorId}
+            onDeleteSuccess={removeTaskFromPage}
         />
     {/if}
 {/if}
