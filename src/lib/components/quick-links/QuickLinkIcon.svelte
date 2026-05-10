@@ -1,9 +1,7 @@
 <script lang="ts">
-    import { Link2 } from 'lucide-svelte';
     import type { QuickLink } from '$lib/types/enums';
     import { getAccentColor } from '$lib/utils/colors';
     import { isInternalDomain } from '$lib/utils/url';
-    import { untrack } from 'svelte';
 
     type Props = {
         link: QuickLink;
