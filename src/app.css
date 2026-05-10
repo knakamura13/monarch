@@ -1345,7 +1345,7 @@ select {
 }
 
 .timeline-milestone-node-blocked {
-    background: var(--blush-fill);
+    background: var(--butter-fill);
 }
 
 .timeline-milestone-node-future {

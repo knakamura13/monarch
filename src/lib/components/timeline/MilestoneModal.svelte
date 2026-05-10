@@ -408,6 +408,17 @@
         border-color: color-mix(in srgb, var(--ink-2) 16%, transparent);
     }
 
+    :global(button.milestone-status-trigger.s-waiting) {
+        background: var(--butter);
+        color: var(--butter-d);
+        border-color: color-mix(in srgb, var(--butter-d) 18%, transparent);
+    }
+
+    :global(button.milestone-status-trigger.s-waiting:hover) {
+        background: color-mix(in srgb, var(--butter) 80%, var(--butter-d) 20%);
+        border-color: color-mix(in srgb, var(--butter-d) 24%, transparent);
+    }
+
     :global(button.milestone-status-trigger.s-urgent) {
         background: var(--blush);
         color: var(--blush-d);

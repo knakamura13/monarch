@@ -369,7 +369,7 @@
                                     {:else if nodeStatus === 'active'}
                                         <Clock style="width: 14px; height: 14px; color: var(--surface);" />
                                     {:else if nodeStatus === 'blocked'}
-                                        <Pause style="width: 12px; height: 12px; color: var(--surface);" />
+                                        <Pause style="width: 12px; height: 12px; color: var(--surface);" fill="currentColor" />
                                     {/if}
                                 </div>
                                 <button
