@@ -1,12 +1,10 @@
 <script lang="ts">
-    import { onDestroy, untrack } from 'svelte';
+    import { onDestroy } from 'svelte';
     import { flip } from 'svelte/animate';
-    import { Folder, Link2, Plus, Edit, Trash2 } from 'lucide-svelte';
+    import { Folder, Plus, Edit, Trash2, Undo2 } from 'lucide-svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import QuickLinkIcon from '$lib/components/quick-links/QuickLinkIcon.svelte';
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
-    import { isInternalDomain } from '$lib/utils/url';
-    import { getAccentColor } from '$lib/utils/colors';
 
     type Size = 'compact' | 'large';
 
@@ -29,6 +27,11 @@
         onCreateFolderFromLinks: (activeId: string, targetId: string) => Promise<void>;
         onReorderLinks: (linkIds: string[]) => Promise<void>;
         onReorderFolders: (folderIds: string[]) => Promise<void>;
+        showAllLinks?: boolean;
+        hideAddFolder?: boolean;
+        hideAddLink?: boolean;
+        disableMerging?: boolean;
+        onMoveToRoot?: (linkId: string) => Promise<void>;
     };
 
     let {
@@ -46,7 +49,12 @@
         onMoveToFolder,
         onCreateFolderFromLinks,
         onReorderLinks,
-        onReorderFolders
+        onReorderFolders,
+        showAllLinks = false,
+        hideAddFolder = false,
+        hideAddLink = false,
+        disableMerging = false,
+        onMoveToRoot
     }: Props = $props();
 
     const tileSize = $derived(size === 'compact' ? 48 : 64);
@@ -102,7 +110,7 @@
 
     const rootLinks = $derived(
         localLinks
-            .filter((link) => !link.folderId)
+            .filter((link) => (showAllLinks ? true : !link.folderId))
             .slice()
             .sort((a, b) => a.order - b.order)
     );
@@ -262,7 +270,7 @@
             if (id === dragState.id) continue;
 
             // Merge: link → link (create folder) or link → folder (move into).
-            if (dragState.kind === 'link' && !(dragState.item as QuickLink).folderId) {
+            if (!disableMerging && dragState.kind === 'link' && !(dragState.item as QuickLink).folderId) {
                 const mergeThreshold = 20;
                 const isInside =
                     x > rect.left + mergeThreshold &&
@@ -373,7 +381,11 @@
                 if (!moved) return;
                 items.splice(targetIdx, 0, moved);
                 const reordered = items.map((item, index) => ({ ...item, order: index }));
-                localLinks = [...localLinks.filter((l) => l.folderId), ...reordered];
+                if (showAllLinks) {
+                    localLinks = reordered;
+                } else {
+                    localLinks = [...localLinks.filter((l) => l.folderId), ...reordered];
+                }
             }
         } else {
             const items = [...visibleFolders];
@@ -515,6 +527,7 @@
                     <ThreeDotsMenu
                         menuId={`ql-link-${link.id}`}
                         items={[
+                            ...(onMoveToRoot ? [{ label: 'Remove from folder', icon: Undo2, action: () => onMoveToRoot(link.id) }] : []),
                             { label: 'Edit', icon: Edit, action: () => onEditLink(link) },
                             { label: 'Delete', icon: Trash2, variant: 'destructive', action: () => onDeleteLink(link) }
                         ]}
@@ -557,19 +570,27 @@
         </div>
     {/each}
 
-    <button type="button" class="ql-item ql-button" onclick={onOpenAddLink}>
-        <div class="ql-icon ql-icon--add-link" style={`width: ${tileSize}px; height: ${tileSize}px;`}>
-            <Plus style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; color: var(--ink-4);`} />
-        </div>
-        <span class="ql-label ql-label--muted" style={`font-size: ${labelSize}px;`}>Add link</span>
-    </button>
+    {#if !hideAddLink}
+        <button type="button" class="ql-item ql-button" onclick={onOpenAddLink}>
+            <div class="ql-icon ql-icon--add-link" style={`width: ${tileSize}px; height: ${tileSize}px;`}>
+                <Plus
+                    style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; color: var(--ink-4);`}
+                />
+            </div>
+            <span class="ql-label ql-label--muted" style={`font-size: ${labelSize}px;`}>Add link</span>
+        </button>
+    {/if}
 
-    <button type="button" class="ql-item ql-button" onclick={onOpenAddFolder}>
-        <div class="ql-icon ql-icon--add-folder" style={`width: ${tileSize}px; height: ${tileSize}px;`}>
-            <Folder style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; color: var(--lilac-d);`} />
-        </div>
-        <span class="ql-label ql-label--folder" style={`font-size: ${labelSize}px;`}>Add folder</span>
-    </button>
+    {#if !hideAddFolder}
+        <button type="button" class="ql-item ql-button" onclick={onOpenAddFolder}>
+            <div class="ql-icon ql-icon--add-folder" style={`width: ${tileSize}px; height: ${tileSize}px;`}>
+                <Folder
+                    style={`width: ${size === 'compact' ? 24 : 32}px; height: ${size === 'compact' ? 24 : 32}px; color: var(--lilac-d);`}
+                />
+            </div>
+            <span class="ql-label ql-label--folder" style={`font-size: ${labelSize}px;`}>Add folder</span>
+        </button>
+    {/if}
 </div>
 <div class="ql-sr-status" role="status" aria-live="polite" aria-atomic="true">{liveStatus}</div>
 
