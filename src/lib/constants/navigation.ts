@@ -1,4 +1,4 @@
-import { LayoutDashboard, List, Layers, HelpCircle, CheckSquare, Link } from 'lucide-svelte';
+import { LayoutDashboard, List, HelpCircle, CheckSquare, Link } from 'lucide-svelte';
 
 export interface NavItem {
     href: string;

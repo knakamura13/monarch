@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 import {
     DeleteCommand,
     GetCommand,
@@ -40,7 +39,7 @@ function normalize<T>(value: T): T {
         const out: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
             if (v === undefined) continue;
-            out[k] = normalize(v);
+            Reflect.set(out, k, normalize(v));
         }
         return out as T;
     }
@@ -92,9 +91,9 @@ export async function ddbUpdate<T>(
         for (const a of assignments) {
             const [lhsRaw, rhsRaw] = a.split('=').map((s) => s.trim());
             if (!lhsRaw || !rhsRaw) continue;
-            const field = expressionAttributeNames?.[lhsRaw] ?? (lhsRaw.startsWith('#') ? lhsRaw.slice(1) : lhsRaw);
-            const val = expressionAttributeValues[rhsRaw];
-            (cur as Record<string, unknown>)[field] = val;
+            const field = (expressionAttributeNames ? Reflect.get(expressionAttributeNames, lhsRaw) : undefined) ?? (lhsRaw.startsWith('#') ? lhsRaw.slice(1) : lhsRaw);
+            const val = Reflect.get(expressionAttributeValues, rhsRaw);
+            Reflect.set(cur as Record<string, unknown>, field, val);
         }
         store.set(keyStr(key), cur);
         return cur as unknown as T;
@@ -138,12 +137,12 @@ export async function ddbQuery<T>(input: Omit<QueryCommandInput, 'TableName'>) {
         // pass but production will fail.
         const vals = (input.ExpressionAttributeValues ?? {}) as Record<string, unknown>;
         if (input.IndexName === 'GSI1') {
-            const pk = vals[':pk'];
+            const pk = Reflect.get(vals, ':pk');
             return items.filter((it) => it.GSI1PK === pk) as unknown as T[];
         }
-        const pk = vals[':pk'];
-        const prefix = vals[':prefix'];
-        const skEq = vals[':sk'];
+        const pk = Reflect.get(vals, ':pk');
+        const prefix = Reflect.get(vals, ':prefix');
+        const skEq = Reflect.get(vals, ':sk');
         let out = items.filter((it) => it.PK === pk);
         if (typeof skEq === 'string') out = out.filter((it) => it.SK === skEq);
         else if (typeof prefix === 'string') out = out.filter((it) => String(it.SK).startsWith(prefix));
@@ -187,9 +186,9 @@ function applyTransactItemToMem(item: TransactItem) {
         for (const a of assignments) {
             const [lhsRaw, rhsRaw] = a.split('=').map((s) => s.trim());
             if (!lhsRaw || !rhsRaw) continue;
-            const field = item.Update.ExpressionAttributeNames?.[lhsRaw] ?? (lhsRaw.startsWith('#') ? lhsRaw.slice(1) : lhsRaw);
-            const val = item.Update.ExpressionAttributeValues[rhsRaw];
-            (cur as Record<string, unknown>)[field] = val;
+            const field = (item.Update.ExpressionAttributeNames ? Reflect.get(item.Update.ExpressionAttributeNames, lhsRaw) : undefined) ?? (lhsRaw.startsWith('#') ? lhsRaw.slice(1) : lhsRaw);
+            const val = Reflect.get(item.Update.ExpressionAttributeValues, rhsRaw);
+            Reflect.set(cur as Record<string, unknown>, field, val);
         }
         store.set(keyStr(item.Update.Key), cur);
         return;

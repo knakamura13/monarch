@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { fade, fly } from 'svelte/transition';
-    import { page } from '$app/state';
     import Sidebar from '$lib/components/layout/Sidebar.svelte';
     import TopBar from '$lib/components/layout/TopBar.svelte';
     import CommandPalette from '$lib/components/shared/CommandPalette.svelte';

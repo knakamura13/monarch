@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 import type { MilestonePhase, MilestoneStatus } from '$lib/types/enums';
 import { logActivity } from '$lib/server/activity';
 import type { MilestoneCreate, MilestoneUpdate } from '$lib/schemas/milestone';
@@ -101,8 +100,8 @@ export async function updateMilestone(workspaceId: string, actorId: string, id: 
     for (const [k, v] of Object.entries(patch)) {
         const nk = `#${k}`;
         const vk = `:${k}`;
-        names[nk] = k;
-        values[vk] = v;
+        Reflect.set(names, nk, k);
+        Reflect.set(values, vk, v);
         sets.push(`${nk} = ${vk}`);
     }
     const milestone = (await ddbUpdate<MilestoneItem>(

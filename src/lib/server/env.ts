@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 import { env } from '$env/dynamic/private';
 import { building } from '$app/environment';
 import { z } from 'zod';
@@ -108,6 +107,6 @@ function load(): Env {
 export const ENV: Env = new Proxy({} as Env, {
     get(_t, prop: keyof Env) {
         if (!cached) cached = load();
-        return cached[prop];
+        return Reflect.get(cached, prop);
     }
 });

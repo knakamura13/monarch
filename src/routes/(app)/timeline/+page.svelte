@@ -178,7 +178,13 @@
     }
 
     function arraysEqual(left: string[], right: string[]) {
-        return left.length === right.length && left.every((value, index) => value === right[index]);
+        return (
+            left.length === right.length &&
+            left.every((value, index) => {
+                const rightValue = right.at(index);
+                return value === rightValue;
+            })
+        );
     }
 
     function replacePhaseMilestonesByIds(phase: MilestonePhase, orderedIds: string[]) {

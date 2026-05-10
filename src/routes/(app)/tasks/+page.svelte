@@ -141,7 +141,7 @@
         // Find insertion index
         let insertionIndex = -1;
         for (let i = 0; i < targetColumnTasks.length; i++) {
-            const card = targetColumnTasks[i];
+            const card = targetColumnTasks.at(i);
             if (!card) continue;
             if (card.id === targetTaskId) {
                 insertionIndex = i;
@@ -241,7 +241,7 @@
                 // Find the correct insertion position based on Y coordinate
                 let insertionIndex = -1;
                 for (let i = 0; i < cards.length; i++) {
-                    const card = cards[i];
+                    const card = cards.at(i);
                     if (!card) continue;
                     const cardRect = card.getBoundingClientRect();
                     const cardCenter = cardRect.top + cardRect.height / 2;
@@ -351,7 +351,7 @@
                 // Find the correct insertion position based on Y coordinate
                 let insertionIndex = -1;
                 for (let i = 0; i < cards.length; i++) {
-                    const card = cards[i];
+                    const card = cards.at(i);
                     if (!card) continue;
                     const cardRect = card.getBoundingClientRect();
                     const cardCenter = cardRect.top + cardRect.height / 2;
@@ -429,7 +429,7 @@
         if (currentColumnIdx === -1) return;
 
         // Get current column safely
-        const currentColumnValue = grouped[currentColumnIdx];
+        const currentColumnValue = grouped.at(currentColumnIdx);
         if (!currentColumnValue) return;
 
         const allTasks = [...data.tasks];

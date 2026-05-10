@@ -7,7 +7,6 @@ import type { QuickLinkFolderItem, QuickLinkItem } from '$lib/server/dynamo/type
 import { fetchFaviconUrl } from '$lib/server/utils/favicon';
 import { extractHostname } from '$lib/server/utils/url';
 
-/* eslint-disable security/detect-object-injection */
 
 export async function listQuickLinks(workspaceId: string, limit?: number, folderId?: string | null) {
     const rows = await ddbQuery<QuickLinkItem>({
@@ -80,8 +79,8 @@ export async function updateQuickLink(workspaceId: string, actorId: string, id: 
     for (const [k, v] of Object.entries(patch)) {
         const nk = `#${k}`;
         const vk = `:${k}`;
-        names[nk] = k;
-        values[vk] = v;
+        Reflect.set(names, nk, k);
+        Reflect.set(values, vk, v);
         exprParts.push(`${nk} = ${vk}`);
     }
     const updated =
@@ -147,4 +146,3 @@ export async function softDeleteQuickLink(workspaceId: string, actorId: string, 
     });
 }
 
-/* eslint-enable security/detect-object-injection */

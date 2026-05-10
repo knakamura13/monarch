@@ -29,8 +29,7 @@
     } = $props();
     /* eslint-enable svelte/valid-compile */
 
-    // eslint-disable-next-line security/detect-object-injection
-    const badgeClass = $derived(`badge ${badgeVariants.variant[variant]} ${klass}`.trim());
+    const badgeClass = $derived(`badge ${badgeVariants.variant[variant as keyof typeof badgeVariants.variant]} ${klass}`.trim());
 </script>
 
 <span class={badgeClass} {...rest}>

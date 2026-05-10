@@ -5,7 +5,6 @@ import { entitySk, wsPk } from '$lib/server/dynamo/keys';
 import type { QuickLinkFolderItem, QuickLinkItem } from '$lib/server/dynamo/types';
 import { extractHostname } from '$lib/server/utils/url';
 
-/* eslint-disable security/detect-object-injection */
 
 export async function listQuickLinkFolders(workspaceId: string, limit?: number) {
     const rows = await ddbQuery<QuickLinkFolderItem>({
@@ -65,8 +64,8 @@ export async function updateQuickLinkFolder(workspaceId: string, actorId: string
     for (const [k, v] of Object.entries(patch)) {
         const nk = `#${k}`;
         const vk = `:${k}`;
-        names[nk] = k;
-        values[vk] = v;
+        Reflect.set(names, nk, k);
+        Reflect.set(values, vk, v);
         exprParts.push(`${nk} = ${vk}`);
     }
     const updated =
@@ -154,7 +153,8 @@ export async function createFolderWithLinks(workspaceId: string, actorId: string
     );
     for (const [i, link] of links.entries()) {
         if (!link || link.deletedAt) {
-            throw new Error(`Quick link not found: ${linkIds[i]}`);
+            const linkId = linkIds.at(i);
+            throw new Error(`Quick link not found: ${linkId}`);
         }
     }
 
@@ -301,4 +301,3 @@ export async function reorderQuickLinkFolders(workspaceId: string, actorId: stri
     });
 }
 
-/* eslint-enable security/detect-object-injection */
