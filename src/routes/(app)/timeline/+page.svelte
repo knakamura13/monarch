@@ -52,13 +52,25 @@
     const editingMilestone = $derived(editParam && milestones.some((m) => m.id === editParam) ? { id: editParam } : null);
 
     async function updateUrl(id: string | null) {
+        const scrollContainer = document.querySelector<HTMLElement>('main#main');
+        const scrollTop = scrollContainer?.scrollTop ?? 0;
         const url = new URL(page.url.href);
         if (id) {
             url.searchParams.set('edit', id);
         } else {
             url.searchParams.delete('edit');
         }
+        url.hash = '';
         await goto(url.toString(), { replaceState: true, noScroll: true });
+        const restoreScroll = () => {
+            const nextScrollContainer = document.querySelector<HTMLElement>('main#main');
+            if (nextScrollContainer) nextScrollContainer.scrollTop = scrollTop;
+        };
+        requestAnimationFrame(() => {
+            restoreScroll();
+            requestAnimationFrame(restoreScroll);
+        });
+        setTimeout(restoreScroll, 50);
     }
 
     const grouped = $derived(
