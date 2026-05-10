@@ -105,6 +105,57 @@
 
     let scrollContainer = $state<HTMLElement | null>(null);
 
+    function getOriginalTaskPosition(taskId: string) {
+        const task = data.tasks.find((t) => t.id === taskId);
+        if (!task) return null;
+        
+        const columnTasks = data.tasks
+            .filter((t) => t.status === task.status)
+            .sort((a, b) => a.order - b.order);
+            
+        const index = columnTasks.findIndex((t) => t.id === taskId);
+        return {
+            status: task.status,
+            index: index,
+            totalInColumn: columnTasks.length
+        };
+    }
+
+    function wouldChangePosition(taskId: string, targetStatus: string, targetTaskId: string | null, position: 'before' | 'after' | null) {
+        const original = getOriginalTaskPosition(taskId);
+        if (!original) return true;
+        
+        // If moving to different column, definitely changes position
+        if (original.status !== targetStatus) return true;
+        
+        // Get target column tasks (excluding the dragged one)
+        const targetColumnTasks = data.tasks
+            .filter((t) => t.status === targetStatus && t.id !== taskId)
+            .sort((a, b) => a.order - b.order);
+            
+        if (!targetTaskId) {
+            // Dropping at end of column
+            return original.index !== targetColumnTasks.length;
+        }
+        
+        // Find insertion index
+        let insertionIndex = -1;
+        for (let i = 0; i < targetColumnTasks.length; i++) {
+            const card = targetColumnTasks[i];
+            if (card.id === targetTaskId) {
+                insertionIndex = i;
+                break;
+            }
+        }
+        
+        if (insertionIndex === -1) return true;
+        
+        // Adjust for before/after
+        const finalIndex = position === 'after' ? insertionIndex + 1 : insertionIndex;
+        
+        return original.index !== finalIndex;
+    }
+
     function handlePointerDown(event: PointerEvent, id: string) {
         if (event.button !== 0) return;
         const target = event.currentTarget as HTMLElement;
@@ -217,8 +268,12 @@
             }
         }
 
-        // Update drop indicator state (preview only)
-        dropTarget = { targetStatus, targetTaskId, position };
+        // Update drop indicator state (preview only) - hide if position wouldn't change
+        if (targetStatus && wouldChangePosition(dragState.id, targetStatus, targetTaskId, position)) {
+            dropTarget = { targetStatus, targetTaskId, position };
+        } else {
+            dropTarget = { targetStatus: null, targetTaskId: null, position: null };
+        }
     }
 
     onDestroy(() => {
