@@ -1059,6 +1059,7 @@ button.modal-checklist-text-btn {
     padding: 12px 16px;
     font-size: 16px;
     color: var(--ink);
+    font-family: var(--font-display);
     transition: all 150ms ease;
     width: 100%;
     resize: none;
@@ -1086,14 +1087,9 @@ select {
 
 .input:focus,
 .textarea:focus {
-    :global(input:focus-visible),
-    :global(textarea:focus-visible),
-    :global(select:focus-visible) {
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
-        border-color: var(--ink-2);
-    }
-    font-family: inherit;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(26, 26, 24, 0.1);
+    border-color: var(--ink-2);
 }
 
 /* Title input in header */
