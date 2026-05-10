@@ -18,7 +18,7 @@ async function globalSetup() {
         await client.send(new DeleteTableCommand({ TableName: TABLE_NAME })); 
         // Wait a bit for local dynamo to fully delete
         await new Promise(resolve => setTimeout(resolve, 1000));
-    } catch (e) {
+    } catch {
         // Ignore if it doesn't exist
     }
 

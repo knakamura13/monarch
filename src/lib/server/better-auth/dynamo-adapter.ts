@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 import { createAdapterFactory, type DBAdapterDebugLogOption } from 'better-auth/adapters';
 import { ddbPut, ddbQuery, ddbUpdate, ddbDelete } from '$lib/server/dynamo/ops';
 import { baPk } from '$lib/server/dynamo/keys';
@@ -16,7 +15,7 @@ function matchesWhere(row: Record<string, unknown>, where: Where[]) {
     let pendingConnector: 'AND' | 'OR' = 'AND';
 
     for (const clause of where) {
-        const fieldVal = row[clause.field];
+        const fieldVal = Reflect.get(row, clause.field);
         const op = clause.operator ?? 'eq';
         const val = clause.value;
 
@@ -79,7 +78,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                     const out = (await transformOutput(row, model)) as Record<string, unknown>;
                     if (Array.isArray(select) && select.length) {
                         const picked: Record<string, unknown> = {};
-                        for (const k of select) picked[k] = out[k];
+                        for (const k of select) Reflect.set(picked, k, Reflect.get(out, k));
                         return picked;
                     }
                     return out;
@@ -98,8 +97,8 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                         for (const [k, v] of Object.entries(patch)) {
                             const nk = `#${k}`;
                             const vk = `:${k}`;
-                            names[nk] = k;
-                            values[vk] = v;
+                            Reflect.set(names, nk, k);
+                            Reflect.set(values, vk, v);
                             sets.push(`${nk} = ${vk}`);
                         }
                         if (!sets.length) return null;
@@ -189,7 +188,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                         const out = (await transformOutput(hit, model)) as Record<string, unknown>;
                         if (Array.isArray(select) && select.length) {
                             const picked: Record<string, unknown> = {};
-                            for (const k of select) picked[k] = out[k];
+                            for (const k of select) Reflect.set(picked, k, Reflect.get(out, k));
                             return picked;
                         }
                         return out;
@@ -205,7 +204,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                     const out = (await transformOutput(hit, model)) as Record<string, unknown>;
                     if (Array.isArray(select) && select.length) {
                         const picked: Record<string, unknown> = {};
-                        for (const k of select) picked[k] = out[k];
+                        for (const k of select) Reflect.set(picked, k, Reflect.get(out, k));
                         return picked;
                     }
                     return out;

@@ -3,6 +3,7 @@
     import { navigation, getPageNumber as _getPageNumber } from '$lib/constants/navigation';
     import { Settings, Clock } from 'lucide-svelte';
     import { PHASE_ORDER } from '$lib/constants/phases';
+    import type { MilestoneItem } from '$lib/server/dynamo/types';
 
     let { workspaceName: _workspaceName, onNavigate }: { workspaceName: string; onNavigate?: () => void } = $props();
 </script>
@@ -67,9 +68,10 @@
         {:then milestones}
             {@const next = (() => {
                 if (!milestones) return null;
+                const ms = milestones as MilestoneItem[];
                 for (const phase of PHASE_ORDER) {
-                    const inPhase = milestones.filter((m: any) => m.phase === phase);
-                    const incomplete = inPhase.find((m: any) => m.status !== 'Done');
+                    const inPhase = ms.filter((m) => m.phase === phase);
+                    const incomplete = inPhase.find((m) => m.status !== 'Done');
                     if (incomplete) return incomplete;
                 }
                 return null;

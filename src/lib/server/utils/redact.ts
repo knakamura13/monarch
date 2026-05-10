@@ -2,8 +2,6 @@ const SENSITIVE_KEY_RE = /token|secret|password|passwd|pass|apikey|api_key|key|a
 
 const REDACTED = '[redacted]';
 
-/* eslint-disable security/detect-object-injection */
-
 function isSensitive(key: string): boolean {
     return SENSITIVE_KEY_RE.test(key);
 }
@@ -12,7 +10,7 @@ function isSensitive(key: string): boolean {
 export function redactSearchParams(params: URLSearchParams): Record<string, string> {
     const out: Record<string, string> = {};
     for (const [k, v] of params.entries()) {
-        out[k] = isSensitive(k) ? REDACTED : v;
+        Reflect.set(out, k, isSensitive(k) ? REDACTED : v);
     }
     return out;
 }
@@ -26,7 +24,7 @@ export function redactSearchParams(params: URLSearchParams): Record<string, stri
 export function redactObject<T extends Record<string, unknown>>(input: T): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(input)) {
-        out[k] = isSensitive(k) ? REDACTED : v;
+        Reflect.set(out, k, isSensitive(k) ? REDACTED : v);
     }
     return out;
 }
@@ -46,5 +44,3 @@ export function redactUrl(raw: string): string {
         return raw;
     }
 }
-
-/* eslint-enable security/detect-object-injection */

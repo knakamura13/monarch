@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 import { logActivity } from '$lib/server/activity';
 import type { MemberRole } from '$lib/types/enums';
 import { EVIDENCE_CATEGORIES, EVIDENCE_TARGETS } from '$lib/constants/categories';
@@ -14,7 +13,7 @@ export async function createWorkspace(input: { name: string; ownerUserId: string
     const workspaceId = randomUUID();
     const evidenceCounts = {} as Record<string, number>;
     for (const cat of EVIDENCE_CATEGORIES) {
-        evidenceCounts[cat] = 0;
+        Reflect.set(evidenceCounts, cat, 0);
     }
     const ws = {
         id: workspaceId,

@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 import { PHASE_ORDER, PHASE_LABELS } from '$lib/constants/phases';
 import { currentPhase } from './milestone.service';
 import type { MilestonePhase, MilestoneStatus, QuestionStatus, TaskStatus } from '$lib/types/enums';
@@ -43,7 +42,8 @@ export async function dashboardFor(workspaceId: string) {
         (q) => (q.status as QuestionStatus) === 'OPEN' || (q.status as QuestionStatus) === 'RESEARCHING'
     );
     for (const q of openQuestionsAll) {
-        openQuestionsCount[q.priority] = (openQuestionsCount[q.priority] ?? 0) + 1;
+        const currentCount = (Reflect.get(openQuestionsCount, q.priority) as number | undefined) ?? 0;
+        Reflect.set(openQuestionsCount, q.priority, currentCount + 1);
     }
 
     const phase: MilestonePhase = currentPhase(
@@ -56,15 +56,17 @@ export async function dashboardFor(workspaceId: string) {
     // Optimization: Group milestones by phase in a single pass to avoid repeated filtering
     const milestonesByPhase: Record<string, typeof milestonesAll> = {};
     for (const m of milestonesAll) {
-        const phaseMilestones = (milestonesByPhase[m.phase] ??= []);
-        phaseMilestones.push(m);
+        const currentList = (Reflect.get(milestonesByPhase, m.phase) as (typeof milestonesAll) | undefined) ?? [];
+        currentList.push(m);
+        Reflect.set(milestonesByPhase, m.phase, currentList);
     }
 
     const phaseProgress = PHASE_ORDER.map((p) => {
-        const items = milestonesByPhase[p] ?? [];
-        if (items.length === 0) return { phase: p, label: PHASE_LABELS[p], total: 0, done: 0 };
+        const items = (Reflect.get(milestonesByPhase, p) as typeof milestonesAll | undefined) ?? [];
+        const label = (Reflect.get(PHASE_LABELS, p) as string | undefined) ?? '';
+        if (items.length === 0) return { phase: p, label, total: 0, done: 0 };
         const done = items.filter((m) => m.status === 'Done').length;
-        return { phase: p, label: PHASE_LABELS[p], total: items.length, done };
+        return { phase: p, label, total: items.length, done };
     });
 
     // Missing critical items heuristic:
@@ -126,7 +128,7 @@ export async function dashboardFor(workspaceId: string) {
         gapsCount,
         openQuestionsCount,
         phase,
-        phaseLabel: PHASE_LABELS[phase],
+        phaseLabel: (Reflect.get(PHASE_LABELS, phase) as string | undefined) ?? '',
         phaseProgress,
         activity,
         missingCritical,

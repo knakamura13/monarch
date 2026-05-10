@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { LoginPage } from '../pages/LoginPage';
 import { TasksPage } from '../pages/TasksPage';
 
 test.describe('Components Smoke Test', () => {
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async ({ page: _page }) => {
         // DEV_MODE=unsafe auto-authenticates the session, no need to log in.
     });
 

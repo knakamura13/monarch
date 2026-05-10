@@ -47,9 +47,8 @@
 
     const isDisabled = $derived(disabled || loading);
 
-    // eslint-disable-next-line security/detect-object-injection
     const classes = $derived(
-        `btn ${buttonVariants.variant[variant]} ${buttonVariants.size[size]} ${loading ? 'loading' : ''} ${isDisabled ? 'disabled' : ''} ${klass}`.trim()
+        `btn ${buttonVariants.variant[variant as keyof typeof buttonVariants.variant]} ${buttonVariants.size[size as keyof typeof buttonVariants.size]} ${loading ? 'loading' : ''} ${isDisabled ? 'disabled' : ''} ${klass}`.trim()
     );
 
     const title = $derived(rest.title || (size === 'icon' ? (rest['aria-label'] as string) : undefined));

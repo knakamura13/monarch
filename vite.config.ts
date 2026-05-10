@@ -11,7 +11,12 @@ function gitRepoRoot(): string {
     let dir = process.cwd();
     while (dir !== path.dirname(dir)) {
         const gitPath = path.join(dir, '.git');
-        if (existsSync(gitPath) && statSync(gitPath).isDirectory()) return dir;
+        try {
+            // eslint-disable-next-line security/detect-non-literal-fs-filename
+            if (existsSync(gitPath) && statSync(gitPath).isDirectory()) return dir;
+        } catch {
+            // Ignore FS errors while walking up
+        }
         dir = path.dirname(dir);
     }
     return process.cwd();

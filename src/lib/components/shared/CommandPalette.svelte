@@ -56,10 +56,8 @@
         }
     }
 
-    /* eslint-disable security/detect-object-injection */
     const flat = $derived(Object.values(results).flat());
-    const activeItem = $derived(flat[activeIndex]);
-    /* eslint-enable security/detect-object-injection */
+    const activeItem = $derived(flat.at(activeIndex));
 
     $effect(() => {
         if (open) {
@@ -115,8 +113,7 @@
             e.preventDefault();
             activeIndex = Math.max(activeIndex - 1, 0);
         } else if (e.key === 'Enter') {
-            /* eslint-disable-next-line security/detect-object-injection */
-            const item = flat[activeIndex];
+            const item = flat.at(activeIndex);
             if (item) {
                 open = false;
                 if (item.type === 'quicklink') {

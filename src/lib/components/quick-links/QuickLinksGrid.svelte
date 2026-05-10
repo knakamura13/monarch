@@ -348,7 +348,7 @@
             liveStatus = `${labelForItem(item, kind)} is already at the ${direction < 0 ? 'start' : 'end'} of the list.`;
             return;
         }
-        const target = list[nextIdx];
+        const target = list.at(nextIdx);
         if (!target) return;
         const targetId = target.id;
         reorderLocally(item.id, targetId, kind);

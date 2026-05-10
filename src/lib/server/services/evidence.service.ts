@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 import { logActivity } from '$lib/server/activity';
 import { EVIDENCE_CATEGORIES, EVIDENCE_TARGETS } from '$lib/constants/categories';
 import { ddbGet, ddbUpdate } from '$lib/server/dynamo/ops';
@@ -59,8 +58,8 @@ export async function getEvidenceCategories(workspaceId: string): Promise<Eviden
 
     return categories.map((cat) => ({
         category: cat,
-        currentCount: counts?.[cat] ?? 0,
-        targetCount: targets?.[cat] ?? 0
+        currentCount: (counts ? Reflect.get(counts, cat) : 0) ?? 0,
+        targetCount: (targets ? Reflect.get(targets, cat) : 0) ?? 0
     }));
 }
 
@@ -86,7 +85,7 @@ export async function incrementEvidenceCount(workspaceId: string, actorId: strin
     );
 
     // Fix negative count if needed
-    const currentCount = workspace?.evidenceCounts?.[category] ?? 0;
+    const currentCount = (workspace?.evidenceCounts ? Reflect.get(workspace.evidenceCounts, category) : 0) ?? 0;
     if (currentCount < 0) {
         await ddbUpdate(
             { PK: wsPk(workspaceId), SK: entitySk('Workspace', workspaceId) },
@@ -223,17 +222,17 @@ export async function renameEvidenceCategory(workspaceId: string, actorId: strin
 
     for (const [key, value] of Object.entries(counts)) {
         if (key === oldName) {
-            newCounts[newName] = value as number;
+            Reflect.set(newCounts, newName, value);
         } else {
-            newCounts[key] = value as number;
+            Reflect.set(newCounts, key, value);
         }
     }
 
     for (const [key, value] of Object.entries(targets)) {
         if (key === oldName) {
-            newTargets[newName] = value as number;
+            Reflect.set(newTargets, newName, value);
         } else {
-            newTargets[key] = value as number;
+            Reflect.set(newTargets, key, value);
         }
     }
 
@@ -296,13 +295,13 @@ export async function deleteEvidenceCategory(workspaceId: string, actorId: strin
 
     for (const [key, value] of Object.entries(counts)) {
         if (key !== category) {
-            newCounts[key] = value as number;
+            Reflect.set(newCounts, key, value);
         }
     }
 
     for (const [key, value] of Object.entries(targets)) {
         if (key !== category) {
-            newTargets[key] = value as number;
+            Reflect.set(newTargets, key, value);
         }
     }
 

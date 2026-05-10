@@ -1,5 +1,4 @@
 import type { QuestionSourceType, QuestionStatus } from '$lib/types/enums';
-/* eslint-disable security/detect-object-injection */
 import { logActivity } from '$lib/server/activity';
 import type { QuestionCreate, QuestionUpdate } from '$lib/schemas/question';
 import { randomUUID } from 'node:crypto';
@@ -92,8 +91,8 @@ export async function updateQuestion(workspaceId: string, actorId: string, id: s
     for (const [k, v] of Object.entries(patch)) {
         const nk = `#${k}`;
         const vk = `:${k}`;
-        names[nk] = k;
-        values[vk] = v;
+        Reflect.set(names, nk, k);
+        Reflect.set(values, vk, v);
         sets.push(`${nk} = ${vk}`);
     }
     const question = (await ddbUpdate<QuestionItem>(

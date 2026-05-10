@@ -21,14 +21,12 @@
         onenhance?: SubmitFunction;
     } = $props();
 
-    /* eslint-disable security/detect-object-injection */
     function val(name: string, fallback = '') {
-        const v = (initial as Record<string, unknown>)[name];
+        const v = initial[name as keyof typeof initial];
         if (v == null) return fallback;
         if (v instanceof Date) return v.toISOString().slice(0, 10);
         return String(v);
     }
-    /* eslint-enable security/detect-object-injection */
 
     const questionPriorityOptions = [
         { value: 'LOW', label: 'Low' },

@@ -17,5 +17,7 @@ export function getAccentColor(seed: string): { bg: string; text: string; fill: 
     }
 
     const index = Math.abs(hash) % colors.length;
-    return colors[index]!;
+    const color = colors.at(index);
+    if (!color) return colors[0]!;
+    return color;
 }
