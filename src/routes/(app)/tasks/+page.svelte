@@ -69,6 +69,7 @@
         position: 'before' | 'after' | null;
     }>({ targetStatus: null, targetTaskId: null, position: null });
 
+    
     async function updateUrl(id: string | null) {
         const url = new URL(page.url.href);
         if (id) {
@@ -184,14 +185,34 @@
             if (currentX > rect.left && currentX < rect.right) {
                 targetStatus = COLUMNS[columns.indexOf(col)]?.id || null;
                 const cards = Array.from(col.querySelectorAll('.task-card:not([data-task-id="' + dragState.id + '"])')) as HTMLElement[];
-                for (const card of cards) {
+                
+                // Find the correct insertion position based on Y coordinate
+                let insertionIndex = -1;
+                for (let i = 0; i < cards.length; i++) {
+                    const card = cards[i];
+                    if (!card) continue;
                     const cardRect = card.getBoundingClientRect();
-                    if (currentY > cardRect.top && currentY < cardRect.bottom) {
+                    const cardCenter = cardRect.top + cardRect.height / 2;
+                    
+                    if (currentY < cardCenter) {
+                        // Ghost is above this card
+                        insertionIndex = i;
                         targetTaskId = card.getAttribute('data-task-id');
-                        position = currentY < cardRect.top + cardRect.height / 2 ? 'before' : 'after';
+                        position = 'before';
                         break;
                     }
                 }
+                
+                // If ghost is below all cards or no cards found, position at end
+                if (insertionIndex === -1 && cards.length > 0) {
+                    // Ghost is below the last card
+                    const lastCard = cards[cards.length - 1];
+                    if (lastCard) {
+                        targetTaskId = lastCard.getAttribute('data-task-id');
+                        position = 'after';
+                    }
+                }
+                
                 break;
             }
         }
@@ -258,6 +279,7 @@
             wasDragging = true;
         }
 
+        
         // Run hit testing directly on drop to get final position
         let targetStatus: string | null = null;
         let targetTaskId: string | null = null;
@@ -269,12 +291,31 @@
             if (currentX > rect.left && currentX < rect.right) {
                 targetStatus = COLUMNS[columns.indexOf(col)]?.id || null;
                 const cards = Array.from(col.querySelectorAll('.task-card:not([data-task-id="' + draggedId + '"])')) as HTMLElement[];
-                for (const card of cards) {
+                
+                // Find the correct insertion position based on Y coordinate
+                let insertionIndex = -1;
+                for (let i = 0; i < cards.length; i++) {
+                    const card = cards[i];
+                    if (!card) continue;
                     const cardRect = card.getBoundingClientRect();
-                    if (currentY > cardRect.top && currentY < cardRect.bottom) {
+                    const cardCenter = cardRect.top + cardRect.height / 2;
+                    
+                    if (currentY < cardCenter) {
+                        // Ghost is above this card
+                        insertionIndex = i;
                         targetTaskId = card.getAttribute('data-task-id');
-                        position = currentY < cardRect.top + cardRect.height / 2 ? 'before' : 'after';
+                        position = 'before';
                         break;
+                    }
+                }
+                
+                // If ghost is below all cards or no cards found, position at end
+                if (insertionIndex === -1 && cards.length > 0) {
+                    // Ghost is below the last card
+                    const lastCard = cards[cards.length - 1];
+                    if (lastCard) {
+                        targetTaskId = lastCard.getAttribute('data-task-id');
+                        position = 'after';
                     }
                 }
                 break;
@@ -331,7 +372,7 @@
         const currentColumnIdx = COLUMNS.findIndex((c) => c.id === activeTask.status);
         if (currentColumnIdx === -1) return;
 
-        // Get the current column safely
+        // Get current column safely
         const currentColumnValue = grouped[currentColumnIdx];
         if (!currentColumnValue) return;
 
