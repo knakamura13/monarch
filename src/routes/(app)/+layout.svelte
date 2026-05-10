@@ -54,9 +54,9 @@
 
 <div class="app-layout">
     <!-- Desktop Sidebar -->
-    <nav class="sidebar-wrapper" aria-label="Main navigation">
+    <aside class="sidebar-wrapper" aria-label="Main navigation">
         <Sidebar workspaceName={data.workspace.name} />
-    </nav>
+    </aside>
 
     <!-- Mobile Sidebar Dialog -->
     {#if sidebarOpen}

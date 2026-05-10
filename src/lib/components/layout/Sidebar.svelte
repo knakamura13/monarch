@@ -7,7 +7,7 @@
     let { workspaceName: _workspaceName, onNavigate }: { workspaceName: string; onNavigate?: () => void } = $props();
 </script>
 
-<aside class="sidebar">
+<div class="sidebar">
     <!-- Header -->
     <div style="display: flex; align-items: center; gap: 12px; padding: 0 8px;">
         <img
@@ -94,7 +94,7 @@
             {/if}
         {/await}
     </div>
-</aside>
+</div>
 
 <style>
     .sidebar {
