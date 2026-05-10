@@ -556,8 +556,9 @@
         error={form?.error}
         errorId={form?.errorId}
         onenhance={() => {
-            return async ({ result }: { result: { type: string } }) => {
+            return async ({ result, update }) => {
                 if (result.type === 'success' || result.type === 'redirect') {
+                    await update();
                     showSuccessToast('Milestone created successfully');
                     showCreateModal = false;
                     defaultPhase = undefined;
