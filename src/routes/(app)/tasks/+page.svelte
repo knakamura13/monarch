@@ -646,10 +646,42 @@
 {#if dragState && dragState.isDragging}
     <div
         class="task-drag-ghost"
-        style="position: fixed; pointer-events: none; z-index: 9999; width: {dragState.width}px; height: {dragState.height}px; left: {dragState.currentX -
+        style="position: fixed; pointer-events: none; z-index: 99999; width: {dragState.width}px; height: {dragState.height}px; left: {dragState.currentX -
             dragState.pointerOffsetX}px; top: {dragState.currentY -
-            dragState.pointerOffsetY}px; opacity: 0.9; transform: rotate(2deg); box-shadow: 0 12px 24px rgba(0,0,0,0.15);"
+            dragState.pointerOffsetY}px; opacity: 0.95; transform: rotate(2deg); box-shadow: 0 12px 24px rgba(0,0,0,0.25); background: white; border: 1px solid #e0d8cc; border-radius: 18px; padding: 16px;"
     >
-        <TaskCard task={dragState.item} />
+        <!-- Manually recreate TaskCard content to avoid background conflicts -->
+        {#if dragState.item.dueDate && dragState.item.status !== 'Done' && new Date(dragState.item.dueDate) < new Date(new Date().setHours(0, 0, 0, 0))}
+            <div style="font-size: 10px; font-weight: 600; color: var(--blush-d); margin-bottom: 8px;">● overdue</div>
+        {/if}
+        <p style="font-size: 13px; font-weight: 600; line-height: 1.4; margin: 0 0 8px 0;">{dragState.item.title}</p>
+        {#if dragState.item.description && /[\p{L}\p{N}]/u.test(dragState.item.description.trim())}
+            <div style="font-size: 12px; line-height: 1.5; color: var(--ink-2); margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                {dragState.item.description}
+            </div>
+        {/if}
+        {#if dragState.item.checklist && dragState.item.checklist.length > 0}
+            <div style="margin-bottom: 8px;">
+                <div style="font-size: 11px; color: var(--ink-3);">
+                    {dragState.item.checklist.filter((ci) => ci.done).length}/{dragState.item.checklist.length}
+                </div>
+            </div>
+        {/if}
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 12px;">
+            {#if dragState.item.dueDate}
+                <div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-3);">
+                    <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    {dragState.item.dueDate}
+                </div>
+            {/if}
+            {#if dragState.item.checklist && dragState.item.checklist.length > 0}
+                <span style="font-size: 11px; color: var(--ink-3);">{dragState.item.checklist.filter((ci) => ci.done).length}/{dragState.item.checklist.length}</span>
+            {/if}
+        </div>
     </div>
 {/if}
