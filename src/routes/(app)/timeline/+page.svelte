@@ -694,4 +694,7 @@
         color: var(--ink-2);
         margin-top: 8px;
     }
+    .timeline-page {
+        padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
+    }
 </style>

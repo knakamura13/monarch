@@ -101,7 +101,7 @@
         min-height: 0;
         overflow-x: hidden;
         overflow-y: auto;
-        padding-bottom: 8px;
+        padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
     }
 
     @media (max-width: 768px) {

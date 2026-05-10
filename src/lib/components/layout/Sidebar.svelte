@@ -110,6 +110,7 @@
         height: 100%;
         min-height: 0;
         box-sizing: border-box;
+        overflow-x: hidden;
         overflow-y: auto;
         flex-shrink: 0;
     }
@@ -121,6 +122,8 @@
 
     .nav-item {
         transition: background 0.2s ease;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 
     .nav-item:not(.active):hover {

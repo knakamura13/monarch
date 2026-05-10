@@ -634,7 +634,7 @@
         display: grid;
         align-items: start;
         position: relative;
-        padding: 12px 0;
+        padding: 12px 0 max(32px, env(safe-area-inset-bottom, 0px));
     }
     /* Visually-hidden screen-reader-only status region for keyboard reorder
        announcements. Following the standard sr-only pattern. */

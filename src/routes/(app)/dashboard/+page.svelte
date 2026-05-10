@@ -95,6 +95,7 @@
 <style>
     .bento-grid {
         display: grid;
+        padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
     }
     @media (max-width: 1024px) {
         .bento-grid {

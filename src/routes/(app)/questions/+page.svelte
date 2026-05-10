@@ -145,6 +145,7 @@
         display: grid;
         grid-template-columns: 1fr;
         gap: 16px;
+        padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
     }
     @media (min-width: 768px) {
         .questions-grid {

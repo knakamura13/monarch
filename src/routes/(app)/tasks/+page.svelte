@@ -142,6 +142,7 @@
         let insertionIndex = -1;
         for (let i = 0; i < targetColumnTasks.length; i++) {
             const card = targetColumnTasks[i];
+            if (!card) continue;
             if (card.id === targetTaskId) {
                 insertionIndex = i;
                 break;
@@ -685,3 +686,17 @@
         </div>
     </div>
 {/if}
+
+<style>
+    .tasks-board {
+        margin-right: -16px;
+        padding-right: 32px;
+        padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
+    }
+    @media (min-width: 768px) {
+        .tasks-board {
+            margin-right: 0;
+            padding-right: 32px;
+        }
+    }
+</style>

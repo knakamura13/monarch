@@ -305,7 +305,7 @@
         display: grid;
         grid-template-columns: 1fr;
         gap: 16px;
-        margin-bottom: 48px;
+        padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
     }
     @media (min-width: 640px) {
         .evidence-grid {
