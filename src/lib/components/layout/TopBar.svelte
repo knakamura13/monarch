@@ -104,8 +104,8 @@
         top: 50%;
         transform: translateY(-50%);
         font-size: 11px;
-        color: var(--ink-3);
-        background: var(--surface-3);
+        color: oklch(0.35 0.12 60);
+        background: oklch(0.85 0.08 60);
         padding: 2px 6px;
         border-radius: 6px;
     }

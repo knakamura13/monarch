@@ -273,23 +273,19 @@ body,
 }
 .pill.s-done {
     background: var(--sage);
-    color: var(--sage-d);
+    color: oklch(0.35 0.12 150); /* Darker green */
 }
 .pill.s-active {
     background: var(--peri);
-    color: var(--peri-d);
-}
-.pill.s-note {
-    background: var(--surface-3);
-    color: var(--ink-2);
+    color: oklch(0.35 0.12 265); /* Darker blue */
 }
 .pill.s-waiting {
     background: var(--butter);
-    color: var(--butter-d);
+    color: oklch(0.35 0.12 90); /* Darker yellow/brown */
 }
 .pill.s-urgent {
     background: var(--blush);
-    color: var(--blush-d);
+    color: oklch(0.35 0.12 18); /* Darker red */
 }
 
 /* Monarch Buttons */

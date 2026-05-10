@@ -40,6 +40,7 @@
         "zod": "^4.4.3"
     },
     "devDependencies": {
+        "@axe-core/playwright": "^4.11.3",
         "@eslint/js": "^10.0.1",
         "@melt-ui/pp": "^0.3.2",
         "@playwright/test": "^1.59.1",
