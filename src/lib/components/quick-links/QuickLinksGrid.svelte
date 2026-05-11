@@ -4,6 +4,7 @@
     import { Folder, Plus, Edit, Trash2, Undo2 } from 'lucide-svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import QuickLinkIcon from '$lib/components/quick-links/QuickLinkIcon.svelte';
+    import { POINTER_MOVE_THRESHOLD_PX, isDragThresholdMet } from '$lib/utils/drag';
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
 
     type Size = 'compact' | 'large';
@@ -90,7 +91,6 @@
     // page natively. Mouse/pen uses displacement so accidental holds don't
     // block clicks.
     const TOUCH_LONG_PRESS_MS = 500;
-    const POINTER_MOVE_THRESHOLD_PX = 8;
     const TOUCH_CANCEL_MOVE_PX = 12;
 
     let dragState = $state<DragState | null>(null);
@@ -213,14 +213,13 @@
             event.preventDefault();
         }
 
-        const dx = event.clientX - dragState.startX;
-        const dy = event.clientY - dragState.startY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
         if (!dragState.isDragging) {
             const isTouch = dragState.pointerType === 'touch';
             if (isTouch) {
                 // Movement before long-press fires → user is scrolling, not dragging.
+                const dx = event.clientX - dragState.startX;
+                const dy = event.clientY - dragState.startY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
                 if (distance > TOUCH_CANCEL_MOVE_PX) {
                     cancelDragCandidate();
                     return;
@@ -229,7 +228,7 @@
                 return;
             }
             // Mouse/pen: enter drag on small displacement.
-            if (distance > POINTER_MOVE_THRESHOLD_PX) {
+            if (isDragThresholdMet(dragState.startX, dragState.startY, event.clientX, event.clientY)) {
                 enterDragMode();
             } else {
                 return;

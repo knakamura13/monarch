@@ -21,11 +21,11 @@ export class TimelinePage extends BasePage {
     }
 
     getMilestoneCard(title: string) {
-        return this.page.locator('.timeline-milestone-item').filter({ has: this.page.getByText(title, { exact: true }) }).first();
+        return this.page.locator('.milestone-wrapper').filter({ has: this.page.getByText(title, { exact: true }) }).first();
     }
 
     getPhaseContainer(phase: string) {
-        return this.page.locator(`.timeline-phase:has-text("${phase}")`);
+        return this.page.locator(`section:has(h2:text("${phase}"))`);
     }
 
     async dragMilestoneToPhase(title: string, phase: string) {

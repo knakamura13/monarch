@@ -1,4 +1,4 @@
-import { DynamoDBClient, CreateTableCommand, DeleteTableCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, CreateTableCommand, DeleteTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import crypto from 'crypto';
 
@@ -46,6 +46,18 @@ async function globalSetup() {
         ],
         BillingMode: 'PAY_PER_REQUEST'
     }));
+
+    // Wait for table to be active
+    let isActive = false;
+    for (let i = 0; i < 10; i++) {
+        const { Table } = await client.send(new DescribeTableCommand({ TableName: TABLE_NAME }));
+        if (Table?.TableStatus === 'ACTIVE') {
+            isActive = true;
+            break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    if (!isActive) throw new Error(`Table ${TABLE_NAME} never became active`);
 
     // 2. Seed Data
     const now = new Date().toISOString();
@@ -122,6 +134,7 @@ async function globalSetup() {
             updatedAt: now
         }
     }));
+
     console.log('[Global Setup] Done seeding.');
 }
 

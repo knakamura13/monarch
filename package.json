@@ -53,6 +53,7 @@
         "@typescript-eslint/eslint-plugin": "^8.59.2",
         "@typescript-eslint/parser": "^8.59.2",
         "@vite-pwa/sveltekit": "^1.1.0",
+        "dynalite": "^4.0.0",
         "eslint": "^10.3.0",
         "eslint-config-prettier": "^9.1.2",
         "eslint-plugin-security": "^4.0.0",
