@@ -148,7 +148,7 @@
             display: block;
         }
         .main-content {
-            padding: 32px 32px 0;
+            padding: 32px 32px 32px;
         }
     }
     .main-area {
@@ -166,7 +166,7 @@
         min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        padding: 16px 16px 0;
+        padding: 16px 16px 16px;
         background: var(--bg);
         display: flex;
         flex-direction: column;
@@ -175,19 +175,19 @@
     /* Responsive main content for shorter screens */
     @media (max-height: 800px) {
         .main-content {
-            padding: 24px 24px 0;
+            padding: 24px 24px 24px;
         }
     }
 
     @media (max-height: 700px) {
         .main-content {
-            padding: 20px 20px 0;
+            padding: 20px 20px 20px;
         }
     }
 
     @media (max-height: 600px) {
         .main-content {
-            padding: 16px 16px 0;
+            padding: 16px 16px 16px;
         }
     }
 
@@ -237,7 +237,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        z-index: 1000;
+        z-index: 10000;
         display: flex;
         overflow: hidden;
     }
