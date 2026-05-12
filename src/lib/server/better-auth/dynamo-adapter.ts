@@ -131,10 +131,9 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                     const w = (await transformWhereClause({ where, model, action: 'updateMany' })) as Where[];
                     // transformInput currently distinguishes only create/update transformations.
                     const patch = (await transformInput(update as Record<string, unknown>, model, 'update')) as Record<string, unknown>;
-                    const found = await ddbQuery<Record<string, unknown>>({
+                    const found = await ddbQueryAll<Record<string, unknown>>({
                         KeyConditionExpression: 'PK = :pk',
-                        ExpressionAttributeValues: { ':pk': baPk(model) },
-                        Limit: 500
+                        ExpressionAttributeValues: { ':pk': baPk(model) }
                     });
                     const hits = found.filter((r) => matchesWhere(r, w));
                     for (const h of hits) {
@@ -165,10 +164,9 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                 },
                 deleteMany: async ({ where, model }) => {
                     const w = (await transformWhereClause({ where, model, action: 'deleteMany' })) as Where[];
-                    const found = await ddbQuery<Record<string, unknown>>({
+                    const found = await ddbQueryAll<Record<string, unknown>>({
                         KeyConditionExpression: 'PK = :pk',
-                        ExpressionAttributeValues: { ':pk': baPk(model) },
-                        Limit: 500
+                        ExpressionAttributeValues: { ':pk': baPk(model) }
                     });
                     const hits = found.filter((r) => matchesWhere(r, w));
                     for (const h of hits) await ddbDelete({ PK: baPk(model), SK: String(h.id) });
@@ -222,10 +220,9 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                 },
                 count: async ({ where, model }) => {
                     const w = (await transformWhereClause({ where, model, action: 'count' })) as Where[];
-                    const found = await ddbQuery<Record<string, unknown>>({
+                    const found = await ddbQueryAll<Record<string, unknown>>({
                         KeyConditionExpression: 'PK = :pk',
-                        ExpressionAttributeValues: { ':pk': baPk(model) },
-                        Limit: 500
+                        ExpressionAttributeValues: { ':pk': baPk(model) }
                     });
                     return found.filter((r) => matchesWhere(r, w)).length;
                 }

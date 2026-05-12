@@ -17,8 +17,7 @@ export async function listTasks(workspaceId: string): Promise<TaskItem[]> {
 export async function getTask(workspaceId: string, id: string) {
     const task = await ddbGet<TaskItem>({
         PK: wsPk(workspaceId),
-        SK: entitySk('Task', id),
-        ConsistentRead: true
+        SK: entitySk('Task', id)
     });
     if (!task || task.deletedAt) return null;
     return {

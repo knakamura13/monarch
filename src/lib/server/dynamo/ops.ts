@@ -138,7 +138,8 @@ export async function ddbQuery<T>(input: Omit<QueryCommandInput, 'TableName'>) {
         const vals = (input.ExpressionAttributeValues ?? {}) as Record<string, unknown>;
         if (input.IndexName === 'GSI1') {
             const pk = Reflect.get(vals, ':pk');
-            return items.filter((it) => it.GSI1PK === pk) as unknown as T[];
+            const filtered = items.filter((it) => it.GSI1PK === pk);
+            return filtered as unknown as T[];
         }
         const pk = Reflect.get(vals, ':pk');
         const prefix = Reflect.get(vals, ':prefix');
@@ -147,12 +148,46 @@ export async function ddbQuery<T>(input: Omit<QueryCommandInput, 'TableName'>) {
         if (typeof skEq === 'string') out = out.filter((it) => it.SK === skEq);
         else if (typeof prefix === 'string') out = out.filter((it) => String(it.SK).startsWith(prefix));
         if (input.ScanIndexForward === false) out = out.slice().sort((a, b) => String(b.SK).localeCompare(String(a.SK)));
-        if (typeof input.Limit === 'number') out = out.slice(0, input.Limit);
+
+        if (typeof input.Limit === 'number') {
+            return out.slice(0, input.Limit) as unknown as T[];
+        }
         return out as unknown as T[];
     }
     const { ddb, tableName } = await getLive();
     const res = await ddb.send(new QueryCommand({ ...input, TableName: tableName }));
     return (res.Items as T[]) ?? [];
+}
+
+/**
+ * Executes a query and follows LastEvaluatedKey until all items are retrieved
+ * or maxItems is reached. Default maxItems is 5000 to prevent runaway reads.
+ */
+export async function ddbQueryAll<T>(input: Omit<QueryCommandInput, 'TableName'>, maxItems = 5000) {
+    if (useMem) {
+        // Mock already returns all matches unless Limit is set.
+        // If Limit is set, we emulate pagination by calling ddbQuery repeatedly with a smaller limit.
+        const allMatches = await ddbQuery<T>({ ...input, Limit: undefined });
+        return allMatches.slice(0, maxItems);
+    }
+
+    const { ddb, tableName } = await getLive();
+    const items: T[] = [];
+    let lastKey: Record<string, any> | undefined = undefined;
+
+    do {
+        const res = await ddb.send(
+            new QueryCommand({
+                ...input,
+                TableName: tableName,
+                ExclusiveStartKey: lastKey
+            })
+        );
+        if (res.Items) items.push(...(res.Items as T[]));
+        lastKey = res.LastEvaluatedKey;
+    } while (lastKey && items.length < maxItems);
+
+    return items.slice(0, maxItems);
 }
 
 type TransactPut = { Put: { Item: Record<string, unknown> } };
@@ -234,9 +269,40 @@ export async function ddbTransactWrite(items: TransactItem[]) {
 
 export async function ddbScan<T>(input: Omit<ScanCommandInput, 'TableName'>) {
     if (useMem) {
-        return Array.from(memStore().values()) as unknown as T[];
+        const items = Array.from(memStore().values()) as unknown as T[];
+        if (typeof input.Limit === 'number') return items.slice(0, input.Limit);
+        return items;
     }
     const { ddb, tableName } = await getLive();
     const res = await ddb.send(new ScanCommand({ ...input, TableName: tableName }));
     return (res.Items as T[]) ?? [];
+}
+
+/**
+ * Executes a scan and follows LastEvaluatedKey until all items are retrieved
+ * or maxItems is reached.
+ */
+export async function ddbScanAll<T>(input: Omit<ScanCommandInput, 'TableName'>, maxItems = 5000) {
+    if (useMem) {
+        const allItems = await ddbScan<T>({ ...input, Limit: undefined });
+        return allItems.slice(0, maxItems);
+    }
+
+    const { ddb, tableName } = await getLive();
+    const items: T[] = [];
+    let lastKey: Record<string, any> | undefined = undefined;
+
+    do {
+        const res = await ddb.send(
+            new ScanCommand({
+                ...input,
+                TableName: tableName,
+                ExclusiveStartKey: lastKey
+            })
+        );
+        if (res.Items) items.push(...(res.Items as T[]));
+        lastKey = res.LastEvaluatedKey;
+    } while (lastKey && items.length < maxItems);
+
+    return items.slice(0, maxItems);
 }

@@ -39,8 +39,8 @@ describe('cross-domain DynamoDB smoke', () => {
             title: 'Collect marriage certificate',
             description: '',
             phase: 'MARRIAGE_LICENSE',
-            dueDate: undefined,
-            scheduledAt: undefined,
+            dueDate: null,
+            scheduledAt: null,
             status: 'To do',
             priority: 'MEDIUM',
             subTasks: [],
@@ -62,11 +62,11 @@ describe('cross-domain DynamoDB smoke', () => {
             status: 'OPEN',
             answer: '',
             sourceType: 'OTHER',
-            citationUrl: undefined,
-            answeredAt: undefined,
-            relatedTaskId: undefined,
-            relatedFormId: undefined,
-            relatedEvidenceId: undefined
+            citationUrl: null,
+            answeredAt: null,
+            relatedTaskId: null,
+            relatedFormId: null,
+            relatedEvidenceId: null
         });
 
         expect((await listQuestions(ws)).some((q) => q.id === created.id)).toBe(true);
@@ -103,8 +103,8 @@ describe('cross-domain DynamoDB smoke', () => {
             title: 'M1',
             description: '',
             phase: 'PREPARATION',
-            dueDate: undefined,
-            scheduledAt: undefined,
+            dueDate: null,
+            scheduledAt: null,
             status: 'To do',
             priority: 'MEDIUM',
             subTasks: [],

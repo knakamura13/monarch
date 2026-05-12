@@ -218,6 +218,14 @@ export async function moveLinkToFolder(workspaceId: string, actorId: string, lin
     if (!existing) throw new Error('Quick link not found');
     if (existing.deletedAt) throw new Error('Quick link not found');
 
+    if (folderId) {
+        const folder = await ddbGet<QuickLinkFolderItem>({
+            PK: wsPk(workspaceId),
+            SK: entitySk('QuickLinkFolder', folderId)
+        });
+        if (!folder || folder.deletedAt) throw new Error('Quick link folder not found');
+    }
+
     await ddbUpdate(
         { PK: wsPk(workspaceId), SK: entitySk('QuickLink', linkId) },
         'SET #folderId = :f, #updatedAt = :u',
@@ -260,8 +268,15 @@ function buildOrderUpdate(
 }
 
 export async function reorderQuickLinks(workspaceId: string, actorId: string, linkIds: string[]) {
-    const ids = linkIds.filter((id): id is string => Boolean(id));
+    const ids = Array.from(new Set(linkIds.filter((id): id is string => Boolean(id))));
+    if (ids.length !== linkIds.length) throw new Error('Duplicate link IDs provided');
     if (ids.length === 0) return;
+
+    // Verify all links exist, are not deleted, and belong to this workspace
+    for (const id of ids) {
+        const link = await ddbGet<QuickLinkItem>({ PK: wsPk(workspaceId), SK: entitySk('QuickLink', id) });
+        if (!link || link.deletedAt) throw new Error(`Quick link not found: ${id}`);
+    }
 
     const now = new Date().toISOString();
     const items: TransactItem[] = ids.map((linkId, i) => buildOrderUpdate(workspaceId, 'QuickLink', linkId, i, now));
@@ -281,8 +296,18 @@ export async function reorderQuickLinks(workspaceId: string, actorId: string, li
 }
 
 export async function reorderQuickLinkFolders(workspaceId: string, actorId: string, folderIds: string[]) {
-    const ids = folderIds.filter((id): id is string => Boolean(id));
+    const ids = Array.from(new Set(folderIds.filter((id): id is string => Boolean(id))));
+    if (ids.length !== folderIds.length) throw new Error('Duplicate folder IDs provided');
     if (ids.length === 0) return;
+
+    // Verify all folders exist, are not deleted, and belong to this workspace
+    for (const id of ids) {
+        const folder = await ddbGet<QuickLinkFolderItem>({
+            PK: wsPk(workspaceId),
+            SK: entitySk('QuickLinkFolder', id)
+        });
+        if (!folder || folder.deletedAt) throw new Error(`Quick link folder not found: ${id}`);
+    }
 
     const now = new Date().toISOString();
     const items: TransactItem[] = ids.map((folderId, i) => buildOrderUpdate(workspaceId, 'QuickLinkFolder', folderId, i, now));

@@ -71,13 +71,12 @@ src/
 │   │   ├── env.ts                   Env validation (Zod)
 │   │   ├── crypto.ts                AES-256-GCM helpers + receipt masking
 │   │   ├── activity.ts              Audit log writer
-│   │   ├── email.ts                 Resend (prod) + console (dev) sender
 │   │   ├── guards.ts                requireUser / requireWorkspace / requireOwner
 │   │   └── services/                All domain writes go through these
 │   ├── schemas/                     Zod schemas shared client + server
-│   ├── components/                  shadcn-svelte-style primitives + entity views
+│   ├── components/                  Melt UI + entity views
 │   ├── constants/                   Navigation, phases, categories
-│   └── utils/                       cn, dates, format
+│   └── utils/                       dates, format, initialFields
 └── routes/
     ├── (auth)/                      login, signup, invite, logout
     ├── (app)/                       gated app — sidebar shell + feature areas
