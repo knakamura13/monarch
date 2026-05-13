@@ -35,16 +35,15 @@
         onenhance?: SubmitFunction | ManualEnhanceHandler;
     } = $props();
 
-    const submitEnhance = $derived(() => {
-        const handler = (onenhance as SubmitFunction) || (async ({ update }) => await update());
-        return async (args) => {
-            const inner = await handler(args);
-            return async (resultArgs) => {
-                if (inner) await inner(resultArgs);
-                if (resultArgs.result.type === 'success' && mode === 'create') {
-                    showSuccessToast('Question created');
-                }
-            };
+    const submitEnhance = $derived<SubmitFunction>((args) => {
+        const handler = (onenhance as SubmitFunction) || (() => async ({ update }) => { await update(); });
+        const innerPromise = handler(args);
+        return async (resultArgs) => {
+            const inner = await innerPromise;
+            if (inner) await (inner as any)(resultArgs);
+            if (resultArgs.result.type === 'success' && mode === 'create') {
+                showSuccessToast('Question created');
+            }
         };
     });
 

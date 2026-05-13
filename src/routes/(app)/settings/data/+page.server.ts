@@ -35,12 +35,9 @@ export const actions: Actions = {
         return fail(501, { error: 'Not implemented yet for DynamoDB.' });
     },
     deleteWorkspace: async (event) => {
-        const { workspace } = requireOwner(event);
-        const form = await event.request.formData();
-        if (form.get('confirm') !== workspace.name) {
-            return fail(400, { error: 'Type the workspace name exactly to confirm.' });
-        }
-        await deleteWorkspace(workspace.id);
-        throw redirect(303, '/login');
+        requireOwner(event);
+        return fail(501, {
+            error: 'Workspace deletion is disabled until data retention policy is finalized.'
+        });
     }
 };

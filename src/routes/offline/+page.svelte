@@ -20,7 +20,7 @@
         <p>It looks like you've lost your connection. Some features may be unavailable until you're back online.</p>
         
         <div class="actions">
-            <Button variant="primary" onclick={retry} class="retry-btn">
+            <Button variant="default" onclick={retry} class="retry-btn">
                 <RefreshCw size={16} />
                 Try again
             </Button>

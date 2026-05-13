@@ -2,7 +2,7 @@ import { logActivity } from '$lib/server/activity';
 import type { MemberRole } from '$lib/types/enums';
 import { EVIDENCE_CATEGORIES, EVIDENCE_TARGETS } from '$lib/constants/categories';
 import { randomUUID } from 'node:crypto';
-import { ddbPut, ddbGet, ddbQuery, ddbUpdate, ddbDelete } from '$lib/server/dynamo/ops';
+import { ddbPut, ddbGet, ddbQuery, ddbUpdate, ddbDelete, ddbQueryAll } from '$lib/server/dynamo/ops';
 import { baPk, entitySk, gsi1Sk, gsi1UserPk, wsPk } from '$lib/server/dynamo/keys';
 import { invalidateMembers } from '$lib/server/cache/membersCache';
 import { invalidateWorkspace } from '$lib/server/cache/workspaceCache';
@@ -119,10 +119,9 @@ export async function removeMember(workspaceId: string, userId: string) {
     invalidateWorkspace(userId);
 
     // Invalidate all sessions for the user to immediately revoke access
-    const sessions = await ddbQuery<BetterAuthSessionItem>({
+    const sessions = await ddbQueryAll<BetterAuthSessionItem>({
         KeyConditionExpression: 'PK = :pk',
-        ExpressionAttributeValues: { ':pk': baPk('session') },
-        Limit: 500
+        ExpressionAttributeValues: { ':pk': baPk('session') }
     });
 
     for (const session of sessions) {
@@ -158,6 +157,11 @@ export async function renameWorkspace(workspaceId: string, name: string, actorId
     return updated;
 }
 
+/**
+ * @internal
+ * @deprecated Workspace deletion is disabled until data retention policy is finalized.
+ * This function currently only removes the workspace root item, which is insufficient.
+ */
 export async function deleteWorkspace(workspaceId: string) {
     // Minimal delete: remove workspace root item. (Full cleanup can be added later.)
     await ddbDelete({ PK: wsPk(workspaceId), SK: entitySk('Workspace', workspaceId) });

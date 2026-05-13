@@ -75,7 +75,31 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
             };
 
             // Workspace lookup with 60-second cache to eliminate DynamoDB query on every request
-            const workspace = await getWorkspace(session.user.id);
+            let workspace;
+            try {
+                workspace = await getWorkspace(session.user.id);
+            } catch (wsErr) {
+                console.error('[hooks] workspace lookup error', wsErr);
+                const res = (await logError({
+                    requestId: event.locals.requestId,
+                    source: 'SERVER',
+                    status: 500,
+                    route: event.url.pathname,
+                    method: event.request.method,
+                    message: wsErr instanceof Error ? wsErr.message : String(wsErr),
+                    stack: wsErr instanceof Error ? (wsErr.stack ?? null) : null,
+                    userId: session.user.id,
+                    workspaceId: null,
+                    userAgent: event.request.headers.get('user-agent'),
+                    context: { phase: 'workspace-lookup' }
+                }).catch(() => ({})));
+                const errorId = 'id' in res ? res.id : 'unknown';
+                
+                if (!dev) {
+                    throw new Error(`Critical platform failure: Failed to load workspace (Error ID: ${errorId})`);
+                }
+            }
+
             if (workspace) {
                 event.locals.workspace = workspace;
             } else {
@@ -87,8 +111,10 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
             }
         }
     } catch (err) {
+        if (err instanceof Error && err.message.startsWith('Critical platform failure')) throw err;
+
         console.error('[hooks] session load error', err);
-        logError({
+        const res = (await logError({
             requestId: event.locals.requestId,
             source: 'SERVER',
             status: 500,
@@ -100,7 +126,12 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
             workspaceId: null,
             userAgent: event.request.headers.get('user-agent'),
             context: { phase: 'session-load' }
-        }).catch(() => {});
+        }).catch(() => ({})));
+        const errorId = 'id' in res ? res.id : 'unknown';
+
+        if (!dev) {
+            throw new Error(`Critical platform failure: Failed to load session (Error ID: ${errorId})`);
+        }
     }
 
     return resolve(event);
