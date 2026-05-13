@@ -1,7 +1,11 @@
 <script lang="ts">
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import { page } from '$app/state';
-    import { Activity, Cpu, Database, GitBranch, ExternalLink } from 'lucide-svelte';
+    import Activity from 'lucide-svelte/icons/activity';
+    import Cpu from 'lucide-svelte/icons/cpu';
+    import Database from 'lucide-svelte/icons/database';
+    import GitBranch from 'lucide-svelte/icons/git-branch';
+    import ExternalLink from 'lucide-svelte/icons/external-link';
 
     type Row = {
         id: string;

@@ -1,7 +1,9 @@
 <script lang="ts">
     import Input from '$lib/components/ui/Input.svelte';
     import Button from '$lib/components/ui/Button.svelte';
-    import { X, Plus, CheckSquare } from 'lucide-svelte';
+    import X from "lucide-svelte/icons/x";
+    import Plus from "lucide-svelte/icons/plus";
+    import CheckSquare from "lucide-svelte/icons/check-square";;
     import type { TaskChecklistItem } from '$lib/tasks/taskChecklist';
 
     let {

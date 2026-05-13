@@ -367,9 +367,9 @@ body,
 /* Increase touch target size for icon buttons on touch devices */
 @media (pointer: coarse) {
     .btn.icon {
-        width: 40px;
-        height: 40px;
-        min-width: 40px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
     }
 }
 

@@ -4,7 +4,7 @@
     import Button from '$lib/components/ui/Button.svelte';
     import TaskCard from '$lib/components/tasks/TaskCard.svelte';
     import TaskModal from '$lib/components/tasks/TaskModal.svelte';
-    import { Plus } from 'lucide-svelte';
+    import Plus from 'lucide-svelte/icons/plus';
     import { page } from '$app/state';
     import { goto, invalidateAll } from '$app/navigation';
     import { showSuccessToast } from '$lib/stores/toast';

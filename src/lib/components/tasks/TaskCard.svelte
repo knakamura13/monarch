@@ -1,7 +1,7 @@
 <script lang="ts">
     import Card from '$lib/components/ui/Card.svelte';
     import { fmtDate } from '$lib/utils/dates';
-    import { Calendar } from 'lucide-svelte';
+    import Calendar from "lucide-svelte/icons/calendar";;
 
     let {
         task,

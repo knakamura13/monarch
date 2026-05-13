@@ -1,9 +1,13 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { navigation, getPageNumber as _getPageNumber } from '$lib/constants/navigation';
-    import { Settings, Clock } from 'lucide-svelte';
+    import Settings from "lucide-svelte/icons/settings";
+    import Clock from "lucide-svelte/icons/clock";
+    import Download from "lucide-svelte/icons/download";;
     import { PHASE_ORDER } from '$lib/constants/phases';
     import type { MilestoneItem } from '$lib/server/dynamo/types';
+    import { canInstall, promptInstall } from '$lib/stores/pwa';
+    import logo from '$lib/assets/logo.png?enhanced';
 
     let { workspaceName: _workspaceName, onNavigate }: { workspaceName: string; onNavigate?: () => void } = $props();
 </script>
@@ -12,14 +16,12 @@
     <!-- Header -->
     <div style="display: flex; align-items: center; gap: 12px; padding: 0 8px;">
         <a href="/" style="display: block; line-height: 0;">
-            <img
-                src="/monarch-logo.png"
+            <enhanced:img
+                src={logo}
                 alt="Monarch"
                 width="40"
                 height="32"
                 style="flex-shrink: 0; display: block; object-fit: contain;"
-                loading="lazy"
-                decoding="async"
             />
         </a>
         <div class="display" style="font-size: 24px; line-height: 1; letter-spacing: -0.01em;">monarch</div>

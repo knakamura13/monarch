@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { Folder, Trash2 } from 'lucide-svelte';
+    import Folder from "lucide-svelte/icons/folder";
+    import Trash2 from "lucide-svelte/icons/trash-2";;
     import Dialog from '$lib/components/ui/Dialog.svelte';
     import Input from '$lib/components/ui/Input.svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';

@@ -1,7 +1,7 @@
 <script lang="ts">
     import Button from '$lib/components/ui/Button.svelte';
     import type { ButtonVariant } from '$lib/components/ui/Button.svelte';
-    import { X } from 'lucide-svelte';
+    import X from "lucide-svelte/icons/x";;
 
     let {
         open,

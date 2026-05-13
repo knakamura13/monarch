@@ -1,7 +1,10 @@
 <script lang="ts">
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import Button from '$lib/components/ui/Button.svelte';
-    import { Shield, Download, FileJson, Activity } from 'lucide-svelte';
+    import Shield from 'lucide-svelte/icons/shield';
+    import Download from 'lucide-svelte/icons/download';
+    import FileJson from 'lucide-svelte/icons/file-json';
+    import Activity from 'lucide-svelte/icons/activity';
 </script>
 
 <PageHeader title="Settings" sub="Data, privacy, and workspace management." />

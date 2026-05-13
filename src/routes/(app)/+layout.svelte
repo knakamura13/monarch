@@ -259,5 +259,8 @@
         overflow-x: hidden;
         overflow-y: auto;
         flex-shrink: 0;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
     }
 </style>

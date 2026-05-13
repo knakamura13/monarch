@@ -3,7 +3,10 @@
     import Button from '$lib/components/ui/Button.svelte';
     import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
     import { authClient } from '$lib/client/auth-client';
-    import { Fingerprint, ShieldCheck, Trash2, Plus } from 'lucide-svelte';
+    import Fingerprint from 'lucide-svelte/icons/fingerprint';
+    import ShieldCheck from 'lucide-svelte/icons/shield-check';
+    import Trash2 from 'lucide-svelte/icons/trash-2';
+    import Plus from 'lucide-svelte/icons/plus';
 
     let passkeyMsg = $state<string | null>(null);
     let passkeys = $state<Array<{ id: string; name?: string }>>([]);
@@ -165,7 +168,15 @@
 
                 <p style="font-size: 13px; font-weight: 600; margin-bottom: 12px;">3. Verify the setup</p>
                 <div style="display: flex; gap: 12px;">
-                    <input bind:value={totpCode} placeholder="6-digit code" class="input" style="width: 140px;" maxlength="6" />
+                    <input
+                        bind:value={totpCode}
+                        placeholder="6-digit code"
+                        class="input"
+                        style="width: 140px;"
+                        maxlength="6"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                    />
                     <Button onclick={verifyTotp}>Verify & Enable</Button>
                 </div>
             </div>

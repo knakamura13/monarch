@@ -8,7 +8,7 @@
     import { fieldFromInitial } from '$lib/utils/initialFields';
     import { questionStatusLabel, questionStatusPillClass } from '$lib/questions/questionStatusDisplay';
     import type { ManualEnhanceHandler } from '$lib/utils/enhanceSubmit';
-    import { HelpCircle } from 'lucide-svelte';
+    import HelpCircle from 'lucide-svelte/icons/help-circle';
     import { showSuccessToast } from '$lib/stores/toast';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';

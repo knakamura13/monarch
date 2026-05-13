@@ -1,8 +1,16 @@
 <script lang="ts">
     import '../app.css';
-    import { Toaster } from 'svelte-sonner';
     import { afterNavigate } from '$app/navigation';
+    import PwaManager from '$lib/components/pwa/PwaManager.svelte';
+    import { onMount } from 'svelte';
+    
+    let ToasterComponent: any = $state(null);
     let { children } = $props();
+
+    onMount(async () => {
+        const { Toaster } = await import('svelte-sonner');
+        ToasterComponent = Toaster;
+    });
 
     afterNavigate(() => {
         if (typeof window !== 'undefined') {
@@ -15,5 +23,8 @@
     });
 </script>
 
-<Toaster richColors position="top-right" />
+<PwaManager />
+{#if ToasterComponent}
+    <ToasterComponent richColors position="top-center" />
+{/if}
 {@render children()}

@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { Search, Menu } from 'lucide-svelte';
+    import Search from "lucide-svelte/icons/search";
+    import Menu from "lucide-svelte/icons/menu";;
 
     let { onOpenSearch, onToggleSidebar }: { onOpenSearch: () => void; onToggleSidebar: () => void } = $props();
 </script>

@@ -126,6 +126,10 @@
     .task-item:hover {
         background: var(--surface-3);
     }
+    .task-item:active {
+        background: var(--hairline);
+        transform: scale(0.98);
+    }
     .heads-up-item {
         display: flex;
         gap: 10px;

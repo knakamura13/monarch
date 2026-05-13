@@ -1,7 +1,11 @@
 <script lang="ts">
     import { onDestroy } from 'svelte';
     import { flip } from 'svelte/animate';
-    import { Folder, Plus, Edit, Trash2, Undo2 } from 'lucide-svelte';
+    import Folder from "lucide-svelte/icons/folder";
+    import Plus from "lucide-svelte/icons/plus";
+    import Edit from "lucide-svelte/icons/edit";
+    import Trash2 from "lucide-svelte/icons/trash-2";
+    import Undo2 from "lucide-svelte/icons/undo-2";;
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import QuickLinkIcon from '$lib/components/quick-links/QuickLinkIcon.svelte';
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';

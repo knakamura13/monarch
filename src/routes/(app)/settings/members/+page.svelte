@@ -3,7 +3,10 @@
     import { showSuccessToast } from '$lib/stores/toast';
     import Button from '$lib/components/ui/Button.svelte';
     import Select from '$lib/components/ui/Select.svelte';
-    import { Trash2, Copy, Shield, UserPlus } from 'lucide-svelte';
+    import Trash2 from 'lucide-svelte/icons/trash-2';
+    import Copy from 'lucide-svelte/icons/copy';
+    import Shield from 'lucide-svelte/icons/shield';
+    import UserPlus from 'lucide-svelte/icons/user-plus';
     import { enhance } from '$app/forms';
     import { getPageNumber } from '$lib/constants/navigation';
     import type { ActionData, PageData } from './$types';

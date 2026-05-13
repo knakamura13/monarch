@@ -1,6 +1,6 @@
 <script lang="ts">
     import Button from './Button.svelte';
-    import { ChevronDown } from 'lucide-svelte';
+    import ChevronDown from 'lucide-svelte/icons/chevron-down';
 
     export type SelectOption = { value: string; label: string };
 

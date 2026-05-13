@@ -29,7 +29,7 @@ const securityHeadersHandle: Handle = async ({ event, resolve }) => {
     
     // Ensure dynamic navigation requests aren't stale
     if (event.request.headers.get('accept')?.includes('text/html')) {
-        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        response.headers.set('Cache-Control', 'private, no-cache, must-revalidate');
         response.headers.set('Pragma', 'no-cache');
         response.headers.set('Expires', '0');
     }

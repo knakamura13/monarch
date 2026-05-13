@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Snippet } from 'svelte';
     import Button from './Button.svelte';
-    import { MoreHorizontal } from 'lucide-svelte';
+    import MoreHorizontal from "lucide-svelte/icons/more-horizontal";;
     import type { DropdownMenuEntry, DropdownMenuIcon, DropdownMenuItem } from './menuTypes';
 
     type TriggerArgs = { toggle: (e?: MouseEvent) => void; isOpen: boolean };

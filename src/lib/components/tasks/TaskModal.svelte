@@ -13,7 +13,9 @@
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
-    import { Trash2, Calendar, X } from 'lucide-svelte';
+    import Trash2 from "lucide-svelte/icons/trash-2";
+    import Calendar from "lucide-svelte/icons/calendar";
+    import X from "lucide-svelte/icons/x";;
     import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
     import { parseISO, differenceInCalendarDays } from 'date-fns';
     import { fmtDate } from '$lib/utils/dates';

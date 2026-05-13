@@ -1,4 +1,5 @@
 import { sveltekit } from '@sveltejs/kit/vite';
+import { enhancedImages } from '@sveltejs/enhanced-img';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import { defineConfig } from 'vitest/config';
 import { statSync, existsSync } from 'fs';
@@ -24,11 +25,13 @@ function gitRepoRoot(): string {
 
 export default defineConfig({
     plugins: [
+        enhancedImages(),
         sveltekit(),
         SvelteKitPWA({
             registerType: 'autoUpdate',
             strategies: 'generateSW',
             workbox: {
+                maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
                 navigateFallback: '/offline',
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
                 runtimeCaching: [
@@ -40,6 +43,20 @@ export default defineConfig({
                             expiration: {
                                 maxEntries: 100,
                                 maxAgeSeconds: 60 * 60 * 24 * 30
+                            },
+                            cacheableResponse: {
+                                statuses: [0, 200]
+                            }
+                        }
+                    },
+                    {
+                        urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com/,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'google-fonts',
+                            expiration: {
+                                maxEntries: 10,
+                                maxAgeSeconds: 60 * 60 * 24 * 365
                             },
                             cacheableResponse: {
                                 statuses: [0, 200]
@@ -65,7 +82,7 @@ export default defineConfig({
                         purpose: 'any'
                     },
                     {
-                        src: '/pwa/icon-192.png',
+                        src: '/pwa/icon-maskable-192.png',
                         sizes: '192x192',
                         type: 'image/png',
                         purpose: 'maskable'
@@ -77,26 +94,10 @@ export default defineConfig({
                         purpose: 'any'
                     },
                     {
-                        src: '/pwa/icon-512.png',
+                        src: '/pwa/icon-maskable-512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'maskable'
-                    }
-                ],
-                screenshots: [
-                    {
-                        src: '/pwa/icon-512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
-                        form_factor: 'wide',
-                        label: 'Monarch Dashboard'
-                    },
-                    {
-                        src: '/pwa/icon-512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
-                        form_factor: 'narrow',
-                        label: 'Monarch Dashboard'
                     }
                 ]
             }

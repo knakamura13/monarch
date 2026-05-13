@@ -1,7 +1,8 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
-    import { Search, X } from 'lucide-svelte';
+    import Search from "lucide-svelte/icons/search";
+    import X from "lucide-svelte/icons/x";;
 
     interface Result {
         type: string;

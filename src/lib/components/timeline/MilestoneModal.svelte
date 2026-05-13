@@ -13,7 +13,7 @@
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
-    import { Trash2 } from 'lucide-svelte';
+    import Trash2 from 'lucide-svelte/icons/trash-2';
     import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
 
     let {
