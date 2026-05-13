@@ -1,5 +1,5 @@
 import { createAdapterFactory, type DBAdapterDebugLogOption } from 'better-auth/adapters';
-import { ddbPut, ddbQuery, ddbUpdate, ddbDelete } from '$lib/server/dynamo/ops';
+import { ddbPut, ddbQuery, ddbQueryAll, ddbUpdate, ddbDelete } from '$lib/server/dynamo/ops';
 import { baPk } from '$lib/server/dynamo/keys';
 
 type Where = {
@@ -117,7 +117,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                         ExpressionAttributeValues: { ':pk': baPk(model) },
                         Limit: 200
                     });
-                    const hit = found.find((r) => matchesWhere(r, w));
+                    const hit = found.find((r: Record<string, unknown>) => matchesWhere(r, w));
                     if (!hit) return null;
                     // @ts-expect-error - Dynamic adapter method call with unknown return
                     const updated = await (this as Record<string, unknown>).update({
@@ -135,7 +135,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                         KeyConditionExpression: 'PK = :pk',
                         ExpressionAttributeValues: { ':pk': baPk(model) }
                     });
-                    const hits = found.filter((r) => matchesWhere(r, w));
+                    const hits = found.filter((r: Record<string, unknown>) => matchesWhere(r, w));
                     for (const h of hits) {
                         // @ts-expect-error - Dynamic adapter method call with unknown return
                         await (this as Record<string, unknown>).update({
@@ -159,7 +159,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                         ExpressionAttributeValues: { ':pk': baPk(model) },
                         Limit: 200
                     });
-                    const hit = found.find((r) => matchesWhere(r, w));
+                    const hit = found.find((r: Record<string, unknown>) => matchesWhere(r, w));
                     if (hit) await ddbDelete({ PK: baPk(model), SK: String(hit.id) });
                 },
                 deleteMany: async ({ where, model }) => {
@@ -168,7 +168,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                         KeyConditionExpression: 'PK = :pk',
                         ExpressionAttributeValues: { ':pk': baPk(model) }
                     });
-                    const hits = found.filter((r) => matchesWhere(r, w));
+                    const hits = found.filter((r: Record<string, unknown>) => matchesWhere(r, w));
                     for (const h of hits) await ddbDelete({ PK: baPk(model), SK: String(h.id) });
                     return hits.length;
                 },
@@ -197,7 +197,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                         ExpressionAttributeValues: { ':pk': baPk(model) },
                         Limit: 200
                     });
-                    const hit = found.find((r) => matchesWhere(r, w));
+                    const hit = found.find((r: Record<string, unknown>) => matchesWhere(r, w));
                     if (!hit) return null;
                     const out = (await transformOutput(hit, model)) as Record<string, unknown>;
                     if (Array.isArray(select) && select.length) {
@@ -214,7 +214,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                         ExpressionAttributeValues: { ':pk': baPk(model) },
                         Limit: Math.min(500, (limit ?? 50) + (offset ?? 0))
                     });
-                    const hits = found.filter((r) => matchesWhere(r, w));
+                    const hits = found.filter((r: Record<string, unknown>) => matchesWhere(r, w));
                     const sliced = hits.slice(offset ?? 0, (offset ?? 0) + (limit ?? hits.length));
                     return (await Promise.all(sliced.map((r) => transformOutput(r, model)))) as Record<string, unknown>[];
                 },

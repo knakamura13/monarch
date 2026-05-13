@@ -182,7 +182,7 @@ export async function ddbQueryAll<T>(input: Omit<QueryCommandInput, 'TableName'>
                 TableName: tableName,
                 ExclusiveStartKey: lastKey
             })
-        );
+        ) as { Items?: T[]; LastEvaluatedKey?: Record<string, any> };
         if (res.Items) items.push(...(res.Items as T[]));
         lastKey = res.LastEvaluatedKey;
     } while (lastKey && items.length < maxItems);
@@ -299,7 +299,7 @@ export async function ddbScanAll<T>(input: Omit<ScanCommandInput, 'TableName'>, 
                 TableName: tableName,
                 ExclusiveStartKey: lastKey
             })
-        );
+        ) as { Items?: T[]; LastEvaluatedKey?: Record<string, any> };
         if (res.Items) items.push(...(res.Items as T[]));
         lastKey = res.LastEvaluatedKey;
     } while (lastKey && items.length < maxItems);

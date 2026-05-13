@@ -80,7 +80,7 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
                 workspace = await getWorkspace(session.user.id);
             } catch (wsErr) {
                 console.error('[hooks] workspace lookup error', wsErr);
-                const errorId = (await logError({
+                const res = (await logError({
                     requestId: event.locals.requestId,
                     source: 'SERVER',
                     status: 500,
@@ -92,10 +92,11 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
                     workspaceId: null,
                     userAgent: event.request.headers.get('user-agent'),
                     context: { phase: 'workspace-lookup' }
-                }).catch(() => ({}))).id;
+                }).catch(() => ({})));
+                const errorId = 'id' in res ? res.id : 'unknown';
                 
                 if (!dev) {
-                    throw new Error(`Critical platform failure: Failed to load workspace (Error ID: ${errorId ?? 'unknown'})`);
+                    throw new Error(`Critical platform failure: Failed to load workspace (Error ID: ${errorId})`);
                 }
             }
 
@@ -113,7 +114,7 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
         if (err instanceof Error && err.message.startsWith('Critical platform failure')) throw err;
 
         console.error('[hooks] session load error', err);
-        const errorId = (await logError({
+        const res = (await logError({
             requestId: event.locals.requestId,
             source: 'SERVER',
             status: 500,
@@ -125,10 +126,11 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
             workspaceId: null,
             userAgent: event.request.headers.get('user-agent'),
             context: { phase: 'session-load' }
-        }).catch(() => ({}))).id;
+        }).catch(() => ({})));
+        const errorId = 'id' in res ? res.id : 'unknown';
 
         if (!dev) {
-            throw new Error(`Critical platform failure: Failed to load session (Error ID: ${errorId ?? 'unknown'})`);
+            throw new Error(`Critical platform failure: Failed to load session (Error ID: ${errorId})`);
         }
     }
 

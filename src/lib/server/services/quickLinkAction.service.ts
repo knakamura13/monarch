@@ -28,8 +28,8 @@ import type { User } from 'better-auth';
 
 export async function handleQuickLinkAction(
     event: RequestEvent,
-    workspace: WorkspaceItem,
-    user: User,
+    workspace: { id: string; name: string; role: any },
+    user: { id: string; email: string; name: string | null; image: string | null },
     action: string,
     redirectTarget: string
 ) {

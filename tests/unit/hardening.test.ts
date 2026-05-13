@@ -78,7 +78,7 @@ describe('Hardening Remediation', () => {
 
     describe('Quick Link Hardening', () => {
         it('moveLinkToFolder rejects nonexistent folder', async () => {
-            const link = await createQuickLink(workspaceId, actorId, { url: 'https://test.com', title: 'Test' });
+            const link = await createQuickLink(workspaceId, actorId, { url: 'https://test.com', title: 'Test', description: null });
             await expect(moveLinkToFolder(workspaceId, actorId, link.id, 'nonexistent-folder'))
                 .rejects.toThrow('Quick link folder not found');
         });
@@ -86,14 +86,14 @@ describe('Hardening Remediation', () => {
         it('moveLinkToFolder rejects folder from another workspace', async () => {
             const otherWs = await createWorkspace({ name: 'Other WS', ownerUserId: 'other' });
             const otherFolder = await createQuickLinkFolder(otherWs.id, 'other', 'Other Folder');
-            const link = await createQuickLink(workspaceId, actorId, { url: 'https://test.com', title: 'Test' });
+            const link = await createQuickLink(workspaceId, actorId, { url: 'https://test.com', title: 'Test', description: null });
             
             await expect(moveLinkToFolder(workspaceId, actorId, link.id, otherFolder.id))
                 .rejects.toThrow('Quick link folder not found'); // Should be not found because of WS scoping
         });
 
         it('reorderQuickLinks rejects duplicate IDs', async () => {
-            const link = await createQuickLink(workspaceId, actorId, { url: 'https://test.com', title: 'Test' });
+            const link = await createQuickLink(workspaceId, actorId, { url: 'https://test.com', title: 'Test', description: null });
             await expect(reorderQuickLinks(workspaceId, actorId, [link.id, link.id]))
                 .rejects.toThrow('Duplicate link IDs provided');
         });
