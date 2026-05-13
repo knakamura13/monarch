@@ -112,13 +112,13 @@ test.describe('Tasks Workflow', () => {
 
     test('drag-and-drop: drop indicator is visible during drag', async ({ page }) => {
         const testId = Math.random().toString(36).slice(2, 7);
-        const title = `Task ${testId}`;
-        const title2 = `Task Target ${testId}`;
+        const title1 = `Task A ${testId}`;
+        const title2 = `Task B ${testId}`;
 
         // Create two tasks
         await tasksPage.getAddTaskButton('To do').click();
         await tasksPage.dialog.expectVisible();
-        await tasksPage.dialog.fillInput(/title/i, title);
+        await tasksPage.dialog.fillInput(/title/i, title1);
         await tasksPage.dialog.submit(/create|save/i);
         await tasksPage.dialog.expectHidden();
 
@@ -128,15 +128,20 @@ test.describe('Tasks Workflow', () => {
         await tasksPage.dialog.submit(/create|save/i);
         await tasksPage.dialog.expectHidden();
 
-        // Start dragging
-        const task = tasksPage.getTaskCard(title);
-        await task.hover();
+        // Start dragging SECOND task
+        const task2 = tasksPage.getTaskCard(title2);
+        await task2.hover();
         await page.mouse.down();
+        // Move slightly to trigger drag threshold (POINTER_MOVE_THRESHOLD_PX = 8)
         await page.mouse.move(0, 10);
 
-        // Verify drop indicator appears when hovering over target
-        const targetTask = tasksPage.getTaskCard(title2);
-        await targetTask.hover();
+        // Verify drop indicator appears when hovering over first task
+        const task1 = tasksPage.getTaskCard(title1);
+        const targetBox = await task1.boundingBox();
+        if (!targetBox) throw new Error('Target task not visible');
+
+        // Move to top half of task 1
+        await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 4);
         
         const dropIndicator = tasksPage.getColumn('To do').locator('.task-card-drop-indicator');
         await expect(dropIndicator.first()).toBeVisible();
@@ -147,13 +152,13 @@ test.describe('Tasks Workflow', () => {
 
     test('drag-and-drop: drop indicator positioning is correct (before)', async ({ page }) => {
         const testId = Math.random().toString(36).slice(2, 7);
-        const title = `Task ${testId}`;
-        const title2 = `Task Target ${testId}`;
+        const title1 = `Task A ${testId}`;
+        const title2 = `Task B ${testId}`;
 
         // Create two tasks
         await tasksPage.getAddTaskButton('To do').click();
         await tasksPage.dialog.expectVisible();
-        await tasksPage.dialog.fillInput(/title/i, title);
+        await tasksPage.dialog.fillInput(/title/i, title1);
         await tasksPage.dialog.submit(/create|save/i);
         await tasksPage.dialog.expectHidden();
 
@@ -163,15 +168,15 @@ test.describe('Tasks Workflow', () => {
         await tasksPage.dialog.submit(/create|save/i);
         await tasksPage.dialog.expectHidden();
 
-        // Start dragging first task
-        const task = tasksPage.getTaskCard(title);
-        await task.hover();
+        // Start dragging second task
+        const task2 = tasksPage.getTaskCard(title2);
+        await task2.hover();
         await page.mouse.down();
         await page.mouse.move(0, 10);
 
-        // Hover over top half of target task to show "before" indicator
-        const targetTask = tasksPage.getTaskCard(title2);
-        const targetBox = await targetTask.boundingBox();
+        // Hover over top half of FIRST task to show "before" indicator
+        const task1 = tasksPage.getTaskCard(title1);
+        const targetBox = await task1.boundingBox();
         if (!targetBox) throw new Error('Target task not visible');
         
         await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 4);

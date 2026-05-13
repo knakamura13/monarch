@@ -9,6 +9,7 @@
     import { goto, invalidateAll } from '$app/navigation';
     import { showSuccessToast } from '$lib/stores/toast';
     import { getPageNumber } from '$lib/constants/navigation';
+    import { isDragThresholdMet } from '$lib/utils/drag';
     import type { PageData } from './$types';
 
     interface TasksPageData extends PageData {
@@ -54,8 +55,6 @@
         isDragging: boolean;
         rafId: number | null;
     };
-
-    const POINTER_MOVE_THRESHOLD_PX = 8;
 
     let dragState = $state<DragState | null>(null);
     let isDragging = $derived(!!dragState?.isDragging);
@@ -195,12 +194,8 @@
     function handlePointerMove(event: PointerEvent) {
         if (!dragState) return;
 
-        const dx = event.clientX - dragState.startX;
-        const dy = event.clientY - dragState.startY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
         if (!dragState.isDragging) {
-            if (distance > POINTER_MOVE_THRESHOLD_PX) {
+            if (isDragThresholdMet(dragState.startX, dragState.startY, event.clientX, event.clientY)) {
                 dragState.isDragging = true;
                 document.body.style.userSelect = 'none';
                 document.body.style.touchAction = 'none';

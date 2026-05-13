@@ -11,6 +11,7 @@
     import { getPageNumber } from '$lib/constants/navigation';
     import { goto, invalidateAll } from '$app/navigation';
     import { showErrorToast, showSuccessToast } from '$lib/stores/toast';
+    import { isDragThresholdMet } from '$lib/utils/drag';
     import type { PageData } from './$types';
     import type { MilestoneItem } from '$lib/server/dynamo/types';
     import type { MilestonePhase } from '$lib/types/enums';
@@ -30,6 +31,9 @@
         width: number;
         height: number;
         currentTop: number;
+        startX: number;
+        startY: number;
+        isDragging: boolean;
     };
 
     const REORDER_FLIP_DURATION_MS = 180;
@@ -213,6 +217,15 @@
     function updateDraggedMilestonePosition(event: PointerEvent) {
         if (!dragState) return;
 
+        if (!dragState.isDragging) {
+            if (isDragThresholdMet(dragState.startX, dragState.startY, event.clientX, event.clientY)) {
+                dragState.isDragging = true;
+                document.body.style.userSelect = 'none';
+            } else {
+                return;
+            }
+        }
+
         const pointerY = clamp(event.clientY, dragState.railTop, dragState.railBottom);
         const nextTop = clamp(event.clientY - dragState.pointerOffsetY, dragState.railTop, dragState.railBottom - dragState.height);
         const targetIndex = getDragIndex(dragState.phase, dragState.id, pointerY);
@@ -262,10 +275,12 @@
             left: wrapperRect.left,
             width: wrapperRect.width,
             height: wrapperRect.height,
-            currentTop: wrapperRect.top
+            currentTop: wrapperRect.top,
+            startX: event.clientX,
+            startY: event.clientY,
+            isDragging: false
         };
 
-        document.body.style.userSelect = 'none';
         window.addEventListener('pointermove', handleWindowPointerMove, { passive: false });
         window.addEventListener('pointerup', handleWindowPointerUp, { passive: false });
     }
@@ -382,7 +397,7 @@
                         {#each g.items as m, _mi (m.id)}
                             {@const nodeStatus = milestoneNodeStatus(m.status)}
                             <div
-                                class="milestone-wrapper {dragState?.id === m.id ? 'milestone-wrapper-placeholder' : ''}"
+                                    class="milestone-wrapper {dragState?.id === m.id && dragState.isDragging ? 'milestone-wrapper-placeholder' : ''}"
                                 animate:flip={{ duration: REORDER_FLIP_DURATION_MS }}
                                 data-milestone-id={m.id}
                                 data-phase={g.phase}
@@ -511,7 +526,7 @@
     </div>
 </div>
 
-{#if dragState}
+{#if dragState && dragState.isDragging}
     {@const ghost = dragState.item}
     {@const ghostNodeStatus = milestoneNodeStatus(ghost.status)}
     <div
