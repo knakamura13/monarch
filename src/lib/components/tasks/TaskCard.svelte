@@ -1,12 +1,13 @@
 <script lang="ts">
     import Card from '$lib/components/ui/Card.svelte';
     import { fmtDate } from '$lib/utils/dates';
-    import { Calendar } from 'lucide-svelte';
+    import { Calendar, GripVertical } from 'lucide-svelte';
 
     let {
         task,
         onEdit,
         onPointerDown,
+        onDragHandlePointerDown,
         isDragging = false,
         isAnyDragging = false,
         wasDragging = false
@@ -22,6 +23,7 @@
         };
         onEdit?: (id: string) => void;
         onPointerDown?: (e: PointerEvent, id: string) => void;
+        onDragHandlePointerDown?: (e: PointerEvent, id: string) => void;
         isDragging?: boolean;
         isAnyDragging?: boolean;
         wasDragging?: boolean;
@@ -43,7 +45,6 @@
 <div class="task-card" role="listitem" data-task-id={task.id} data-status={task.status}>
     <div
         class={taskCardClasses}
-        onpointerdown={(e) => onPointerDown && onPointerDown(e, task.id)}
         onclick={(e) => {
             if (isAnyDragging || wasDragging) {
                 e.preventDefault();
@@ -62,6 +63,15 @@
         tabindex="0"
         aria-label={task.title}
     >
+        <button
+            type="button"
+            class="task-drag-handle"
+            aria-label={`Reorder ${task.title}`}
+            onpointerdown={(e) => onDragHandlePointerDown && onDragHandlePointerDown(e, task.id)}
+        >
+            <GripVertical style="width: 14px; height: 14px;" />
+        </button>
+
         <Card class="task-card-body task-card-border-none task-card-shadow-none task-card-bg-transparent">
             {#if isOverdue}
                 <div class="task-card-overdue">● overdue</div>
