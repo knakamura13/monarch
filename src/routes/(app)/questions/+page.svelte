@@ -648,14 +648,14 @@
     }
 
     .question-card-drop-indicator {
-        height: 4px;
-        background: var(--brand);
+        height: 3px;
+        background: var(--peri-d);
         border-radius: 2px;
-        margin: 4px 0;
+        margin: 0 4px 4px;
+        pointer-events: none;
     }
 
     .question-card-drop-indicator-bottom {
-        margin-top: 8px;
-        margin-bottom: 0;
+        margin: 4px 4px 0;
     }
 </style>
