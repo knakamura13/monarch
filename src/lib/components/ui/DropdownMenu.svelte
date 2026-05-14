@@ -27,6 +27,7 @@
     } = $props();
 
     let isOpen = $state(false);
+    let rootEl = $state<HTMLDivElement>();
     let menuEl = $state<HTMLDivElement | null>(null);
 
     const listId = $derived(`${menuId}-menu`);
@@ -59,7 +60,7 @@
         const onDoc = (e: MouseEvent) => {
             const t = e.target;
             if (!(t instanceof HTMLElement)) return;
-            if (t.closest('[data-dropdown]')) return;
+            if (rootEl?.contains(t)) return;
             close();
         };
 
@@ -193,7 +194,7 @@
     });
 </script>
 
-<div data-dropdown class="dropdown-root">
+<div bind:this={rootEl} class="dropdown-root">
     {#if trigger}
         {@render trigger({ toggle, isOpen })}
     {:else}

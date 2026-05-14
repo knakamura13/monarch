@@ -36,6 +36,7 @@
     } = $props();
 
     let isOpen = $state(false);
+    let rootEl = $state<HTMLDivElement>();
     const listIdBase = `sel-${Math.random().toString(36).slice(2, 11)}`;
     const listId = $derived(id ? `${id}-listbox` : `${listIdBase}-listbox`);
 
@@ -82,7 +83,7 @@
         const onDoc = (e: MouseEvent) => {
             const t = e.target;
             if (!(t instanceof HTMLElement)) return;
-            if (t.closest('[data-dropdown]')) return;
+            if (rootEl?.contains(t)) return;
             close();
         };
 
@@ -102,7 +103,7 @@
     });
 </script>
 
-<div data-dropdown class="select-root {klass}" class:select-root--fluid={fluid}>
+<div bind:this={rootEl} class="select-root {klass}" class:select-root--fluid={fluid}>
     {#if name}<input type="hidden" {name} {value} />{/if}
 
     <Button

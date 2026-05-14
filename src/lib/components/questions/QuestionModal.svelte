@@ -8,10 +8,13 @@
     import { fieldFromInitial } from '$lib/utils/initialFields';
     import { questionStatusLabel, questionStatusPillClass } from '$lib/questions/questionStatusDisplay';
     import type { ManualEnhanceHandler } from '$lib/utils/enhanceSubmit';
-    import { HelpCircle } from 'lucide-svelte';
-    import { showSuccessToast } from '$lib/stores/toast';
+    import { HelpCircle, Trash2, Calendar, X } from 'lucide-svelte';
+    import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
+    import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
+    import { parseISO } from 'date-fns';
+    import { fmtDate } from '$lib/utils/dates';
 
     let {
         mode,
@@ -22,7 +25,8 @@
         initial = {},
         error,
         errorId,
-        onenhance
+        onenhance,
+        onDeleteSuccess
     }: {
         mode: 'create' | 'edit';
         open: boolean;
@@ -33,6 +37,7 @@
         error?: string;
         errorId?: string;
         onenhance?: SubmitFunction | ManualEnhanceHandler;
+        onDeleteSuccess?: (id: string) => void | Promise<void>;
     } = $props();
 
     const submitEnhance = $derived<SubmitFunction>((args) => {
@@ -85,35 +90,116 @@
     }
 
     let questionValue = $state('');
-    let categoryValue = $state('');
     let priorityValue = $state('MEDIUM');
     let statusValue = $state('OPEN');
     let sourceTypeValue = $state('OTHER');
-    let citationUrlValue = $state('');
     let answerValue = $state('');
     let answeredAtValue = $state('');
 
+    let dateInput = $state<HTMLInputElement>();
+
     const statusPillClass = $derived(() => questionStatusPillClass(statusValue));
     const statusLabel = $derived(() => questionStatusLabel(statusValue));
+
+    const answeredAtLabel = $derived(() => {
+        if (!answeredAtValue) return 'Answered on';
+        const date = parseISO(answeredAtValue);
+        return `Ans. ${fmtDate(date)}`;
+    });
+
+    const priorityPillClass = $derived(() => {
+        switch (priorityValue) {
+            case 'LOW':
+                return 's-note';
+            case 'MEDIUM':
+                return 's-active';
+            case 'HIGH':
+                return 's-waiting';
+            case 'CRITICAL':
+                return 's-urgent';
+            default:
+                return '';
+        }
+    });
+
+    const sourceTypePillClass = $derived(() => {
+        switch (sourceTypeValue) {
+            case 'ATTORNEY':
+            case 'NONPROFIT':
+                return 's-active';
+            case 'USCIS_SITE':
+            case 'COUNTY_SITE':
+                return 's-waiting';
+            case 'COMMUNITY':
+            case 'OTHER':
+                return 's-note';
+            default:
+                return '';
+        }
+    });
+
+    async function handleDelete() {
+        const id = val('id');
+        if (!id) return;
+
+        if (!confirm('Are you sure you want to delete this question?')) return;
+
+        // Close immediately
+        void onClose();
+
+        try {
+            const formData = new FormData();
+            formData.set('id', id);
+
+            const response = await fetch(`${action.split('?')[0]}?/delete`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const text = await response.text();
+            let result;
+            try {
+                result = JSON.parse(text);
+            } catch {
+                showErrorToast('Failed to delete question');
+                return;
+            }
+
+            if (result.type === 'success' || (result.type === 'redirect' && !result.error)) {
+                await onDeleteSuccess?.(id);
+                showSuccessToast('Question deleted');
+            } else {
+                const data = result.data ? (typeof result.data === 'string' ? JSON.parse(result.data) : result.data) : {};
+                showErrorToast(data.error || 'Failed to delete question');
+            }
+        } catch {
+            showErrorToast('Failed to delete question');
+        }
+    }
+
+    const menuItems = $derived([
+        {
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive' as const,
+            action: handleDelete
+        }
+    ]);
 
     $effect(() => {
         if (open) {
             if (mode === 'create') {
                 questionValue = '';
-                categoryValue = '';
                 priorityValue = 'MEDIUM';
                 statusValue = 'OPEN';
                 sourceTypeValue = 'OTHER';
-                citationUrlValue = '';
                 answerValue = '';
                 answeredAtValue = '';
             } else {
                 questionValue = val('question');
-                categoryValue = val('category');
                 priorityValue = val('priority', 'MEDIUM');
                 statusValue = val('status', 'OPEN');
                 sourceTypeValue = val('sourceType', 'OTHER');
-                citationUrlValue = val('citationUrl');
                 answerValue = val('answer');
                 answeredAtValue = val('answeredAt');
             }
@@ -121,98 +207,252 @@
     });
 </script>
 
-{#snippet questionEditHeader()}
-    <span class="pill {statusPillClass()}">{statusLabel()}</span>
+{#snippet questionHeader()}
+    <div class="modal-header-pills">
+        <Select
+            id="question-status"
+            bind:value={statusValue}
+            options={questionStatusOptions}
+            ariaLabel="Question status"
+            size="sm"
+            menuClass="dropdown-menu--min-12rem"
+            triggerClass={`header-pill-trigger ${statusPillClass()}`}
+        />
+        <Select
+            id="question-priority"
+            bind:value={priorityValue}
+            options={questionPriorityOptions}
+            ariaLabel="Question priority"
+            size="sm"
+            menuClass="dropdown-menu--min-12rem"
+            triggerClass={`header-pill-trigger ${priorityPillClass()}`}
+        />
+        <Select
+            id="question-source"
+            bind:value={sourceTypeValue}
+            options={questionSourceTypeOptions}
+            ariaLabel="Source type"
+            size="sm"
+            menuClass="dropdown-menu--min-12rem"
+            triggerClass={`header-pill-trigger ${sourceTypePillClass()}`}
+        />
+
+        <div class="date-picker-wrapper">
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="header-pill-trigger date-pill-trigger"
+                onclick={() => dateInput?.showPicker()}
+            >
+                <Calendar size={14} class="date-icon" />
+                <span class="select-trigger-label">{answeredAtLabel()}</span>
+                {#if answeredAtValue}
+                    <button
+                        type="button"
+                        class="date-clear"
+                        onclick={(e) => {
+                            e.stopPropagation();
+                            answeredAtValue = '';
+                        }}
+                        aria-label="Clear date"
+                    >
+                        <X size={12} />
+                    </button>
+                {/if}
+            </Button>
+            <input bind:this={dateInput} type="date" class="hidden-date-input" bind:value={answeredAtValue} />
+        </div>
+    </div>
 {/snippet}
 
-{#snippet questionEditFooter()}
-    <input type="hidden" name="id" value={val('id')} form="question-edit-form" />
+{#snippet questionHeaderActions()}
+    {#if mode === 'edit'}
+        <ThreeDotsMenu items={menuItems} menuId="question-options" />
+    {/if}
+{/snippet}
+
+{#snippet questionFooter()}
     <Button type="button" variant="ghost" onclick={onClose}>Cancel</Button>
-    <Button type="submit" form="question-edit-form" class="modal-footer-save">Save changes</Button>
+    <Button type="submit" form="question-form" class="modal-footer-save">
+        {mode === 'create' ? 'Add question' : 'Save changes'}
+    </Button>
 {/snippet}
 
-{#if mode === 'create'}
-    <Dialog {open} {onClose} title="New question" footerFormId="question-create-form" cancelLabel="Cancel" submitLabel="Add question">
-        <form id="question-create-form" method="post" {action} use:enhance={submitEnhance!} class="modal-form">
-            <div>
-                <label for="question" class="modal-label">Question</label>
-                <Textarea id="question" name="question" bind:value={questionValue} required rows={3} />
-            </div>
-            <div class="form-grid">
-                <div>
-                    <label for="category" class="modal-label">Category</label>
-                    <Input id="category" name="category" bind:value={categoryValue} />
-                </div>
-                <div>
-                    <label for="priority" class="modal-label">Priority</label>
-                    <Select id="priority" name="priority" bind:value={priorityValue} options={questionPriorityOptions} />
-                </div>
-                <div>
-                    <label for="status" class="modal-label">Status</label>
-                    <Select id="status" name="status" bind:value={statusValue} options={questionStatusOptions} />
-                </div>
-                <div>
-                    <label for="sourceType" class="modal-label">Source type</label>
-                    <Select id="sourceType" name="sourceType" bind:value={sourceTypeValue} options={questionSourceTypeOptions} />
-                </div>
-            </div>
-            <div>
-                <label for="citationUrl" class="modal-label">Citation URL</label>
-                <Input id="citationUrl" name="citationUrl" type="url" bind:value={citationUrlValue} />
-            </div>
-            <div>
-                <label for="answer" class="modal-label">Answer</label>
-                <Textarea id="answer" name="answer" bind:value={answerValue} rows={5} />
-            </div>
-            <div>
-                <label for="answeredAt" class="modal-label">Answered on</label>
-                <Input id="answeredAt" name="answeredAt" type="date" bind:value={answeredAtValue} />
-            </div>
-            {#if error}
-                <div class="modal-error">
-                    <ErrorDetails status={400} message={error} errorId={errorId ?? undefined} />
-                </div>
-            {/if}
-        </form>
-    </Dialog>
-{:else}
-    <Dialog {open} {onClose} ariaLabel="Edit question" header={questionEditHeader} footer={questionEditFooter}>
-        <form id="question-edit-form" method="post" {action} use:enhance={onenhance as SubmitFunction} class="modal-form">
-            <div class="modal-title-row">
-                <HelpCircle class="modal-icon-sm" />
-                <Input name="question" bind:value={questionValue} class="modal-title-input display" placeholder="Question" required />
-            </div>
+<Dialog
+    {open}
+    {onClose}
+    ariaLabel={mode === 'create' ? 'New question' : 'Edit question'}
+    header={questionHeader}
+    headerActions={questionHeaderActions}
+    footer={questionFooter}
+>
+    <form id="question-form" method="post" {action} use:enhance={submitEnhance!} class="modal-form">
+        <input type="hidden" name="id" value={val('id')} />
+        <input type="hidden" name="status" value={statusValue} />
+        <input type="hidden" name="priority" value={priorityValue} />
+        <input type="hidden" name="sourceType" value={sourceTypeValue} />
+        <input type="hidden" name="answeredAt" value={answeredAtValue} />
 
-            <div class="modal-mt-2">
-                <span class="modal-metadata-label">Citation URL</span>
-                <div class="modal-metadata-value">
-                    <Input name="citationUrl" type="url" bind:value={citationUrlValue} placeholder="https://..." />
-                </div>
-            </div>
+        <div class="modal-title-row">
+            <HelpCircle class="modal-icon-sm" />
+            <Input name="question" bind:value={questionValue} class="modal-title-input display" placeholder="Question" required />
+        </div>
 
-            <div class="modal-description-section">
-                <span class="modal-metadata-label">Answer</span>
-                <Textarea
-                    name="answer"
-                    bind:value={answerValue}
-                    placeholder="Enter answer..."
-                    rows={5}
-                    class="modal-description-textarea"
-                />
-            </div>
+        <div class="modal-description-section">
+            <span class="modal-metadata-label">Answer</span>
+            <Textarea
+                name="answer"
+                bind:value={answerValue}
+                placeholder="Enter answer..."
+                rows={5}
+                class="modal-description-textarea"
+            />
+        </div>
 
-            <div class="modal-mt-2">
-                <span class="modal-metadata-label">Answered on</span>
-                <div class="modal-metadata-value">
-                    <Input name="answeredAt" type="date" bind:value={answeredAtValue} class="modal-text-sm" />
-                </div>
+        {#if error}
+            <div class="modal-error">
+                <ErrorDetails status={400} message={error} errorId={errorId ?? undefined} />
             </div>
+        {/if}
+    </form>
+</Dialog>
 
-            {#if error}
-                <div class="modal-error">
-                    <ErrorDetails status={400} message={error} errorId={errorId ?? undefined} />
-                </div>
-            {/if}
-        </form>
-    </Dialog>
-{/if}
+<style>
+    .modal-header-pills {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .date-picker-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    .hidden-date-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+    }
+
+    :global(button.header-pill-trigger) {
+        height: 24px;
+        min-height: 24px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: 11px;
+        font-weight: 600;
+        gap: 6px;
+        box-shadow: none;
+    }
+
+    :global(button.header-pill-trigger .select-trigger-label) {
+        text-transform: none;
+    }
+
+    :global(button.header-pill-trigger .select-trigger-chevron) {
+        opacity: 0.75;
+        width: 12px;
+        height: 12px;
+    }
+
+    :global(button.header-pill-trigger.s-active) {
+        background: var(--peri);
+        color: var(--peri-d);
+        border-color: color-mix(in srgb, var(--peri-d) 18%, transparent);
+    }
+
+    :global(button.header-pill-trigger.s-active:hover) {
+        background: color-mix(in srgb, var(--peri) 82%, var(--peri-d) 18%);
+        border-color: color-mix(in srgb, var(--peri-d) 24%, transparent);
+    }
+
+    :global(button.header-pill-trigger.s-done) {
+        background: var(--sage);
+        color: var(--sage-d);
+        border-color: color-mix(in srgb, var(--sage-d) 18%, transparent);
+    }
+
+    :global(button.header-pill-trigger.s-done:hover) {
+        background: color-mix(in srgb, var(--sage) 80%, var(--sage-d) 20%);
+        border-color: color-mix(in srgb, var(--sage-d) 24%, transparent);
+    }
+
+    :global(button.header-pill-trigger.s-note) {
+        background: var(--surface-3);
+        color: var(--ink-2);
+        border-color: color-mix(in srgb, var(--ink-2) 10%, transparent);
+    }
+
+    :global(button.header-pill-trigger.s-note:hover) {
+        background: color-mix(in srgb, var(--surface-3) 86%, var(--ink-2) 14%);
+        border-color: color-mix(in srgb, var(--ink-2) 16%, transparent);
+    }
+
+    :global(button.header-pill-trigger.s-waiting) {
+        background: var(--butter);
+        color: var(--butter-d);
+        border-color: color-mix(in srgb, var(--butter-d) 18%, transparent);
+    }
+
+    :global(button.header-pill-trigger.s-waiting:hover) {
+        background: color-mix(in srgb, var(--butter) 80%, var(--butter-d) 20%);
+        border-color: color-mix(in srgb, var(--butter-d) 24%, transparent);
+    }
+
+    :global(button.header-pill-trigger.s-urgent) {
+        background: var(--blush);
+        color: var(--blush-d);
+        border-color: color-mix(in srgb, var(--blush-d) 18%, transparent);
+    }
+
+    :global(button.header-pill-trigger.s-urgent:hover) {
+        background: color-mix(in srgb, var(--blush) 80%, var(--blush-d) 20%);
+        border-color: color-mix(in srgb, var(--blush-d) 24%, transparent);
+    }
+
+    :global(button.header-pill-trigger.date-pill-trigger) {
+        border-color: var(--hairline);
+        background: var(--surface-2);
+        color: var(--ink-2);
+        font-weight: 500;
+    }
+
+    :global(button.header-pill-trigger.date-pill-trigger:hover) {
+        background: var(--surface-3);
+        border-color: var(--ink-3);
+    }
+
+    .date-icon {
+        flex-shrink: 0;
+        opacity: 0.65;
+    }
+
+    .date-clear {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2px;
+        margin-right: -4px;
+        border-radius: 4px;
+        color: inherit;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+        border: none;
+        outline: none;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .date-clear:hover {
+        opacity: 1;
+        background: color-mix(in srgb, currentColor 10%, transparent);
+    }
+</style>

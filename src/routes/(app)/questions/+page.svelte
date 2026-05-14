@@ -53,16 +53,8 @@
             </div>
 
             {#each section.items as q (q.id)}
-                <button
-                    type="button"
-                    onclick={async () => await updateUrl(q.id)}
-                    class="card"
-                    style="background: var(--surface-2); padding: 12px; border-radius: 12px; border: none; text-align: left; transition: opacity 120ms;"
-                >
-                    <p style="font-size: 13px; margin-bottom: 8px;">{q.question}</p>
-                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                        {#if q.category}<span class="pill s-note" style="font-size: 10px;">{q.category}</span>{/if}
-                    </div>
+                <button type="button" onclick={async () => await updateUrl(q.id)} class="question-card">
+                    <p class="question-text">{q.question}</p>
                 </button>
             {/each}
 
@@ -70,7 +62,7 @@
                 variant="ghost"
                 size="sm"
                 onclick={() => (showCreateModal = true)}
-                style="justify-content: flex-start; margin-top: auto;"
+                class="ask-button"
             >
                 <Plus style="width: 14px; height: 14px;" /> Ask a question
             </Button>
@@ -103,13 +95,15 @@
             initial={{
                 id: question.id,
                 question: question.question,
-                category: question.category,
                 priority: question.priority,
                 status: question.status,
                 sourceType: question.sourceType,
-                citationUrl: question.citationUrl,
                 answer: question.answer,
                 answeredAt: question.answeredAt
+            }}
+            onDeleteSuccess={async () => {
+                await invalidateAll();
+                await updateUrl(null);
             }}
             error={form?.error}
             errorId={form?.errorId}
@@ -147,9 +141,45 @@
         gap: 16px;
         padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
     }
+
     @media (min-width: 768px) {
         .questions-grid {
             grid-template-columns: repeat(3, 1fr);
         }
+    }
+
+    .question-card {
+        background: var(--surface-2);
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        text-align: left;
+        transition: all 120ms ease;
+        cursor: pointer;
+        display: block;
+        width: 100%;
+    }
+
+    .question-card:hover {
+        background: var(--surface-3);
+        border-color: var(--hairline);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--ink-1) 5%, transparent);
+    }
+
+    .question-card:active {
+        transform: translateY(0);
+        background: var(--surface-3);
+    }
+
+    .question-text {
+        font-size: 13px;
+        color: var(--ink-1);
+        line-height: 1.4;
+    }
+
+    :global(.ask-button) {
+        justify-content: flex-start !important;
+        margin-top: auto !important;
     }
 </style>
