@@ -20,7 +20,8 @@ export const questionCreateSchema = z.object({
     answeredAt: optionalDateOnly,
     relatedTaskId: optionalId,
     relatedFormId: optionalId,
-    relatedEvidenceId: optionalId
+    relatedEvidenceId: optionalId,
+    order: z.number().int().optional().default(0)
 });
 
 export const questionUpdateSchema = questionCreateSchema.partial();

@@ -1,9 +1,15 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
 import { requireWorkspace } from '$lib/server/guards';
-import { listQuestions, createQuestion, updateQuestion, softDeleteQuestion } from '$lib/server/services/question.service';
+import {
+    listQuestions,
+    createQuestion,
+    updateQuestion,
+    softDeleteQuestion,
+    reorderQuestions
+} from '$lib/server/services/question.service';
 import { logActionError } from '$lib/server/services/actionError.service';
-import { questionCreateSchema, questionUpdateSchema } from '$lib/schemas/question';
+import { questionCreateSchema, questionUpdateSchema, questionSourceEnum } from '$lib/schemas/question';
 import { getMembers } from '$lib/server/cache/membersCache';
 import type { QuestionSourceType, QuestionStatus } from '$lib/types/enums';
 
@@ -37,6 +43,20 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
+    reorder: async (event) => {
+        const { workspace, user } = requireWorkspace(event);
+        const formData = await event.request.formData();
+        const updatesJson = formData.get('updates') as string;
+        if (!updatesJson) return fail(400, { error: 'Missing updates' });
+
+        try {
+            const rawUpdates = JSON.parse(updatesJson) as Array<{ id: string; order: number }>;
+            await reorderQuestions(workspace.id, user.id, rawUpdates);
+            return { success: true };
+        } catch {
+            return fail(500, { error: 'Failed to reorder questions' });
+        }
+    },
     create: async (event) => {
         const { workspace, user } = requireWorkspace(event);
         const raw = Object.fromEntries(await event.request.formData());
