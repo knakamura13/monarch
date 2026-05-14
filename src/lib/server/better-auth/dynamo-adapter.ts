@@ -66,6 +66,27 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
         },
         // @ts-expect-error - Better Auth adapter type incompatibility with DynamoDB's dynamic typing
         adapter: ({ transformInput, transformOutput, transformWhereClause }) => {
+            const performUpdate = async (id: string, model: string, patch: Record<string, unknown>) => {
+                const names: Record<string, string> = {};
+                const values: Record<string, unknown> = {};
+                const sets: string[] = [];
+                for (const [k, v] of Object.entries(patch)) {
+                    const nk = `#${k}`;
+                    const vk = `:${k}`;
+                    Reflect.set(names, nk, k);
+                    Reflect.set(values, vk, v);
+                    sets.push(`${nk} = ${vk}`);
+                }
+                if (!sets.length) return null;
+                const updated = await ddbUpdate<Record<string, unknown>>(
+                    { PK: baPk(model), SK: id },
+                    `SET ${sets.join(', ')}`,
+                    values,
+                    names
+                );
+                return updated ? ((await transformOutput(updated, model)) as Record<string, unknown>) : null;
+            };
+
             return {
                 create: async ({ data, model, select }) => {
                     const row = (await transformInput(data, model, 'create')) as Record<string, unknown>;
@@ -90,25 +111,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                     // Prefer updating by id if present.
                     const idClause = w.find((c) => c.field === 'id' && (c.operator ?? 'eq') === 'eq');
                     if (idClause && idClause.value != null) {
-                        const id = String(idClause.value);
-                        const names: Record<string, string> = {};
-                        const values: Record<string, unknown> = {};
-                        const sets: string[] = [];
-                        for (const [k, v] of Object.entries(patch)) {
-                            const nk = `#${k}`;
-                            const vk = `:${k}`;
-                            Reflect.set(names, nk, k);
-                            Reflect.set(values, vk, v);
-                            sets.push(`${nk} = ${vk}`);
-                        }
-                        if (!sets.length) return null;
-                        const updated = await ddbUpdate<Record<string, unknown>>(
-                            { PK: baPk(model), SK: id },
-                            `SET ${sets.join(', ')}`,
-                            values,
-                            names
-                        );
-                        return updated ? ((await transformOutput(updated, model)) as Record<string, unknown>) : null;
+                        return await performUpdate(String(idClause.value), model, patch);
                     }
 
                     // Fallback: find first match, then update by its id.
@@ -119,13 +122,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                     });
                     const hit = found.find((r: Record<string, unknown>) => matchesWhere(r, w));
                     if (!hit) return null;
-                    // @ts-expect-error - Dynamic adapter method call with unknown return
-                    const updated = await (this as Record<string, unknown>).update({
-                        where: [{ field: 'id', operator: 'eq', value: (hit as Record<string, unknown>).id as unknown }],
-                        update,
-                        model
-                    });
-                    return updated as Record<string, unknown> | null;
+                    return await performUpdate(String(hit.id), model, patch);
                 },
                 updateMany: async ({ where, update, model }) => {
                     const w = (await transformWhereClause({ where, model, action: 'updateMany' })) as Where[];
@@ -137,12 +134,7 @@ export const dynamoBetterAuthAdapter = (config: DynamoBetterAuthAdapterConfig = 
                     });
                     const hits = found.filter((r: Record<string, unknown>) => matchesWhere(r, w));
                     for (const h of hits) {
-                        // @ts-expect-error - Dynamic adapter method call with unknown return
-                        await (this as Record<string, unknown>).update({
-                            where: [{ field: 'id', operator: 'eq', value: (h as Record<string, unknown>).id as unknown }],
-                            update: patch,
-                            model
-                        });
+                        await performUpdate(String(h.id), model, patch);
                     }
                     return hits.length;
                 },
