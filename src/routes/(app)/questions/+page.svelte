@@ -2,11 +2,13 @@
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import QuestionModal from '$lib/components/questions/QuestionModal.svelte';
+    import InlineQuestionEditor from '$lib/components/questions/InlineQuestionEditor.svelte';
     import { Plus } from 'lucide-svelte';
     import { page } from '$app/state';
     import { invalidateAll, goto } from '$app/navigation';
     import { showSuccessToast } from '$lib/stores/toast';
     import { getPageNumber } from '$lib/constants/navigation';
+    import type { QuestionSourceType } from '$lib/types/enums';
     import type { PageData } from './$types';
 
     interface QuestionsPageData extends PageData {
@@ -16,6 +18,7 @@
     let { data, form }: { data: QuestionsPageData; form: { error?: string; errorId?: string } } = $props();
 
     let showCreateModal = $state(false);
+    let activeInlineSection = $state<string | null>(null);
     const editParam = $derived(page.url.searchParams.get('edit'));
     const editingQuestion = $derived(editParam && data.items.some((q) => q.id === editParam) ? { id: editParam } : null);
 
@@ -30,9 +33,9 @@
     }
 
     const sections = $derived([
-        { label: 'Official sources', items: data.official, class: 's-waiting' },
-        { label: 'Community / anecdotal', items: data.community, class: 's-active' },
-        { label: 'Other', items: data.other, class: 's-note' }
+        { label: 'Official sources', items: data.official, class: 's-waiting', sourceType: 'USCIS_SITE' as QuestionSourceType },
+        { label: 'Community / anecdotal', items: data.community, class: 's-active', sourceType: 'COMMUNITY' as QuestionSourceType },
+        { label: 'Other', items: data.other, class: 's-note', sourceType: 'OTHER' as QuestionSourceType }
     ]);
 </script>
 
@@ -52,14 +55,24 @@
                 </button>
             {/each}
 
-            <Button
-                variant="ghost"
-                size="sm"
-                onclick={() => (showCreateModal = true)}
-                class="ask-button"
-            >
-                <Plus style="width: 14px; height: 14px;" /> Ask a question
-            </Button>
+            {#if activeInlineSection === section.label}
+                <InlineQuestionEditor
+                    sourceType={section.sourceType}
+                    onCancel={() => (activeInlineSection = null)}
+                    onSuccess={async () => {
+                        await invalidateAll();
+                    }}
+                />
+            {:else}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onclick={() => (activeInlineSection = section.label)}
+                    class="ask-button"
+                >
+                    <Plus style="width: 14px; height: 14px;" /> Ask a question
+                </Button>
+            {/if}
         </div>
     {/each}
 </div>
