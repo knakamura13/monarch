@@ -66,7 +66,8 @@ describe('cross-domain DynamoDB smoke', () => {
             answeredAt: null,
             relatedTaskId: null,
             relatedFormId: null,
-            relatedEvidenceId: null
+            relatedEvidenceId: null,
+            order: 0
         });
 
         expect((await listQuestions(ws)).some((q) => q.id === created.id)).toBe(true);

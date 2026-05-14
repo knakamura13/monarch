@@ -546,7 +546,7 @@
                             onEdit={async () => {
                                 await updateUrl(task.id);
                             }}
-                            onPointerDown={handlePointerDown}
+                            onDragHandlePointerDown={handlePointerDown}
                             isDragging={dragState?.id === task.id && dragState.isDragging}
                             isAnyDragging={isDragging}
                             {wasDragging}

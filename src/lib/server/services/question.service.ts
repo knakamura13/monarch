@@ -32,7 +32,7 @@ export async function listQuestions(
         );
     filtered.sort(
         (a, b) =>
-            String(a.status).localeCompare(String(b.status)) ||
+            (a.order ?? 0) - (b.order ?? 0) ||
             String(b.priority).localeCompare(String(a.priority)) ||
             String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? ''))
     );
@@ -50,11 +50,15 @@ export async function getQuestion(workspaceId: string, id: string) {
 }
 
 export async function createQuestion(workspaceId: string, actorId: string, input: QuestionCreate) {
+    const items = await listQuestions(workspaceId);
+    const order = items.filter((i) => i.sourceType === input.sourceType).length;
+
     const now = new Date();
     const question = {
         id: randomUUID(),
         workspaceId,
         ...input,
+        order,
         answeredAt:
             input.status === 'ANSWERED'
                 ? (input.answeredAt ?? now).toISOString()
@@ -130,5 +134,32 @@ export async function softDeleteQuestion(workspaceId: string, actorId: string, i
         entityType: 'QuestionItem',
         entityId: id,
         summary: `Question deleted`
+    });
+}
+
+export async function reorderQuestions(
+    workspaceId: string,
+    actorId: string,
+    updates: { id: string; order: number }[]
+) {
+    for (const u of updates) {
+        const existing = await ddbGet<QuestionItem>({ PK: wsPk(workspaceId), SK: entitySk('QuestionItem', u.id) });
+        if (!existing || existing.deletedAt) continue;
+
+        await ddbUpdate(
+            { PK: wsPk(workspaceId), SK: entitySk('QuestionItem', u.id) },
+            'SET #order = :o, #updatedAt = :u',
+            { ':o': u.order, ':u': new Date().toISOString() },
+            { '#order': 'order', '#updatedAt': 'updatedAt' }
+        );
+    }
+
+    await logActivity({
+        workspaceId,
+        userId: actorId,
+        action: 'QUESTION_UPDATED',
+        entityType: 'QuestionItem',
+        entityId: updates[0]?.id ?? 'batch',
+        summary: `Reordered ${updates.length} questions`
     });
 }

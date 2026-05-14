@@ -41,6 +41,7 @@ export type QuestionItem = DynamoBaseItem & {
     sourceType: string; // Stored as string, validated as QuestionSourceType at service layer
     source: string | null;
     category: string | null;
+    order: number;
     citationUrl: string | null;
     answeredAt: string | null;
     relatedFormId: string | null;

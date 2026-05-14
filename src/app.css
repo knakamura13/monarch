@@ -422,6 +422,7 @@ body,
     border-radius: var(--r-md);
     transition: all 150ms ease;
     cursor: pointer;
+    position: relative;
 }
 
 .task-card-hoverable:hover {
@@ -430,6 +431,35 @@ body,
 
 .task-card-dragging {
     opacity: 0.5;
+}
+
+.task-drag-handle {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink-3);
+    touch-action: none;
+    cursor: grab;
+    transition: all 120ms ease;
+}
+
+.task-drag-handle:hover {
+    color: var(--ink-1);
+    background: var(--surface-2);
+    border-color: var(--hairline);
+}
+
+.task-drag-handle:active {
+    cursor: grabbing;
 }
 
 .task-card-done {
@@ -516,7 +546,7 @@ body,
     flex-direction: column;
     flex: 1;
     min-width: 0;
-    padding: 0;
+    padding: 0 24px 0 0;
 }
 
 .task-card-drop-indicator {
