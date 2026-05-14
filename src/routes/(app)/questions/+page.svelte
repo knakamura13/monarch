@@ -29,13 +29,13 @@
     type DragState = {
         id: string;
         item: import('$lib/server/dynamo/types').QuestionItem;
-        pointerOffsetX: number;
         pointerOffsetY: number;
-        containerRect: DOMRect;
+        laneTop: number;
+        laneBottom: number;
+        left: number;
         width: number;
         height: number;
-        currentX: number;
-        currentY: number;
+        currentTop: number;
         startX: number;
         startY: number;
         isDragging: boolean;
@@ -143,14 +143,18 @@
         return original.index !== finalIndex;
     }
 
-    function handlePointerDown(event: PointerEvent, id: string) {
+    function handleDragHandlePointerDown(event: PointerEvent, id: string) {
         if (event.button !== 0) return;
         const target = event.currentTarget as HTMLElement;
         const card = target.closest('.question-card') as HTMLElement;
-        if (!card) return;
+        const lane = target.closest('.questions-column-content') as HTMLElement;
+        if (!card || !lane) return;
+
+        event.preventDefault();
+        event.stopPropagation();
 
         const rect = card.getBoundingClientRect();
-        const containerRect = scrollContainer!.getBoundingClientRect();
+        const laneRect = lane.getBoundingClientRect();
 
         wasDragging = false;
 
@@ -160,102 +164,90 @@
         dragState = {
             id,
             item: questionItem,
-            pointerOffsetX: event.clientX - rect.left,
             pointerOffsetY: event.clientY - rect.top,
-            containerRect,
+            laneTop: laneRect.top,
+            laneBottom: laneRect.bottom,
+            left: rect.left,
             width: rect.width,
             height: rect.height,
-            currentX: event.clientX,
-            currentY: event.clientY,
+            currentTop: rect.top,
             startX: event.clientX,
             startY: event.clientY,
             isDragging: false,
             rafId: null
         };
 
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerUp);
-        window.addEventListener('pointercancel', handlePointerUp);
+        window.addEventListener('pointermove', handlePointerMove, { passive: false });
+        window.addEventListener('pointerup', handlePointerUp, { passive: false });
+        window.addEventListener('pointercancel', handlePointerUp, { passive: false });
     }
 
     function handlePointerMove(event: PointerEvent) {
         if (!dragState) return;
+        event.preventDefault();
 
         if (!dragState.isDragging) {
             if (isDragThresholdMet(dragState.startX, dragState.startY, event.clientX, event.clientY)) {
                 dragState.isDragging = true;
                 document.body.style.userSelect = 'none';
-                document.body.style.touchAction = 'none';
             } else {
                 return;
             }
         }
 
-        dragState.currentX = event.clientX;
-        dragState.currentY = event.clientY;
-
         if (dragState.rafId === null) {
-            dragState.rafId = requestAnimationFrame(processPointerMove);
+            dragState.rafId = requestAnimationFrame(() => processPointerMove(event.clientY));
         }
     }
 
-    function processPointerMove() {
+    function processPointerMove(clientY: number) {
         if (!dragState || !dragState.isDragging) {
             if (dragState) dragState.rafId = null;
             return;
         }
         dragState.rafId = null;
 
-        const { currentX, currentY } = dragState;
+        const { laneTop, laneBottom, pointerOffsetY, height } = dragState;
+        const currentY = Math.min(Math.max(clientY, laneTop), laneBottom);
+        const nextTop = Math.min(Math.max(clientY - pointerOffsetY, laneTop), laneBottom - height);
+
+        dragState.currentTop = nextTop;
 
         // Hit testing for drop indicator
-        const columns = Array.from(scrollContainer!.querySelectorAll('.questions-column')) as HTMLElement[];
-        let targetStatus: string | null = null;
         let targetQuestionId: string | null = null;
         let position: 'before' | 'after' | null = null;
 
         const sourceColumnId = getColumnIdForQuestion(dragState.item);
+        const col = scrollContainer!.querySelector(`.questions-column[data-status="${sourceColumnId}"]`) as HTMLElement;
+        if (!col) return;
 
-        for (const col of columns) {
-            const rect = col.getBoundingClientRect();
-            if (currentX > rect.left && currentX < rect.right) {
-                const colId = COLUMNS[columns.indexOf(col)]?.id || null;
+        const cards = Array.from(col.querySelectorAll('.question-card:not([data-question-id="' + dragState.id + '"])')) as HTMLElement[];
 
-                // Restriction: only allow reordering within the same lane
-                if (colId !== sourceColumnId) continue;
+        let insertionIndex = -1;
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards.at(i);
+            if (!card) continue;
+            const cardRect = card.getBoundingClientRect();
+            const cardCenter = cardRect.top + cardRect.height / 2;
 
-                targetStatus = colId;
-                const cards = Array.from(col.querySelectorAll('.question-card:not([data-question-id="' + dragState.id + '"])')) as HTMLElement[];
-
-                let insertionIndex = -1;
-                for (let i = 0; i < cards.length; i++) {
-                    const card = cards.at(i);
-                    if (!card) continue;
-                    const cardRect = card.getBoundingClientRect();
-                    const cardCenter = cardRect.top + cardRect.height / 2;
-
-                    if (currentY < cardCenter) {
-                        insertionIndex = i;
-                        targetQuestionId = card.getAttribute('data-question-id');
-                        position = 'before';
-                        break;
-                    }
-                }
-
-                if (insertionIndex === -1 && cards.length > 0) {
-                    const lastCard = cards[cards.length - 1];
-                    if (lastCard) {
-                        targetQuestionId = lastCard.getAttribute('data-question-id');
-                        position = 'after';
-                    }
-                }
-
+            if (currentY < cardCenter) {
+                insertionIndex = i;
+                targetQuestionId = card.getAttribute('data-question-id');
+                position = 'before';
                 break;
             }
         }
 
-        if (targetStatus && wouldChangePosition(dragState.id, targetStatus, targetQuestionId, position)) {
-            dropTarget = { targetStatus, targetQuestionId, position };
+        if (insertionIndex === -1 && cards.length > 0) {
+            const lastCard = cards[cards.length - 1];
+            if (lastCard) {
+                targetQuestionId = lastCard.getAttribute('data-question-id');
+                position = 'after';
+            }
+        }
+
+        if (wouldChangePosition(dragState.id, sourceColumnId, targetQuestionId, position)) {
+            dropTarget = { targetStatus: sourceColumnId, targetQuestionId, position };
         } else {
             dropTarget = { targetStatus: null, targetQuestionId: null, position: null };
         }
@@ -295,59 +287,53 @@
         data.items = [...newItems.filter((q) => getColumnIdForQuestion(q) !== targetStatus), ...columnQuestions];
     }
 
-    async function handlePointerUp() {
+    async function handlePointerUp(event: PointerEvent) {
         if (!dragState) return;
 
         if (dragState.rafId !== null) {
             cancelAnimationFrame(dragState.rafId);
         }
 
-        const { isDragging, id: draggedId, currentX, currentY } = dragState;
+        const { isDragging, id: draggedId, laneTop, laneBottom } = dragState;
         if (isDragging) {
             wasDragging = true;
         }
 
-        let targetStatus: string | null = null;
+        const currentY = Math.min(Math.max(event.clientY, laneTop), laneBottom);
         let targetQuestionId: string | null = null;
         let position: 'before' | 'after' | null = null;
 
         const sourceColumnId = getColumnIdForQuestion(dragState.item);
+        const col = scrollContainer!.querySelector(`.questions-column[data-status="${sourceColumnId}"]`) as HTMLElement;
 
-        const columns = Array.from(scrollContainer!.querySelectorAll('.questions-column')) as HTMLElement[];
-        for (const col of columns) {
-            const rect = col.getBoundingClientRect();
-            if (currentX > rect.left && currentX < rect.right) {
-                const colId = COLUMNS[columns.indexOf(col)]?.id || null;
-                if (colId !== sourceColumnId) continue;
+        if (col) {
+            const cards = Array.from(col.querySelectorAll('.question-card:not([data-question-id="' + draggedId + '"])')) as HTMLElement[];
 
-                targetStatus = colId;
-                const cards = Array.from(col.querySelectorAll('.question-card:not([data-question-id="' + draggedId + '"])')) as HTMLElement[];
+            let insertionIndex = -1;
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards.at(i);
+                if (!card) continue;
+                const cardRect = card.getBoundingClientRect();
+                const cardCenter = cardRect.top + cardRect.height / 2;
 
-                let insertionIndex = -1;
-                for (let i = 0; i < cards.length; i++) {
-                    const card = cards.at(i);
-                    if (!card) continue;
-                    const cardRect = card.getBoundingClientRect();
-                    const cardCenter = cardRect.top + cardRect.height / 2;
-
-                    if (currentY < cardCenter) {
-                        insertionIndex = i;
-                        targetQuestionId = card.getAttribute('data-question-id');
-                        position = 'before';
-                        break;
-                    }
+                if (currentY < cardCenter) {
+                    insertionIndex = i;
+                    targetQuestionId = card.getAttribute('data-question-id');
+                    position = 'before';
+                    break;
                 }
+            }
 
-                if (insertionIndex === -1 && cards.length > 0) {
-                    const lastCard = cards[cards.length - 1];
-                    if (lastCard) {
-                        targetQuestionId = lastCard.getAttribute('data-question-id');
-                        position = 'after';
-                    }
+            if (insertionIndex === -1 && cards.length > 0) {
+                const lastCard = cards[cards.length - 1];
+                if (lastCard) {
+                    targetQuestionId = lastCard.getAttribute('data-question-id');
+                    position = 'after';
                 }
-                break;
             }
         }
+
+        const targetStatus = col ? sourceColumnId : null;
 
         dragState = null;
         dropTarget = { targetStatus: null, targetQuestionId: null, position: null };
@@ -471,7 +457,7 @@
                             onEdit={async () => {
                                 await updateUrl(question.id);
                             }}
-                            onPointerDown={handlePointerDown}
+                            onDragHandlePointerDown={handleDragHandlePointerDown}
                             isDragging={dragState?.id === question.id && dragState.isDragging}
                             isAnyDragging={isDragging}
                             {wasDragging}
@@ -572,9 +558,7 @@
 {#if dragState && dragState.isDragging}
     <div
         class="question-drag-ghost"
-        style="position: fixed; pointer-events: none; z-index: 99999; width: {dragState.width}px; height: {dragState.height}px; left: {dragState.currentX -
-            dragState.pointerOffsetX}px; top: {dragState.currentY -
-            dragState.pointerOffsetY}px; opacity: 0.95; transform: rotate(2deg); box-shadow: 0 12px 24px rgba(0,0,0,0.25); background: white; border: 1px solid #e0d8cc; border-radius: 18px; padding: 12px;"
+        style="position: fixed; pointer-events: none; z-index: 99999; width: {dragState.width}px; height: {dragState.height}px; left: {dragState.left}px; top: {dragState.currentTop}px; opacity: 0.95; box-shadow: 0 18px 45px rgba(0,0,0,0.18); background: white; border: 1px solid #e0d8cc; border-radius: 12px; padding: 12px;"
     >
         <p style="font-size: 13px; line-height: 1.4; margin: 0; white-space: pre-wrap;">
             <span style="font-weight: 600; color: var(--ink-1);">Q: {dragState.item.question}</span>

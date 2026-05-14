@@ -1,10 +1,12 @@
 <script lang="ts">
     import Card from '$lib/components/ui/Card.svelte';
+    import { GripVertical } from 'lucide-svelte';
 
     let {
         question,
         onEdit,
         onPointerDown,
+        onDragHandlePointerDown,
         isDragging = false,
         isAnyDragging = false,
         wasDragging = false
@@ -18,6 +20,7 @@
         };
         onEdit?: (id: string) => void;
         onPointerDown?: (e: PointerEvent, id: string) => void;
+        onDragHandlePointerDown?: (e: PointerEvent, id: string) => void;
         isDragging?: boolean;
         isAnyDragging?: boolean;
         wasDragging?: boolean;
@@ -31,7 +34,6 @@
 <div class="question-card" role="listitem" data-question-id={question.id} data-source-type={question.sourceType}>
     <div
         class={cardClasses}
-        onpointerdown={(e) => onPointerDown && onPointerDown(e, question.id)}
         onclick={(e) => {
             if (isAnyDragging || wasDragging) {
                 e.preventDefault();
@@ -50,6 +52,15 @@
         tabindex="0"
         aria-label={question.question}
     >
+        <button
+            type="button"
+            class="question-drag-handle"
+            aria-label={`Reorder ${question.question}`}
+            onpointerdown={(e) => onDragHandlePointerDown && onDragHandlePointerDown(e, question.id)}
+        >
+            <GripVertical style="width: 14px; height: 14px;" />
+        </button>
+
         <Card class="question-card-body question-card-border-none question-card-shadow-none question-card-bg-transparent">
             <p class="question-card-text">
                 <span class="question-card-q">Q: {question.question}</span>
@@ -74,8 +85,8 @@
         background: var(--surface-2);
         border: 1px solid transparent;
         transition: all 120ms ease;
-        cursor: grab;
-        touch-action: none;
+        cursor: pointer;
+        position: relative;
     }
 
     .question-card-hoverable:hover {
@@ -86,12 +97,40 @@
     }
 
     .question-card-dragging {
-        cursor: grabbing;
         opacity: 0.5;
     }
 
+    .question-drag-handle {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--ink-3);
+        touch-action: none;
+        cursor: grab;
+        transition: all 120ms ease;
+    }
+
+    .question-drag-handle:hover {
+        color: var(--ink-1);
+        background: var(--surface-3);
+        border-color: var(--hairline);
+    }
+
+    .question-drag-handle:active {
+        cursor: grabbing;
+    }
+
     :global(.question-card-body) {
-        padding: 12px !important;
+        padding: 12px 32px 12px 12px !important;
     }
 
     :global(.question-card-border-none) {
