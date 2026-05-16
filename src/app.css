@@ -1639,6 +1639,7 @@ select {
     align-items: center;
     justify-content: center;
     text-align: center;
+    transition: border-color 200ms ease, background-color 200ms ease, color 200ms ease;
 }
 
 .tasks-empty-box-drop-target {
