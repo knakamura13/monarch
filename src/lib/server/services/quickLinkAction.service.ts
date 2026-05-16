@@ -1,4 +1,4 @@
-import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
+import { fail, isHttpError, isRedirect, redirect, type RequestEvent } from '@sveltejs/kit';
 import { logActionError } from '$lib/server/services/actionError.service';
 import { createQuickLink, updateQuickLink, softDeleteQuickLink } from '$lib/server/services/quickLink.service';
 import {
@@ -105,7 +105,7 @@ export async function handleQuickLinkAction(
                 return await logAndFail(event, `Unknown action: ${action}`, 400);
         }
     } catch (e) {
-        if (e instanceof Error && e.message.includes('redirect')) throw e;
+        if (isRedirect(e) || isHttpError(e)) throw e;
         const message = e instanceof Error ? e.message : `Failed to perform ${action}`;
         const status = message.includes('not found') ? 404 : 500;
         return await logAndFail(event, message, status, e instanceof Error ? e.stack : undefined);
