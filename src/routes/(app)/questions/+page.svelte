@@ -10,7 +10,7 @@
     import { goto, invalidateAll } from '$app/navigation';
     import { showSuccessToast } from '$lib/stores/toast';
     import { getPageNumber } from '$lib/constants/navigation';
-    import { isDragThresholdMet } from '$lib/utils/drag';
+    import { isDragThresholdMet, CLICK_PROTECTION_TIMEOUT_MS } from '$lib/utils/drag';
     import type { QuestionSourceType } from '$lib/types/enums';
     import type { PageData } from './$types';
 
@@ -297,6 +297,9 @@
         const { isDragging, id: draggedId, laneTop, laneBottom } = dragState;
         if (isDragging) {
             wasDragging = true;
+            setTimeout(() => {
+                wasDragging = false;
+            }, CLICK_PROTECTION_TIMEOUT_MS);
         }
 
         const currentY = Math.min(Math.max(event.clientY, laneTop), laneBottom);
