@@ -521,7 +521,18 @@
 
 <PageHeader title="Tasks" sub="Personal todos and errands (not legal proceedings)." number={getPageNumber('/tasks')} />
 
-<div class="tasks-board" bind:this={scrollContainer} role="application">
+<div
+    class="tasks-board"
+    bind:this={scrollContainer}
+    role="application"
+    onclickcapture={(e) => {
+        if (wasDragging) {
+            e.preventDefault();
+            e.stopPropagation();
+            wasDragging = false;
+        }
+    }}
+>
     {#each grouped as column (column.id)}
         <div class="tasks-column" data-status={column.id}>
             <div class="tasks-column-header">

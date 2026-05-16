@@ -433,7 +433,18 @@
 
 <PageHeader title="Questions" sub="Track unresolved questions, their sources, and answers." number={getPageNumber('/questions')} />
 
-<div class="questions-board" bind:this={scrollContainer} role="application">
+<div
+    class="questions-board"
+    bind:this={scrollContainer}
+    role="application"
+    onclickcapture={(e) => {
+        if (wasDragging) {
+            e.preventDefault();
+            e.stopPropagation();
+            wasDragging = false;
+        }
+    }}
+>
     {#each grouped as column (column.id)}
         <div class="questions-column" data-status={column.id}>
             <div class="questions-column-header">
