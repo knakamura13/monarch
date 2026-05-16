@@ -9,7 +9,7 @@
     import { goto, invalidateAll } from '$app/navigation';
     import { showSuccessToast } from '$lib/stores/toast';
     import { getPageNumber } from '$lib/constants/navigation';
-    import { isDragThresholdMet } from '$lib/utils/drag';
+    import { isDragThresholdMet, CLICK_PROTECTION_TIMEOUT_MS } from '$lib/utils/drag';
     import type { PageData } from './$types';
 
     interface TasksPageData extends PageData {
@@ -328,6 +328,9 @@
         const { isDragging, id: draggedId, currentX, currentY } = dragState;
         if (isDragging) {
             wasDragging = true;
+            setTimeout(() => {
+                wasDragging = false;
+            }, CLICK_PROTECTION_TIMEOUT_MS);
         }
 
         
@@ -557,12 +560,19 @@
                         {/if}
                     </div>
                 {/each}
-                <!-- Drop indicator at end of column (no target task) -->
-                {#if isDragging && dropTarget.targetStatus === column.id && !dropTarget.targetTaskId}
+                <!-- Drop indicator at end of column (no target task) - not shown for empty columns -->
+                {#if isDragging && dropTarget.targetStatus === column.id && !dropTarget.targetTaskId && column.tasks.length > 0}
                     <div class="task-card-drop-indicator"></div>
                 {/if}
                 {#if column.tasks.length === 0}
-                    <div class="tasks-empty-placeholder" role="listitem">No tasks</div>
+                    <div 
+                        class="tasks-empty-placeholder {isDragging && dropTarget.targetStatus === column.id && !dropTarget.targetTaskId ? 'tasks-empty-box-drop-target' : ''}" 
+                        role="listitem"
+                    >
+                        {#if !(isDragging && dropTarget.targetStatus === column.id && !dropTarget.targetTaskId)}
+                            No tasks
+                        {/if}
+                    </div>
                 {/if}
             </div>
             <Button

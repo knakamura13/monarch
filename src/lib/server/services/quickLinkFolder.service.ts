@@ -218,6 +218,8 @@ export async function moveLinkToFolder(workspaceId: string, actorId: string, lin
     if (!existing) throw new Error('Quick link not found');
     if (existing.deletedAt) throw new Error('Quick link not found');
 
+    const oldFolderId = existing.folderId;
+
     if (folderId) {
         const folder = await ddbGet<QuickLinkFolderItem>({
             PK: wsPk(workspaceId),
@@ -232,6 +234,19 @@ export async function moveLinkToFolder(workspaceId: string, actorId: string, lin
         { ':f': folderId, ':u': new Date().toISOString() },
         { '#folderId': 'folderId', '#updatedAt': 'updatedAt' }
     );
+
+    // If the link was moved out of a folder, check if that folder is now empty
+    if (oldFolderId) {
+        const allLinks = await ddbQuery<QuickLinkItem>({
+            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+            ExpressionAttributeValues: { ':pk': wsPk(workspaceId), ':prefix': 'QuickLink#' },
+            Limit: 1000
+        });
+        const remainingInOldFolder = allLinks.filter((l) => !l.deletedAt && l.folderId === oldFolderId);
+        if (remainingInOldFolder.length === 0) {
+            await deleteQuickLinkFolder(workspaceId, actorId, oldFolderId);
+        }
+    }
 
     const label = existing.title ?? extractHostname(existing.url);
     const action = folderId ? 'moved to folder' : 'moved to root';

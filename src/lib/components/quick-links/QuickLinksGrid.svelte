@@ -258,6 +258,7 @@
 
         // Live reorder hit-testing.
         const items = Array.from(gridContainer!.querySelectorAll('.ql-item[data-id]')) as HTMLElement[];
+        const activeIdx = items.findIndex((item) => item.getAttribute('data-id') === dragState!.id);
         let bestTargetId: string | null = null;
         let bestMergeId: string | null = null;
 
@@ -285,7 +286,30 @@
 
             // Reorder.
             if (x > rect.left && x < rect.right && y > rect.top && y < rect.bottom) {
-                bestTargetId = id;
+                // To prevent "dancing" and allow better merge-folder UX, we only
+                // trigger reorder once the pointer crosses the midpoint of the
+                // target element in the direction of travel.
+                if (elKind === dragState.kind && activeIdx !== -1) {
+                    const midX = rect.left + rect.width / 2;
+                    const midY = rect.top + rect.height / 2;
+                    const targetIdx = items.indexOf(el);
+
+                    if (targetIdx > activeIdx) {
+                        // Moving forward in DOM: must pass midpoint to trigger
+                        if (x > midX || y > midY) {
+                            bestTargetId = id;
+                        }
+                    } else {
+                        // Moving backward in DOM: must be before midpoint to trigger
+                        if (x < midX || y < midY) {
+                            bestTargetId = id;
+                        }
+                    }
+                } else {
+                    // Different kind - set as target so reorderLocally can clear
+                    // its internal target state (it will no-op anyway).
+                    bestTargetId = id;
+                }
                 break;
             }
         }

@@ -140,7 +140,7 @@
             use:enhance={() => {
                 return async ({ result, update }) => {
                     await update();
-                    if (result.type === 'redirect') closeModal();
+                    if (result.type === 'redirect' || result.type === 'success') closeModal();
                 };
             }}
         >
@@ -181,7 +181,7 @@
             use:enhance={() => {
                 return async ({ result, update }) => {
                     await update();
-                    if (result.type === 'redirect') closeModal();
+                    if (result.type === 'redirect' || result.type === 'success') closeModal();
                 };
             }}
         >
