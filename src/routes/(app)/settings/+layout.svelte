@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { page } from '$app/state';
-    let { children }: { children: import('svelte').Snippet } = $props();
+    import type { LayoutData } from './$types';
+    let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
 
     const sections = [
         { href: '/settings/profile', label: 'Profile' },
@@ -20,7 +20,7 @@
         <nav>
             <ul class="settings-nav-list">
                 {#each sections as s (s.href)}
-                    {@const active = sectionActive(page.url.pathname, s.href)}
+                    {@const active = sectionActive(data.pathname, s.href)}
                     <li>
                         <a
                             href={s.href}
@@ -53,7 +53,8 @@
 
     .settings-nav {
         flex-shrink: 0;
-        width: 160px;
+        width: auto;
+        min-width: max-content;
         align-self: flex-start;
     }
 
@@ -111,17 +112,16 @@
         }
 
         .settings-nav {
-            width: 100%;
+            width: auto;
+            min-width: 0;
             align-self: stretch;
         }
 
         .settings-nav-list {
             flex-direction: row;
-            flex-wrap: nowrap;
-            overflow-x: auto;
+            flex-wrap: wrap;
             gap: 6px;
-            padding-bottom: 4px;
-            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0;
         }
 
         .settings-nav-list li {
@@ -130,6 +130,7 @@
 
         .settings-nav-link {
             white-space: nowrap;
+            padding: 8px 12px;
         }
 
         .settings-panel {

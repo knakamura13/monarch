@@ -11,6 +11,7 @@
 
     let { data, form }: { data: PageData; form: ActionData } = $props();
     const isOwner = $derived(page.data.workspace?.role === 'OWNER');
+    const inviteError = $derived(form?.error ?? null);
 
     const inviteRoleOptions = [
         { value: 'COLLABORATOR', label: 'Collaborator' },
@@ -91,7 +92,15 @@
             >
                 <div>
                     <label for="invite-email" style="display: block; font-size: 13px; margin-bottom: 4px;">Email</label>
-                    <input id="invite-email" name="email" type="email" class="input" style="width: 100%;" required />
+                    <input
+                        id="invite-email"
+                        name="email"
+                        type="email"
+                        class="input"
+                        style={`width: 100%; ${inviteError ? 'border-color: var(--blush-d);' : ''}`}
+                        aria-invalid={inviteError ? 'true' : undefined}
+                        required
+                    />
                 </div>
                 <div>
                     <label for="invite-role" style="display: block; font-size: 13px; margin-bottom: 4px;">Role</label>
@@ -99,6 +108,10 @@
                 </div>
                 <Button type="submit"><UserPlus style="width: 14px; height: 14px; margin-right: 4px;" /> Create link</Button>
             </form>
+
+            {#if inviteError}
+                <p style="margin-top: 12px; font-size: 13px; color: var(--blush-d);">{inviteError}</p>
+            {/if}
 
             {#if form?.ok && form?.inviteUrl}
                 <div
@@ -127,7 +140,7 @@
         gap: 16px;
     }
 
-    @media (min-width: 640px) {
+    @media (min-width: 960px) {
         .invite-form {
             display: grid;
             grid-template-columns: 1fr 160px auto;

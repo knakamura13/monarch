@@ -32,37 +32,37 @@
 
 <PageHeader title="Diagnostics" sub="Owner-only system health, process info, and error logs." />
 
-<div style="max-width: 1000px; display: flex; flex-direction: column; gap: 24px;">
+<div class="dev-page">
     <!-- Stats Grid -->
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
-        <div class="card" style="padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; color: var(--ink-3); margin-bottom: 8px;">
+    <div class="dev-stats-grid">
+        <div class="card dev-stat-card">
+            <div class="dev-stat-label">
                 <Activity style="width: 14px; height: 14px;" />
-                <span class="eyebrow" style="margin: 0;">Uptime</span>
+                <span class="eyebrow">Uptime</span>
             </div>
-            <div class="display" style="font-size: 20px;">{data.processInfo.uptimeSec}s</div>
-            <div class="mono" style="font-size: 10px; color: var(--ink-3); margin-top: 4px;">{data.processInfo.uptimeLabel}</div>
+            <div class="display dev-stat-value">{data.processInfo.uptimeSec}s</div>
+            <div class="mono dev-stat-caption">{data.processInfo.uptimeLabel}</div>
         </div>
-        <div class="card" style="padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; color: var(--ink-3); margin-bottom: 8px;">
+        <div class="card dev-stat-card">
+            <div class="dev-stat-label">
                 <Cpu style="width: 14px; height: 14px;" />
-                <span class="eyebrow" style="margin: 0;">Node</span>
+                <span class="eyebrow">Node</span>
             </div>
-            <div class="display" style="font-size: 20px;">{data.processInfo.node}</div>
+            <div class="display dev-stat-value">{data.processInfo.node}</div>
         </div>
-        <div class="card" style="padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; color: var(--ink-3); margin-bottom: 8px;">
+        <div class="card dev-stat-card">
+            <div class="dev-stat-label">
                 <GitBranch style="width: 14px; height: 14px;" />
-                <span class="eyebrow" style="margin: 0;">Commit</span>
+                <span class="eyebrow">Commit</span>
             </div>
-            <div class="display" style="font-size: 16px; word-break: break-all;">{data.processInfo.commitSha?.slice(0, 7) ?? '—'}</div>
+            <div class="display dev-stat-value dev-stat-value--compact">{data.processInfo.commitSha?.slice(0, 7) ?? '—'}</div>
         </div>
-        <div class="card" style="padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; color: var(--ink-3); margin-bottom: 8px;">
+        <div class="card dev-stat-card">
+            <div class="dev-stat-label">
                 <Database style="width: 14px; height: 14px;" />
-                <span class="eyebrow" style="margin: 0;">DB Latency</span>
+                <span class="eyebrow">DB Latency</span>
             </div>
-            <div class="display" style="font-size: 20px; color: {data.dbHealth.ok ? 'var(--sage-fill)' : 'var(--blush-fill)'};">
+            <div class="display dev-stat-value" style="color: {data.dbHealth.ok ? 'var(--sage-fill)' : 'var(--blush-fill)'};">
                 {data.dbHealth.ok ? `${data.dbHealth.ms}ms` : 'Down'}
             </div>
         </div>
@@ -85,7 +85,7 @@
             <h2 class="display" style="font-size: 20px; margin: 0;">Recent Errors</h2>
         </div>
 
-        <div style="overflow-x: auto;">
+        <div class="dev-table-wrap">
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
                 <thead style="background: var(--surface-2); color: var(--ink-3); border-bottom: 1px solid var(--hairline);">
                     <tr>
@@ -165,5 +165,73 @@
         font-weight: 600;
         transition: all 150ms ease;
         cursor: pointer;
+    }
+
+    .dev-page {
+        max-width: 1000px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        min-width: 0;
+    }
+
+    .dev-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 16px;
+        min-width: 0;
+    }
+
+    .dev-stat-card {
+        padding: 16px;
+        min-width: 0;
+    }
+
+    .dev-stat-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--ink-3);
+        margin-bottom: 10px;
+        min-width: 0;
+    }
+
+    .dev-stat-value {
+        font-size: 20px;
+        min-width: 0;
+        line-height: 1.1;
+        word-break: break-word;
+    }
+
+    .dev-stat-value--compact {
+        font-size: 16px;
+    }
+
+    .dev-stat-caption {
+        font-size: 10px;
+        color: var(--ink-3);
+        margin-top: 6px;
+        line-height: 1.3;
+    }
+
+    .dev-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 768px) {
+        .dev-table-wrap table {
+            min-width: 640px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dev-stat-card {
+            padding: 14px;
+        }
+
+        .dev-stat-value {
+            font-size: 18px;
+        }
     }
 </style>
