@@ -58,8 +58,8 @@
             <Input id="email" type="email" autocomplete="email" bind:value={email} required />
         </div>
         <div>
-            <Label for="password">Password (min 12 chars)</Label>
-            <Input id="password" type="password" autocomplete="new-password" bind:value={password} minlength={12} required />
+            <Label for="password">Password (min 8 chars)</Label>
+            <Input id="password" type="password" autocomplete="new-password" bind:value={password} minlength={8} required />
         </div>
         {#if data.isFirstUser}
             <div>

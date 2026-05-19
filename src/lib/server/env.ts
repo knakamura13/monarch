@@ -33,7 +33,8 @@ const schema = z.object({
     DYNAMO_ENDPOINT: z.string().url().optional(),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     DEV_MODE: z.string().optional(),
-    DEV_USER_ID: z.string().min(1).default('dev_user_local')
+    DEV_USER_ID: z.string().min(1).default('dev_user_local'),
+    RESEND_API_KEY: z.string().min(1).optional()
 });
 
 type Env = z.infer<typeof schema>;
@@ -54,7 +55,8 @@ const BUILD_PLACEHOLDER: Env = {
     DYNAMO_ENDPOINT: undefined,
     NODE_ENV: 'production',
     DEV_MODE: undefined,
-    DEV_USER_ID: 'dev_user_local'
+    DEV_USER_ID: 'dev_user_local',
+    RESEND_API_KEY: undefined
 };
 
 function load(): Env {
@@ -71,7 +73,8 @@ function load(): Env {
         DYNAMO_ENDPOINT: env.DYNAMO_ENDPOINT,
         NODE_ENV: env.NODE_ENV ?? process.env.NODE_ENV,
         DEV_MODE: env.DEV_MODE ?? process.env.DEV_MODE,
-        DEV_USER_ID: env.DEV_USER_ID ?? process.env.DEV_USER_ID
+        DEV_USER_ID: env.DEV_USER_ID ?? process.env.DEV_USER_ID,
+        RESEND_API_KEY: env.RESEND_API_KEY
     });
     if (!parsed.success) {
         console.error('[env] invalid environment', parsed.error.flatten().fieldErrors);
