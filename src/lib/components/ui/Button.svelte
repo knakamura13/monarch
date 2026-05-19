@@ -89,6 +89,5 @@
 
     .btn.loading {
         pointer-events: none;
-        opacity: 0.8;
     }
 </style>

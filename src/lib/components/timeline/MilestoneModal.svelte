@@ -7,6 +7,7 @@
     import ErrorDetails from '$lib/components/ErrorDetails.svelte';
     import TaskChecklistEditor from '$lib/components/tasks/TaskChecklistEditor.svelte';
     import { fieldFromInitial } from '$lib/utils/initialFields';
+    import { createFormState } from '$lib/utils/formState.svelte';
     import type { ManualEnhanceHandler } from '$lib/utils/enhanceSubmit';
     import type { TaskChecklistItem } from '$lib/tasks/taskChecklist';
     import { PHASE_LABELS } from '$lib/constants/phases';
@@ -40,7 +41,26 @@
         onDeleteSuccess?: (id: string) => void | Promise<void>;
     } = $props();
 
-    const submitEnhance = $derived(onenhance as SubmitFunction | undefined);
+    const formState = createFormState();
+
+    const submitEnhance = $derived<SubmitFunction | undefined>(
+        onenhance
+            ? (args) => {
+                  formState.start();
+                  const resultHandler = (onenhance as SubmitFunction)(args);
+                  return async (resultArgs) => {
+                      try {
+                          if (resultHandler) {
+                              const inner = await resultHandler;
+                              if (inner) await (inner as any)(resultArgs);
+                          }
+                      } finally {
+                          formState.stop();
+                      }
+                  };
+              }
+            : undefined
+    );
 
     function onFormSubmit(_e: SubmitEvent) {
         if (newSubTaskDraft.trim()) {
@@ -141,8 +161,7 @@
         const id = val('id');
         if (!id) return;
 
-        // Close immediately
-        void onClose();
+        formState.start();
 
         try {
             const formData = new FormData();
@@ -163,6 +182,7 @@
             }
 
             if (result.type === 'success' || (result.type === 'redirect' && !result.error)) {
+                void onClose();
                 await onDeleteSuccess?.(id);
                 showSuccessToast('Milestone deleted');
             } else {
@@ -171,6 +191,8 @@
             }
         } catch {
             showErrorToast('Failed to delete milestone');
+        } finally {
+            formState.stop();
         }
     }
 
@@ -310,8 +332,8 @@
 {/snippet}
 
 {#snippet milestoneEditFooter()}
-    <Button type="button" variant="ghost" onclick={handleClose}>Cancel</Button>
-    <Button type="submit" form="milestone-edit-form" class="modal-footer-save">Save changes</Button>
+    <Button type="button" variant="ghost" onclick={handleClose} disabled={formState.submitting}>Cancel</Button>
+    <Button type="submit" form="milestone-edit-form" class="modal-footer-save" loading={formState.submitting}>Save changes</Button>
 {/snippet}
 
 {#if mode === 'create'}
@@ -323,6 +345,7 @@
         footerFormId="milestone-create-form"
         cancelLabel="Cancel"
         submitLabel="Create milestone"
+        submitting={formState.submitting}
     >
         <form
             id="milestone-create-form"
@@ -372,6 +395,7 @@
         header={milestoneEditHeader}
         headerActions={milestoneHeaderActions}
         footer={milestoneEditFooter}
+        submitting={formState.submitting}
     >
         <form id="milestone-edit-form" method="post" {action} use:enhance={submitEnhance!} onsubmit={onFormSubmit} class="modal-form">
             <div class="modal-title-row">

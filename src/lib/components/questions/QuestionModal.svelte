@@ -6,6 +6,7 @@
     import Dialog from '$lib/components/ui/Dialog.svelte';
     import ErrorDetails from '$lib/components/ErrorDetails.svelte';
     import { fieldFromInitial } from '$lib/utils/initialFields';
+    import { createFormState } from '$lib/utils/formState.svelte';
     import { questionStatusLabel, questionStatusPillClass } from '$lib/questions/questionStatusDisplay';
     import type { ManualEnhanceHandler } from '$lib/utils/enhanceSubmit';
     import { HelpCircle, Trash2, Calendar, X } from 'lucide-svelte';
@@ -40,14 +41,21 @@
         onDeleteSuccess?: (id: string) => void | Promise<void>;
     } = $props();
 
+    const formState = createFormState();
+
     const submitEnhance = $derived<SubmitFunction>((args) => {
+        formState.start();
         const handler = (onenhance as SubmitFunction) || (() => async ({ update }) => { await update(); });
         const innerPromise = handler(args);
         return async (resultArgs) => {
-            const inner = await innerPromise;
-            if (inner) await (inner as any)(resultArgs);
-            if (resultArgs.result.type === 'success' && mode === 'create') {
-                showSuccessToast('Question created');
+            try {
+                const inner = await innerPromise;
+                if (inner) await (inner as any)(resultArgs);
+                if (resultArgs.result.type === 'success' && mode === 'create') {
+                    showSuccessToast('Question created');
+                }
+            } finally {
+                formState.stop();
             }
         };
     });
@@ -144,8 +152,7 @@
 
         if (!confirm('Are you sure you want to delete this question?')) return;
 
-        // Close immediately
-        void onClose();
+        formState.start();
 
         try {
             const formData = new FormData();
@@ -166,6 +173,7 @@
             }
 
             if (result.type === 'success' || (result.type === 'redirect' && !result.error)) {
+                void onClose();
                 await onDeleteSuccess?.(id);
                 showSuccessToast('Question deleted');
             } else {
@@ -174,6 +182,8 @@
             }
         } catch {
             showErrorToast('Failed to delete question');
+        } finally {
+            formState.stop();
         }
     }
 
@@ -273,8 +283,8 @@
 {/snippet}
 
 {#snippet questionFooter()}
-    <Button type="button" variant="ghost" onclick={onClose}>Cancel</Button>
-    <Button type="submit" form="question-form" class="modal-footer-save">
+    <Button type="button" variant="ghost" onclick={onClose} disabled={formState.submitting}>Cancel</Button>
+    <Button type="submit" form="question-form" class="modal-footer-save" loading={formState.submitting}>
         {mode === 'create' ? 'Add question' : 'Save changes'}
     </Button>
 {/snippet}
@@ -286,6 +296,7 @@
     header={questionHeader}
     headerActions={questionHeaderActions}
     footer={questionFooter}
+    submitting={formState.submitting}
 >
     <form id="question-form" method="post" {action} use:enhance={submitEnhance!} class="modal-form">
         <input type="hidden" name="id" value={val('id')} />

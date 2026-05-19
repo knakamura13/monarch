@@ -24,7 +24,8 @@
         footerFormId,
         submitVariant = 'default',
         submitClass = '',
-        bodyClass = 'modal-content'
+        bodyClass = 'modal-content',
+        submitting = false
     }: {
         open: boolean;
         onClose: () => void | Promise<void>;
@@ -47,6 +48,7 @@
         submitVariant?: ButtonVariant;
         submitClass?: string;
         bodyClass?: string;
+        submitting?: boolean;
     } = $props();
 
     const titleId = `dialog-title-${Math.random().toString(36).slice(2, 11)}`;
@@ -60,7 +62,7 @@
     let mouseDownOnBackdrop = false;
 
     function handleEscape(e: KeyboardEvent) {
-        if (e.key === 'Escape') {
+        if (e.key === 'Escape' && !submitting) {
             e.preventDefault();
             e.stopPropagation();
             void onClose();
@@ -68,7 +70,7 @@
     }
 
     function handleBackdropClick(e: MouseEvent) {
-        if (e.target === e.currentTarget && mouseDownOnBackdrop) {
+        if (e.target === e.currentTarget && mouseDownOnBackdrop && !submitting) {
             void onClose();
         }
     }
@@ -134,6 +136,7 @@
                                 onclick={() => void onClose()}
                                 class="modal-shrink-0"
                                 aria-label="Close dialog"
+                                disabled={submitting}
                             >
                                 {#snippet children()}<X class="modal-icon-sm" />{/snippet}
                             </Button>
@@ -158,7 +161,7 @@
                 {:else if cancelLabel || submitLabel}
                     <footer class="modal-footer">
                         {#if cancelLabel}
-                            <Button type="button" variant={cancelVariant} onclick={() => void cancelHandler()}>
+                            <Button type="button" variant={cancelVariant} onclick={() => void cancelHandler()} disabled={submitting}>
                                 {cancelLabel}
                             </Button>
                         {/if}
@@ -168,6 +171,7 @@
                                 form={footerFormId}
                                 variant={submitVariant}
                                 class={submitClass}
+                                loading={submitting}
                             >
                                 {submitLabel}
                             </Button>
