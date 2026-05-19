@@ -5,6 +5,7 @@
     import Label from '$lib/components/ui/Label.svelte';
     import Textarea from '$lib/components/ui/Textarea.svelte';
     import ErrorDetails from '$lib/components/ErrorDetails.svelte';
+    import { createFormState } from '$lib/utils/formState.svelte';
     import { enhance } from '$app/forms';
 
     type ActionForm = { error?: string; errorId?: string | null } | undefined;
@@ -18,6 +19,8 @@
         form?: ActionForm;
         enableDeleteDialog?: boolean;
     } = $props();
+
+    const formState = createFormState();
 
     let modalOpen = $state(false);
     let modalMode = $state<'link' | 'folder'>('link');
@@ -131,6 +134,7 @@
         footerFormId="ql-mgr-folder-form"
         cancelLabel="Cancel"
         submitLabel={folderSubmitLabel}
+        submitting={formState.submitting}
     >
         <form
             id="ql-mgr-folder-form"
@@ -138,9 +142,14 @@
             action={folderFormAction}
             class="modal-form"
             use:enhance={() => {
+                formState.start();
                 return async ({ result, update }) => {
-                    await update();
-                    if (result.type === 'redirect' || result.type === 'success') closeModal();
+                    try {
+                        await update();
+                        if (result.type === 'redirect' || result.type === 'success') closeModal();
+                    } finally {
+                        formState.stop();
+                    }
                 };
             }}
         >
@@ -172,6 +181,7 @@
         footerFormId="ql-mgr-link-form"
         cancelLabel="Cancel"
         submitLabel={editing ? 'Save' : 'Add'}
+        submitting={formState.submitting}
     >
         <form
             id="ql-mgr-link-form"
@@ -179,9 +189,14 @@
             action={editing ? '?/update' : '?/create'}
             class="modal-form"
             use:enhance={() => {
+                formState.start();
                 return async ({ result, update }) => {
-                    await update();
-                    if (result.type === 'redirect' || result.type === 'success') closeModal();
+                    try {
+                        await update();
+                        if (result.type === 'redirect' || result.type === 'success') closeModal();
+                    } finally {
+                        formState.stop();
+                    }
                 };
             }}
         >
@@ -226,6 +241,7 @@
         cancelLabel="Cancel"
         submitLabel="Delete"
         submitVariant="destructive"
+        submitting={formState.submitting}
     >
         <form
             id="ql-mgr-delete-form"
@@ -233,12 +249,17 @@
             action={itemToDelete.type === 'folder' ? '?/deleteFolder' : '?/delete'}
             class="modal-form"
             use:enhance={() => {
+                formState.start();
                 return async ({ result, update }) => {
-                    await update();
-                    // Close on both redirect (link delete returns redirect) and
-                    // success (folder delete returns { success: true }) so the
-                    // dialog never sits open with stale state after delete.
-                    if (result.type === 'redirect' || result.type === 'success') closeDeleteModal();
+                    try {
+                        await update();
+                        // Close on both redirect (link delete returns redirect) and
+                        // success (folder delete returns { success: true }) so the
+                        // dialog never sits open with stale state after delete.
+                        if (result.type === 'redirect' || result.type === 'success') closeDeleteModal();
+                    } finally {
+                        formState.stop();
+                    }
                 };
             }}
         >
