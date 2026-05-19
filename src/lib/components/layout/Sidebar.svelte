@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { navigation, getPageNumber as _getPageNumber } from '$lib/constants/navigation';
-    import { Settings, Clock } from 'lucide-svelte';
+    import { Settings, Clock, Play } from 'lucide-svelte';
     import { PHASE_ORDER } from '$lib/constants/phases';
     import type { MilestoneItem } from '$lib/server/dynamo/types';
 
@@ -78,23 +78,29 @@
             })()}
 
             {#if next}
-                <div
+                <a
+                    href="/timeline#{next.id}"
+                    onclick={() => onNavigate?.()}
                     class="card-tight"
-                    style="background: var(--peri); border: 1px solid transparent; padding: 14px; border-radius: var(--r-sm); margin-bottom: 12px;"
+                    style="display: block; color: inherit; text-decoration: none; transition: all 120ms; background: var(--peri); border: 1px solid transparent; padding: 14px; border-radius: var(--r-sm); margin-bottom: 12px;"
                 >
                     <div class="eyebrow" style="margin-bottom: 6px;">Next step</div>
                     <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.3;">
                         {next.title}
                     </div>
                     <div class="mono" style="font-size: 11px; color: oklch(0.32 0.13 265);">
-                        <Clock size={11} style="vertical-align: -2px; margin-right: 4px;" />
+                        {#if next.status === 'Doing'}
+                            <Play size={11} style="vertical-align: -2px; margin-right: 4px;" fill="currentColor" />
+                        {:else}
+                            <Clock size={11} style="vertical-align: -2px; margin-right: 4px;" />
+                        {/if}
                         {#if next.dueDate}
                             {new Date(next.dueDate).toLocaleDateString()}
                         {:else}
                             {next.status.toLowerCase().replace('_', ' ')}
                         {/if}
                     </div>
-                </div>
+                </a>
             {/if}
         {/await}
     </div>
@@ -130,6 +136,11 @@
 
     .nav-item:not(.active):hover {
         background: var(--surface-2) !important;
+    }
+
+    .sidebar .card-tight:hover {
+        transform: translateY(-2px);
+        background: var(--peri-d) !important;
     }
 
     /* Compact layout for shorter screens */

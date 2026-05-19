@@ -21,6 +21,7 @@
 <PageHeader title="Overview" number={getPageNumber('/dashboard')} sub="Welcome back. Here is what is happening with your case today." />
 
 <!-- Top Stats Row -->
+{#if false}
 <div class="stats-row">
     <div class="card tinted-sage">
         <div class="eyebrow">Pending tasks</div>
@@ -46,6 +47,7 @@
         </div>
     </div>
 </div>
+{/if}
 
 <!-- Main Bento Grid -->
 <div class="bento-grid">
@@ -107,8 +109,8 @@
         flex-direction: column;
         gap: 28px;
     }
-    .task-list,
-    .heads-up-list {
+    .task-list/*,
+    .heads-up-list*/ {
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -126,6 +128,7 @@
     .task-item:hover {
         background: var(--surface-3);
     }
+    /*
     .heads-up-item {
         display: flex;
         gap: 10px;
@@ -153,6 +156,7 @@
     .stat-display {
         font-size: 32px;
     }
+    */
     .task-info {
         flex: 1;
     }
