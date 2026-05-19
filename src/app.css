@@ -279,6 +279,10 @@ body,
     background: var(--peri);
     color: oklch(0.35 0.12 265); /* Darker blue */
 }
+.pill.s-doing {
+    background: var(--lilac);
+    color: oklch(0.35 0.12 305);
+}
 .pill.s-waiting {
     background: var(--butter);
     color: oklch(0.35 0.12 90); /* Darker yellow/brown */

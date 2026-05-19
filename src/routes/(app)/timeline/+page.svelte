@@ -3,7 +3,7 @@
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import MilestoneModal from '$lib/components/timeline/MilestoneModal.svelte';
-    import { Plus, MapPin, Check, Clock, GripVertical, Pause } from 'lucide-svelte';
+    import { Plus, MapPin, Check, Clock, GripVertical, Pause, Play } from 'lucide-svelte';
     import { fmtDate } from '$lib/utils/dates';
     import { PHASE_ORDER, PHASE_LABELS, PHASE_DESCRIPTIONS } from '$lib/constants/phases';
     import { page } from '$app/state';
@@ -130,7 +130,7 @@
             case 'To do':
                 return 's-note';
             case 'Doing':
-                return 's-active';
+                return 's-doing';
             case 'On hold':
                 return 's-waiting';
             case 'Done':
@@ -424,6 +424,8 @@
                                 >
                                     {#if nodeStatus === 'done'}
                                         <Check style="width: 14px; height: 14px; color: var(--surface);" />
+                                    {:else if m.status === 'Doing'}
+                                        <Play style="width: 14px; height: 14px; color: var(--surface);" fill="currentColor" />
                                     {:else if nodeStatus === 'active'}
                                         <Clock style="width: 14px; height: 14px; color: var(--surface);" />
                                     {:else if nodeStatus === 'blocked'}
