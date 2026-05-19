@@ -4,7 +4,7 @@
     import { Folder, Plus, Edit, Trash2, Undo2 } from 'lucide-svelte';
     import ThreeDotsMenu from '$lib/components/ui/ThreeDotsMenu.svelte';
     import QuickLinkIcon from '$lib/components/quick-links/QuickLinkIcon.svelte';
-    import { POINTER_MOVE_THRESHOLD_PX, isDragThresholdMet } from '$lib/utils/drag';
+    import { isDragThresholdMet } from '$lib/utils/drag';
     import type { QuickLink, QuickLinkFolder } from '$lib/types/enums';
 
     type Size = 'compact' | 'large';
@@ -657,7 +657,6 @@
         display: grid;
         align-items: start;
         position: relative;
-        padding: 12px 0 max(32px, env(safe-area-inset-bottom, 0px));
     }
     /* Visually-hidden screen-reader-only status region for keyboard reorder
        announcements. Following the standard sr-only pattern. */
