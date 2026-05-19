@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { QuickLinksPage } from '../pages/QuickLinksPage';
 
 test.describe('Quick Links Drag and Drop', () => {
@@ -9,7 +9,7 @@ test.describe('Quick Links Drag and Drop', () => {
         await quickLinksPage.goto();
     });
 
-    async function createLink(page: any, title: string, url: string) {
+    async function createLink(page: Page, title: string, url: string) {
         await page.getByRole('button', { name: 'Add link', exact: true }).click();
         await page.locator('input[name="url"]').fill(url);
         await page.locator('input[name="title"]').fill(title);
@@ -17,7 +17,7 @@ test.describe('Quick Links Drag and Drop', () => {
         await expect(page.locator('.ql-item').filter({ hasText: title })).toBeVisible();
     }
 
-    async function createFolder(page: any, name: string) {
+    async function createFolder(page: Page, name: string) {
         await page.getByRole('button', { name: 'Add folder', exact: true }).click();
         await page.locator('input[name="name"]').fill(name);
         await page.getByRole('button', { name: 'Create', exact: true }).click();

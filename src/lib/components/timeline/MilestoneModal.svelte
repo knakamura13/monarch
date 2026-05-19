@@ -52,7 +52,9 @@
                       try {
                           if (resultHandler) {
                               const inner = await resultHandler;
-                              if (inner) await (inner as any)(resultArgs);
+                              if (typeof inner === 'function') {
+                                  await inner(resultArgs);
+                              }
                           }
                       } finally {
                           formState.stop();

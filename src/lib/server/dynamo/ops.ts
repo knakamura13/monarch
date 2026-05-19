@@ -173,7 +173,7 @@ export async function ddbQueryAll<T>(input: Omit<QueryCommandInput, 'TableName'>
 
     const { ddb, tableName } = await getLive();
     const items: T[] = [];
-    let lastKey: Record<string, any> | undefined = undefined;
+    let lastKey: Record<string, unknown> | undefined = undefined;
 
     do {
         const res = await ddb.send(
@@ -182,7 +182,7 @@ export async function ddbQueryAll<T>(input: Omit<QueryCommandInput, 'TableName'>
                 TableName: tableName,
                 ExclusiveStartKey: lastKey
             })
-        ) as { Items?: T[]; LastEvaluatedKey?: Record<string, any> };
+        ) as { Items?: T[]; LastEvaluatedKey?: Record<string, unknown> };
         if (res.Items) items.push(...(res.Items as T[]));
         lastKey = res.LastEvaluatedKey;
     } while (lastKey && items.length < maxItems);
@@ -290,7 +290,7 @@ export async function ddbScanAll<T>(input: Omit<ScanCommandInput, 'TableName'>, 
 
     const { ddb, tableName } = await getLive();
     const items: T[] = [];
-    let lastKey: Record<string, any> | undefined = undefined;
+    let lastKey: Record<string, unknown> | undefined = undefined;
 
     do {
         const res = await ddb.send(
@@ -299,7 +299,7 @@ export async function ddbScanAll<T>(input: Omit<ScanCommandInput, 'TableName'>, 
                 TableName: tableName,
                 ExclusiveStartKey: lastKey
             })
-        ) as { Items?: T[]; LastEvaluatedKey?: Record<string, any> };
+        ) as { Items?: T[]; LastEvaluatedKey?: Record<string, unknown> };
         if (res.Items) items.push(...(res.Items as T[]));
         lastKey = res.LastEvaluatedKey;
     } while (lastKey && items.length < maxItems);

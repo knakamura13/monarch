@@ -7,7 +7,7 @@
     import ErrorDetails from '$lib/components/ErrorDetails.svelte';
     import { fieldFromInitial } from '$lib/utils/initialFields';
     import { createFormState } from '$lib/utils/formState.svelte';
-    import { questionStatusLabel, questionStatusPillClass } from '$lib/questions/questionStatusDisplay';
+    import { questionStatusPillClass } from '$lib/questions/questionStatusDisplay';
     import type { ManualEnhanceHandler } from '$lib/utils/enhanceSubmit';
     import { HelpCircle, Trash2, Calendar, X } from 'lucide-svelte';
     import { showSuccessToast, showErrorToast } from '$lib/stores/toast';
@@ -50,7 +50,9 @@
         return async (resultArgs) => {
             try {
                 const inner = await innerPromise;
-                if (inner) await (inner as any)(resultArgs);
+                if (typeof inner === 'function') {
+                    await inner(resultArgs);
+                }
                 if (resultArgs.result.type === 'success' && mode === 'create') {
                     showSuccessToast('Question created');
                 }
@@ -107,7 +109,6 @@
     let dateInput = $state<HTMLInputElement>();
 
     const statusPillClass = $derived(() => questionStatusPillClass(statusValue));
-    const statusLabel = $derived(() => questionStatusLabel(statusValue));
 
     const answeredAtLabel = $derived(() => {
         if (!answeredAtValue) return 'Answered on';
@@ -441,7 +442,7 @@
         border-color: var(--ink-3);
     }
 
-    .date-icon {
+    :global(.date-icon) {
         flex-shrink: 0;
         opacity: 0.65;
     }

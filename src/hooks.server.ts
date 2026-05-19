@@ -96,7 +96,7 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
                 const errorId = 'id' in res ? res.id : 'unknown';
                 
                 if (!dev) {
-                    throw new Error(`Critical platform failure: Failed to load workspace (Error ID: ${errorId})`);
+                    throw new Error(`Critical platform failure: Failed to load workspace (Error ID: ${errorId})`, { cause: wsErr });
                 }
             }
 
@@ -130,7 +130,7 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
         const errorId = 'id' in res ? res.id : 'unknown';
 
         if (!dev) {
-            throw new Error(`Critical platform failure: Failed to load session (Error ID: ${errorId})`);
+            throw new Error(`Critical platform failure: Failed to load session (Error ID: ${errorId})`, { cause: err });
         }
     }
 

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ddbPut, ddbQueryAll, ddbGet, ddbDelete } from '$lib/server/dynamo/ops';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ddbPut, ddbQueryAll } from '$lib/server/dynamo/ops';
 import { createWorkspace, removeMember } from '$lib/server/services/workspace.service';
 import { createQuickLinkFolder, moveLinkToFolder, reorderQuickLinks, reorderQuickLinkFolders } from '$lib/server/services/quickLinkFolder.service';
 import { createQuickLink } from '$lib/server/services/quickLink.service';
-import { baPk, entitySk, wsPk } from '$lib/server/dynamo/keys';
+import { baPk } from '$lib/server/dynamo/keys';
 import { parseFormArray, safeParseJsonAction } from '$lib/server/utils/parsing';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -24,7 +24,7 @@ describe('Hardening Remediation', () => {
             }
 
             // Emulate pagination by using a small limit in ddbQuery (internally called by ddbQueryAll)
-            const items = await ddbQueryAll<any>({
+            const items = await ddbQueryAll<Record<string, unknown>>({
                 KeyConditionExpression: 'PK = :pk',
                 ExpressionAttributeValues: { ':pk': pk },
                 Limit: 5 // Mock ddbQueryAll respects this Limit by paging
@@ -39,7 +39,7 @@ describe('Hardening Remediation', () => {
                 await ddbPut({ PK: pk, SK: `Item#${i}`, val: i });
             }
 
-            const items = await ddbQueryAll<any>({
+            const items = await ddbQueryAll<Record<string, unknown>>({
                 KeyConditionExpression: 'PK = :pk',
                 ExpressionAttributeValues: { ':pk': pk }
             }, 5);
@@ -66,7 +66,7 @@ describe('Hardening Remediation', () => {
 
             await removeMember(workspaceId, targetUser);
 
-            const remainingSessions = await ddbQueryAll<any>({
+            const remainingSessions = await ddbQueryAll<{ userId: string }>({
                 KeyConditionExpression: 'PK = :pk',
                 ExpressionAttributeValues: { ':pk': baPk('session') }
             });

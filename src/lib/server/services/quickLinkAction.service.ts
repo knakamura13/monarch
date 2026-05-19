@@ -23,12 +23,11 @@ import {
     quickLinkCreateFolderFromLinksSchema
 } from '$lib/schemas/quickLink';
 import { parseFormArray } from '$lib/server/utils/parsing';
-import type { WorkspaceItem } from '$lib/server/dynamo/types';
-import type { User } from 'better-auth';
+import type { MemberRole } from '$lib/types/enums';
 
 export async function handleQuickLinkAction(
     event: RequestEvent,
-    workspace: { id: string; name: string; role: any },
+    workspace: { id: string; name: string; role: MemberRole },
     user: { id: string; email: string; name: string | null; image: string | null },
     action: string,
     redirectTarget: string

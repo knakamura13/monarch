@@ -28,7 +28,7 @@ export interface BaseDragState {
 /**
  * Throttles a function using requestAnimationFrame.
  */
-export function createRafThrottle<T extends (...args: any[]) => void>(fn: T): {
+export function createRafThrottle<T extends (...args: unknown[]) => void>(fn: T): {
     handler: (...args: Parameters<T>) => void;
     cancel: () => void;
 } {
