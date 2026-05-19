@@ -115,6 +115,28 @@ describe('dashboard.service', () => {
             createdAt: nowIso,
             updatedAt: nowIso
         });
+        await ddbPut({
+            PK: wsPk(workspaceId),
+            SK: entitySk('TimelineMilestone', 'm3'),
+            id: 'm3',
+            phase: 'MARRIAGE_LICENSE',
+            status: 'To do',
+            title: 'Milestone 3',
+            order: 0,
+            createdAt: nowIso,
+            updatedAt: nowIso
+        });
+        await ddbPut({
+            PK: wsPk(workspaceId),
+            SK: entitySk('TimelineMilestone', 'm4'),
+            id: 'm4',
+            phase: 'PACKET_DRAFTING',
+            status: 'On hold',
+            title: 'Milestone 4',
+            order: 0,
+            createdAt: nowIso,
+            updatedAt: nowIso
+        });
 
         const data = await dashboardFor(workspaceId);
 
@@ -137,7 +159,59 @@ describe('dashboard.service', () => {
         expect(data.phaseProgress.find((p) => p.phase === 'PREPARATION')?.done).toBe(1);
         expect(data.phaseProgress.find((p) => p.phase === 'RELATIONSHIP_EVIDENCE')?.done).toBe(0);
 
+        // Next Milestones
+        expect(data.nextMilestones).toHaveLength(3);
+        expect(data.nextMilestones![0]?.id).toBe('m2');
+        expect(data.nextMilestones![1]?.id).toBe('m3');
+        expect(data.nextMilestones![2]?.id).toBe('m4');
+
         // Countdowns
         expect(data.countdowns.some((c) => c.label === 'Milestone 2')).toBe(true);
+    });
+
+    it('includes on-hold milestones in nextMilestones if fewer than 3 actionable exist', async () => {
+        const workspaceId = 'ws-2';
+        const nowIso = new Date().toISOString();
+
+        // Mock Workspace
+        await ddbPut({
+            PK: wsPk(workspaceId),
+            SK: entitySk('Workspace', workspaceId),
+            id: workspaceId,
+            name: 'Test Workspace',
+            evidenceCategories: [],
+            evidenceTargets: {},
+            evidenceCounts: {},
+            createdAt: nowIso,
+            updatedAt: nowIso
+        });
+
+        await ddbPut({
+            PK: wsPk(workspaceId),
+            SK: entitySk('TimelineMilestone', 'ma1'),
+            id: 'ma1',
+            phase: 'PREPARATION',
+            status: 'Doing',
+            title: 'Actionable 1',
+            order: 0,
+            createdAt: nowIso,
+            updatedAt: nowIso
+        });
+        await ddbPut({
+            PK: wsPk(workspaceId),
+            SK: entitySk('TimelineMilestone', 'mh1'),
+            id: 'mh1',
+            phase: 'PREPARATION',
+            status: 'On hold',
+            title: 'On Hold 1',
+            order: 1,
+            createdAt: nowIso,
+            updatedAt: nowIso
+        });
+
+        const data = await dashboardFor(workspaceId);
+        expect(data.nextMilestones).toHaveLength(2);
+        expect(data.nextMilestones![0]?.id).toBe('ma1');
+        expect(data.nextMilestones![1]?.id).toBe('mh1');
     });
 });

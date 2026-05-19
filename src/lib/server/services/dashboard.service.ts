@@ -122,6 +122,30 @@ export async function dashboardFor(workspaceId: string) {
         })
         .slice(0, 4);
 
+    // User requested next 3 'To do' or 'Doing' milestones.
+    // If fewer than 3, include 'On hold' milestones.
+    const actionable = milestonesAll
+        .filter((m) => m.status === 'To do' || m.status === 'Doing')
+        .sort((a, b) => {
+            const phaseA = PHASE_ORDER.indexOf(a.phase as MilestonePhase);
+            const phaseB = PHASE_ORDER.indexOf(b.phase as MilestonePhase);
+            if (phaseA !== phaseB) return phaseA - phaseB;
+            return (a.order ?? 0) - (b.order ?? 0);
+        });
+
+    let nextMilestones = actionable.slice(0, 3);
+    if (nextMilestones.length < 3) {
+        const onHold = milestonesAll
+            .filter((m) => m.status === 'On hold')
+            .sort((a, b) => {
+                const phaseA = PHASE_ORDER.indexOf(a.phase as MilestonePhase);
+                const phaseB = PHASE_ORDER.indexOf(b.phase as MilestonePhase);
+                if (phaseA !== phaseB) return phaseA - phaseB;
+                return (a.order ?? 0) - (b.order ?? 0);
+            });
+        nextMilestones = [...nextMilestones, ...onHold].slice(0, 3);
+    }
+
     return {
         upcomingMeetings,
         evidenceCoverage,
@@ -135,6 +159,7 @@ export async function dashboardFor(workspaceId: string) {
         countdowns,
         taskSummary,
         tasksPreview,
+        nextMilestones,
         quickLinks,
         quickLinkFolders
     };

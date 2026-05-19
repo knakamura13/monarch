@@ -69,10 +69,17 @@
             {@const next = (() => {
                 if (!milestones) return null;
                 const ms = milestones as MilestoneItem[];
+                // First pass: look for 'To do' or 'Doing'
                 for (const phase of PHASE_ORDER) {
                     const inPhase = ms.filter((m) => m.phase === phase);
-                    const incomplete = inPhase.find((m) => m.status !== 'Done');
-                    if (incomplete) return incomplete;
+                    const nextActionable = inPhase.find((m) => m.status === 'To do' || m.status === 'Doing');
+                    if (nextActionable) return nextActionable;
+                }
+                // Second pass: look for 'On hold' if no 'To do'/'Doing' found
+                for (const phase of PHASE_ORDER) {
+                    const inPhase = ms.filter((m) => m.phase === phase);
+                    const onHold = inPhase.find((m) => m.status === 'On hold');
+                    if (onHold) return onHold;
                 }
                 return null;
             })()}
