@@ -1,0 +1,13 @@
+
+> monarch-case-tracker@0.2.0 dev
+> vite dev
+
+Port 5173 is in use, trying another one...
+
+  VITE v6.4.2  ready in 1279 ms
+
+  ➜  Local:   http://localhost:5174/
+7:18:40 AM [vite] (client) hmr update /src/lib/components/timeline/MilestoneModal.svelte
+7:18:40 AM [vite] (ssr) page reload src/lib/components/timeline/MilestoneModal.svelte
+7:19:05 AM [vite] (client) hmr update /src/lib/components/timeline/MilestoneModal.svelte
+7:19:05 AM [vite] (ssr) page reload src/lib/components/timeline/MilestoneModal.svelte

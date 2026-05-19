@@ -57,6 +57,8 @@
 
     const labeledBy = $derived(title ? titleId : undefined);
 
+    let mouseDownOnBackdrop = false;
+
     function handleEscape(e: KeyboardEvent) {
         if (e.key === 'Escape') {
             e.preventDefault();
@@ -66,7 +68,9 @@
     }
 
     function handleBackdropClick(e: MouseEvent) {
-        if (e.target === e.currentTarget) void onClose();
+        if (e.target === e.currentTarget && mouseDownOnBackdrop) {
+            void onClose();
+        }
     }
 
     $effect(() => {
@@ -85,7 +89,14 @@
 </script>
 
 {#if open}
-    <div class="dialog-backdrop" role="presentation" tabindex="-1" onclick={handleBackdropClick} onkeydown={handleEscape}>
+    <div
+        class="dialog-backdrop"
+        role="presentation"
+        tabindex="-1"
+        onmousedown={(e) => (mouseDownOnBackdrop = e.target === e.currentTarget)}
+        onclick={handleBackdropClick}
+        onkeydown={handleEscape}
+    >
         <div
             bind:this={panelEl}
             class="dialog-content dialog-content--{contentWidth}"

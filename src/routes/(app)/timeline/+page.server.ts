@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireWorkspace } from '$lib/server/guards';
 import { logActionError } from '$lib/server/services/actionError.service';
@@ -42,7 +42,7 @@ export const actions: Actions = {
             return fail(400, { error: parsed.error.message, errorId });
         }
         const m = await createMilestone(workspace.id, user.id, parsed.data);
-        throw redirect(303, `/timeline#${m.id}`);
+        return { success: true, id: m.id };
     },
     update: async (event) => {
         const { workspace, user } = requireWorkspace(event);
