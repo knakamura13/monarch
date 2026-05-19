@@ -42,6 +42,21 @@
 
     const submitEnhance = $derived(onenhance as SubmitFunction | undefined);
 
+    function onFormSubmit(_e: SubmitEvent) {
+        if (newSubTaskDraft.trim()) {
+            editableSubTasks = [
+                ...editableSubTasks,
+                {
+                    id: crypto.randomUUID(),
+                    text: newSubTaskDraft.trim(),
+                    done: false,
+                    order: editableSubTasks.length
+                }
+            ];
+            newSubTaskDraft = '';
+        }
+    }
+
     const MILESTONE_ALLOWED = [
         'id',
         'title',
@@ -83,6 +98,25 @@
 
     let editableSubTasks = $state<TaskChecklistItem[]>([]);
     let subTasksJson = $derived(JSON.stringify(editableSubTasks));
+    let newSubTaskDraft = $state('');
+
+    async function handleClose() {
+        if (newSubTaskDraft.trim()) {
+            editableSubTasks = [
+                ...editableSubTasks,
+                {
+                    id: crypto.randomUUID(),
+                    text: newSubTaskDraft.trim(),
+                    done: false,
+                    order: editableSubTasks.length
+                }
+            ];
+            newSubTaskDraft = '';
+            // Give a tiny bit of time for state to sync before close
+            await new Promise((r) => setTimeout(r, 0));
+        }
+        await onClose();
+    }
 
     let showLocationInput = $state(false);
     let showDueDatePicker = $state(false);
@@ -158,6 +192,7 @@
                 statusValue = 'To do';
                 priorityValue = 'MEDIUM';
                 editableSubTasks = [];
+                newSubTaskDraft = '';
                 dueDateValue = '';
                 appointmentDateValue = '';
                 currentLocation = '';
@@ -172,6 +207,7 @@
                 statusValue = val('status', 'To do');
                 priorityValue = val('priority', 'MEDIUM');
                 editableSubTasks = (initial.subTasks as TaskChecklistItem[]) || [];
+                newSubTaskDraft = '';
                 dueDateValue = val('dueDate');
                 appointmentDateValue = val('scheduledAt');
                 currentLocation = val('location', '');
@@ -274,21 +310,28 @@
 {/snippet}
 
 {#snippet milestoneEditFooter()}
-    <Button type="button" variant="ghost" onclick={onClose}>Cancel</Button>
+    <Button type="button" variant="ghost" onclick={handleClose}>Cancel</Button>
     <Button type="submit" form="milestone-edit-form" class="modal-footer-save">Save changes</Button>
 {/snippet}
 
 {#if mode === 'create'}
     <Dialog
         {open}
-        {onClose}
+        onClose={handleClose}
         ariaLabel="Create milestone"
         header={milestoneEditHeader}
         footerFormId="milestone-create-form"
         cancelLabel="Cancel"
         submitLabel="Create milestone"
     >
-        <form id="milestone-create-form" method="post" {action} use:enhance={submitEnhance!} class="modal-form">
+        <form
+            id="milestone-create-form"
+            method="post"
+            {action}
+            use:enhance={submitEnhance!}
+            onsubmit={onFormSubmit}
+            class="modal-form"
+        >
             <div class="modal-title-row">
                 <Input name="title" bind:value={titleValue} class="modal-title-input display" placeholder="Milestone title" required />
             </div>
@@ -305,7 +348,7 @@
                 />
             </div>
 
-            <TaskChecklistEditor bind:items={editableSubTasks} />
+            <TaskChecklistEditor bind:items={editableSubTasks} bind:newChecklistText={newSubTaskDraft} />
 
             {#if error}
                 <div class="modal-error">
@@ -322,8 +365,15 @@
         </form>
     </Dialog>
 {:else}
-    <Dialog {open} {onClose} ariaLabel="Edit milestone" header={milestoneEditHeader} headerActions={milestoneHeaderActions} footer={milestoneEditFooter}>
-        <form id="milestone-edit-form" method="post" {action} use:enhance={submitEnhance!} class="modal-form">
+    <Dialog
+        {open}
+        onClose={handleClose}
+        ariaLabel="Edit milestone"
+        header={milestoneEditHeader}
+        headerActions={milestoneHeaderActions}
+        footer={milestoneEditFooter}
+    >
+        <form id="milestone-edit-form" method="post" {action} use:enhance={submitEnhance!} onsubmit={onFormSubmit} class="modal-form">
             <div class="modal-title-row">
                 <Input name="title" bind:value={titleValue} class="modal-title-input display" placeholder="Milestone title" />
             </div>
@@ -340,7 +390,7 @@
                 />
             </div>
 
-            <TaskChecklistEditor bind:items={editableSubTasks} />
+            <TaskChecklistEditor bind:items={editableSubTasks} bind:newChecklistText={newSubTaskDraft} />
 
             {#if error}<ErrorDetails status={400} message={error} errorId={errorId ?? undefined} />{/if}
             <input type="hidden" name="subTasks" value={subTasksJson} />

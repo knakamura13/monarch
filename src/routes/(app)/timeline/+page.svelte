@@ -84,10 +84,22 @@
         }))
     );
 
-    function phaseProgress(items: { status: string }[]) {
+    function phaseProgress(items: MilestoneItem[]) {
         if (items.length === 0) return 0;
-        const done = items.filter((i) => i.status === 'Done').length;
-        return Math.round((done / items.length) * 100);
+        let totalUnits = 0;
+        let completedUnits = 0;
+
+        for (const m of items) {
+            if (m.subTasks && m.subTasks.length > 0) {
+                totalUnits += m.subTasks.length;
+                completedUnits += m.subTasks.filter((st) => st.done).length;
+            } else {
+                totalUnits += 1;
+                if (m.status === 'Done') completedUnits += 1;
+            }
+        }
+
+        return Math.round((completedUnits / totalUnits) * 100);
     }
 
     function phaseStatus(items: { status: string }[]) {
@@ -622,10 +634,10 @@
                 update
             }: {
                 result: import('@sveltejs/kit').ActionResult;
-                update: () => Promise<void>;
+                update: (options?: { reset?: boolean; scroll?: boolean }) => Promise<void>;
             }) => {
                 if (result.type === 'success' || result.type === 'redirect') {
-                    await update();
+                    await update({ reset: true, scroll: false });
                     showSuccessToast('Milestone created successfully');
                     showCreateModal = false;
                     defaultPhase = undefined;
