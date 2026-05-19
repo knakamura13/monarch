@@ -36,6 +36,7 @@
         "@opentelemetry/api": "^1.9.1",
         "better-auth": "^1.6.9",
         "date-fns": "^4.1.0",
+        "resend": "^6.12.3",
         "svelte-sonner": "^1.1.1",
         "zod": "^4.4.3"
     },

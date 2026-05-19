@@ -4,7 +4,7 @@ import type { MemberRole } from '$lib/types/enums';
 export const memberRoleEnum = z.enum(['OWNER', 'COLLABORATOR'] as [MemberRole, ...MemberRole[]]);
 
 export const emailSchema = z.string().email().trim().toLowerCase();
-export const passwordSchema = z.string().min(12, 'Password must be at least 12 characters').max(256);
+export const passwordSchema = z.string().min(8, 'Password must be at least 8 characters').max(256);
 export const nameSchema = z.string().min(1).max(120);
 
 export const loginSchema = z.object({

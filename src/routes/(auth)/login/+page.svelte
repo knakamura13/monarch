@@ -81,10 +81,21 @@
                 <Input id="email" type="email" autocomplete="email" bind:value={email} required />
             </div>
             <div>
-                <Label for="password">Password</Label>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <Label for="password">Password</Label>
+                    <a href="/forgot-password" class="auth-text-sm auth-text-primary auth-underline-offset-4 auth-hover-underline" style="font-weight: 400; font-size: 12px; color: var(--ink-2);">Forgot password?</a>
+                </div>
                 <Input id="password" type="password" autocomplete="current-password" bind:value={password} required />
             </div>
-            {#if error}<p class="auth-text-sm auth-text-destructive">{error}</p>{/if}
+            {#if error}
+                <p class="auth-text-sm auth-text-destructive">
+                    {error}
+                    {#if error === 'Invalid email or password'}
+                        <br />
+                        <a href="/forgot-password" class="auth-text-primary auth-underline-offset-4 auth-hover-underline" style="font-weight: 400; font-size: 12px;">Reset it here</a>
+                    {/if}
+                </p>
+            {/if}
             <Button type="submit" {loading} class="auth-w-full">
                 {#snippet children()}<KeyRound class="auth-icon-sm" /> Sign in{/snippet}
             </Button>
