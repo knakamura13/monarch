@@ -161,9 +161,9 @@ describe('dashboard.service', () => {
 
         // Next Milestones
         expect(data.nextMilestones).toHaveLength(3);
-        expect(data.nextMilestones![0].id).toBe('m2');
-        expect(data.nextMilestones![1].id).toBe('m3');
-        expect(data.nextMilestones![2].id).toBe('m4');
+        expect(data.nextMilestones![0]?.id).toBe('m2');
+        expect(data.nextMilestones![1]?.id).toBe('m3');
+        expect(data.nextMilestones![2]?.id).toBe('m4');
 
         // Countdowns
         expect(data.countdowns.some((c) => c.label === 'Milestone 2')).toBe(true);
@@ -211,7 +211,7 @@ describe('dashboard.service', () => {
 
         const data = await dashboardFor(workspaceId);
         expect(data.nextMilestones).toHaveLength(2);
-        expect(data.nextMilestones![0].id).toBe('ma1');
-        expect(data.nextMilestones![1].id).toBe('mh1');
+        expect(data.nextMilestones![0]?.id).toBe('ma1');
+        expect(data.nextMilestones![1]?.id).toBe('mh1');
     });
 });
