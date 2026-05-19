@@ -9,6 +9,10 @@ const config = {
         alias: {
             $lib: 'src/lib',
             '$lib/*': 'src/lib/*'
+        },
+        version: {
+            // Poll for new versions every 5 minutes
+            pollInterval: 300000
         }
     }
     // runes mode is auto-detected per component (we write all our own components in runes;

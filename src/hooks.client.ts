@@ -13,6 +13,21 @@ function clip(value: string | undefined, max: number): string | undefined {
 
 export const handleError: HandleClientError = async ({ error, event, message }) => {
     const err = error instanceof Error ? error : new Error(String(error));
+
+    // Handle version mismatch (deployment during active session)
+    if (err.message?.includes('Failed to fetch dynamically imported module')) {
+        const key = 'monarch_last_reload';
+        const now = Date.now();
+        const lastReload = parseInt(sessionStorage.getItem(key) ?? '0', 10);
+
+        // Limit auto-reload to once per 30 seconds to prevent loops
+        if (now - lastReload > 30000) {
+            sessionStorage.setItem(key, now.toString());
+            window.location.reload();
+            return { message: 'New version available, reloading...' };
+        }
+    }
+
     const displayMessage = err.message || message;
     const truncatedMessage = clip(displayMessage, MAX_MESSAGE_CHARS) ?? displayMessage;
     const truncatedStack = clip(err.stack, MAX_STACK_CHARS);
