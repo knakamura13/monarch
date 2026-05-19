@@ -1,3 +1,6 @@
+packages:
+  - "."
+
 allowBuilds:
-  classic-level: set this to true or false
-  esbuild: set this to true or false
+  classic-level: true
+  esbuild: true
