@@ -4,6 +4,7 @@
     import { getPageNumber } from '$lib/constants/navigation';
     import { CheckSquare, AlertTriangle } from 'lucide-svelte';
     import QuickLinksWidget from '$lib/components/dashboard/QuickLinksWidget.svelte';
+    import NextStepsWidget from '$lib/components/dashboard/NextStepsWidget.svelte';
     import { goto } from '$app/navigation';
     import type { PageData } from './$types';
 
@@ -57,6 +58,13 @@
         <Widget title="Quick Links" href="/quick-links">
             {#snippet children()}
                 <QuickLinksWidget links={data.quickLinks} folders={data.quickLinkFolders} />
+            {/snippet}
+        </Widget>
+
+        <!-- Next Steps Widget -->
+        <Widget title="Next Steps" href="/timeline">
+            {#snippet children()}
+                <NextStepsWidget milestones={data.nextMilestones} />
             {/snippet}
         </Widget>
 
