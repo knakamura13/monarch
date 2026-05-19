@@ -622,10 +622,10 @@
                 update
             }: {
                 result: import('@sveltejs/kit').ActionResult;
-                update: () => Promise<void>;
+                update: (options?: { scroll: boolean }) => Promise<void>;
             }) => {
                 if (result.type === 'success' || result.type === 'redirect') {
-                    await update();
+                    await update({ scroll: false });
                     showSuccessToast('Milestone created successfully');
                     showCreateModal = false;
                     defaultPhase = undefined;

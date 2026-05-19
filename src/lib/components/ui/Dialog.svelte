@@ -52,6 +52,7 @@
     const titleId = `dialog-title-${Math.random().toString(36).slice(2, 11)}`;
 
     let panelEl: HTMLElement | undefined = $state();
+    let mouseDownTarget: EventTarget | null = null;
 
     const cancelHandler = $derived(onCancel ?? onClose);
 
@@ -66,7 +67,13 @@
     }
 
     function handleBackdropClick(e: MouseEvent) {
-        if (e.target === e.currentTarget) void onClose();
+        if (e.target === e.currentTarget && mouseDownTarget === e.currentTarget) {
+            void onClose();
+        }
+    }
+
+    function handleMouseDown(e: MouseEvent) {
+        mouseDownTarget = e.target;
     }
 
     $effect(() => {
@@ -80,12 +87,21 @@
 
             // Use requestAnimationFrame to ensure the DOM is ready
             requestAnimationFrame(focusDialog);
+        } else {
+            mouseDownTarget = null;
         }
     });
 </script>
 
 {#if open}
-    <div class="dialog-backdrop" role="presentation" tabindex="-1" onclick={handleBackdropClick} onkeydown={handleEscape}>
+    <div
+        class="dialog-backdrop"
+        role="presentation"
+        tabindex="-1"
+        onmousedown={handleMouseDown}
+        onclick={handleBackdropClick}
+        onkeydown={handleEscape}
+    >
         <div
             bind:this={panelEl}
             class="dialog-content dialog-content--{contentWidth}"

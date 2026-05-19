@@ -103,6 +103,15 @@
     let dueDateInputEl = $state<HTMLInputElement | null>(null);
     let scheduledAtInputEl = $state<HTMLInputElement | null>(null);
 
+    let flushSubTasks = $state<() => void>();
+
+    async function handleClose() {
+        flushSubTasks?.();
+        // Give a tiny moment for the flush to apply to the bindable items
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        void onClose();
+    }
+
     async function handleDelete() {
         const id = val('id');
         if (!id) return;
@@ -274,14 +283,14 @@
 {/snippet}
 
 {#snippet milestoneEditFooter()}
-    <Button type="button" variant="ghost" onclick={onClose}>Cancel</Button>
+    <Button type="button" variant="ghost" onclick={handleClose}>Cancel</Button>
     <Button type="submit" form="milestone-edit-form" class="modal-footer-save">Save changes</Button>
 {/snippet}
 
 {#if mode === 'create'}
     <Dialog
         {open}
-        {onClose}
+        onClose={handleClose}
         ariaLabel="Create milestone"
         header={milestoneEditHeader}
         footerFormId="milestone-create-form"
@@ -305,7 +314,7 @@
                 />
             </div>
 
-            <TaskChecklistEditor bind:items={editableSubTasks} />
+            <TaskChecklistEditor bind:items={editableSubTasks} bind:flush={flushSubTasks} />
 
             {#if error}
                 <div class="modal-error">
@@ -322,7 +331,7 @@
         </form>
     </Dialog>
 {:else}
-    <Dialog {open} {onClose} ariaLabel="Edit milestone" header={milestoneEditHeader} headerActions={milestoneHeaderActions} footer={milestoneEditFooter}>
+    <Dialog {open} onClose={handleClose} ariaLabel="Edit milestone" header={milestoneEditHeader} headerActions={milestoneHeaderActions} footer={milestoneEditFooter}>
         <form id="milestone-edit-form" method="post" {action} use:enhance={submitEnhance!} class="modal-form">
             <div class="modal-title-row">
                 <Input name="title" bind:value={titleValue} class="modal-title-input display" placeholder="Milestone title" />
@@ -340,7 +349,7 @@
                 />
             </div>
 
-            <TaskChecklistEditor bind:items={editableSubTasks} />
+            <TaskChecklistEditor bind:items={editableSubTasks} bind:flush={flushSubTasks} />
 
             {#if error}<ErrorDetails status={400} message={error} errorId={errorId ?? undefined} />{/if}
             <input type="hidden" name="subTasks" value={subTasksJson} />
