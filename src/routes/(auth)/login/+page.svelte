@@ -81,20 +81,30 @@
                 <Input id="email" type="email" autocomplete="email" bind:value={email} required />
             </div>
             <div>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <Label for="password">Password</Label>
-                    <a href="/forgot-password" class="auth-text-sm auth-text-primary auth-underline-offset-4 auth-hover-underline" style="font-weight: 400; font-size: 12px; color: var(--ink-2);">Forgot password?</a>
-                </div>
+                <Label for="password">Password</Label>
                 <Input id="password" type="password" autocomplete="current-password" bind:value={password} required />
             </div>
-            {#if error}
-                <p class="auth-text-sm auth-text-destructive">
+            {#if error === 'Invalid email or password'}
+                <p class="auth-text-sm auth-text-destructive" style="text-align: right; margin-top: -12px; margin-bottom: 24px;">
                     {error}
-                    {#if error === 'Invalid email or password'}
-                        <br />
-                        <a href="/forgot-password" class="auth-text-primary auth-underline-offset-4 auth-hover-underline" style="font-weight: 400; font-size: 12px;">Reset it here</a>
-                    {/if}
+                    <br />
+                    <a
+                        href="/forgot-password"
+                        class="auth-text-primary auth-underline-offset-4 auth-hover-underline"
+                        style="font-weight: 400; font-size: 12px;">Reset it here</a
+                    >
                 </p>
+            {:else}
+                <div style="display: flex; justify-content: flex-end; margin-top: -12px; margin-bottom: 24px;">
+                    <a
+                        href="/forgot-password"
+                        class="auth-text-sm auth-text-primary auth-underline-offset-4 auth-hover-underline"
+                        style="font-weight: 400; font-size: 12px; color: var(--ink-2);">Forgot password?</a
+                    >
+                </div>
+                {#if error}
+                    <p class="auth-text-sm auth-text-destructive">{error}</p>
+                {/if}
             {/if}
             <Button type="submit" {loading} class="auth-w-full">
                 {#snippet children()}<KeyRound class="auth-icon-sm" /> Sign in{/snippet}
