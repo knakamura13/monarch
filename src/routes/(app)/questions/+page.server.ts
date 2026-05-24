@@ -50,8 +50,20 @@ export const actions: Actions = {
         if (!updatesJson) return fail(400, { error: 'Missing updates' });
 
         try {
-            const rawUpdates = JSON.parse(updatesJson) as Array<{ id: string; order: number }>;
-            await reorderQuestions(workspace.id, user.id, rawUpdates);
+            const rawUpdates = JSON.parse(updatesJson) as Array<{ id: string; order: number; sourceType?: string }>;
+
+            // Validate sourceType if provided
+            const updates = rawUpdates.map(u => {
+                if (u.sourceType) {
+                    const parsed = questionSourceEnum.safeParse(u.sourceType);
+                    if (!parsed.success) {
+                        throw new Error(`Invalid sourceType: ${u.sourceType}`);
+                    }
+                }
+                return u as { id: string; order: number; sourceType?: QuestionSourceType };
+            });
+
+            await reorderQuestions(workspace.id, user.id, updates);
             return { success: true };
         } catch {
             return fail(500, { error: 'Failed to reorder questions' });

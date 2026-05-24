@@ -140,17 +140,27 @@ export async function softDeleteQuestion(workspaceId: string, actorId: string, i
 export async function reorderQuestions(
     workspaceId: string,
     actorId: string,
-    updates: { id: string; order: number }[]
+    updates: { id: string; order: number; sourceType?: QuestionSourceType }[]
 ) {
     for (const u of updates) {
         const existing = await ddbGet<QuestionItem>({ PK: wsPk(workspaceId), SK: entitySk('QuestionItem', u.id) });
         if (!existing || existing.deletedAt) continue;
 
+        const sets = ['#order = :o', '#updatedAt = :u'];
+        const values: Record<string, unknown> = { ':o': u.order, ':u': new Date().toISOString() };
+        const names: Record<string, string> = { '#order': 'order', '#updatedAt': 'updatedAt' };
+
+        if (u.sourceType) {
+            sets.push('#sourceType = :st');
+            values[':st'] = u.sourceType;
+            names['#sourceType'] = 'sourceType';
+        }
+
         await ddbUpdate(
             { PK: wsPk(workspaceId), SK: entitySk('QuestionItem', u.id) },
-            'SET #order = :o, #updatedAt = :u',
-            { ':o': u.order, ':u': new Date().toISOString() },
-            { '#order': 'order', '#updatedAt': 'updatedAt' }
+            `SET ${sets.join(', ')}`,
+            values,
+            names
         );
     }
 
