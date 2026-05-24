@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onDestroy } from 'svelte';
+    import { flip } from 'svelte/animate';
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import QuestionCard from '$lib/components/questions/QuestionCard.svelte';
@@ -20,10 +21,15 @@
 
     let { data, form }: { data: QuestionsPageData; form: { error?: string; errorId?: string } } = $props();
 
+    let items = $state(data.items);
+    $effect(() => {
+        items = data.items;
+    });
+
     let showCreateModal = $state(false);
     let activeInlineSection = $state<string | null>(null);
     const editParam = $derived(page.url.searchParams.get('edit'));
-    const editingQuestion = $derived(editParam && data.items.some((q) => q.id === editParam) ? { id: editParam } : null);
+    const editingQuestion = $derived(editParam && items.some((q) => q.id === editParam) ? { id: editParam } : null);
 
     // Drag and drop state
     type DragState = {
@@ -78,7 +84,7 @@
 
     const grouped = $derived(
         COLUMNS.map((col) => {
-            const columnQuestions = data.items
+            const columnQuestions = items
                 .filter((q) => getColumnIdForQuestion(q) === col.id)
                 .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
             return {
@@ -91,11 +97,11 @@
     let scrollContainer = $state<HTMLElement | null>(null);
 
     function getOriginalPosition(questionId: string) {
-        const question = data.items.find((q) => q.id === questionId);
+        const question = items.find((q) => q.id === questionId);
         if (!question) return null;
 
         const columnId = getColumnIdForQuestion(question);
-        const columnQuestions = data.items
+        const columnQuestions = items
             .filter((q) => getColumnIdForQuestion(q) === columnId)
             .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
@@ -115,7 +121,7 @@
         if (original.columnId !== targetStatus) return true;
 
         // Get target column questions (excluding the dragged one)
-        const targetColumnQuestions = data.items
+        const targetColumnQuestions = items
             .filter((q) => getColumnIdForQuestion(q) === targetStatus && q.id !== questionId)
             .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
@@ -158,7 +164,7 @@
 
         wasDragging = false;
 
-        const questionItem = data.items.find((q) => q.id === id);
+        const questionItem = items.find((q) => q.id === id);
         if (!questionItem) return;
 
         dragState = {
@@ -265,18 +271,28 @@
     });
 
     function performLocalReorder(activeId: string, targetStatus: string, targetQuestionId: string | null, position: 'before' | 'after' | null) {
-        const activeQuestion = data.items.find((q) => q.id === activeId);
+        const activeQuestion = items.find((q) => q.id === activeId);
         if (!activeQuestion) return;
 
-        let newItems = data.items.filter((q) => q.id !== activeId);
+        let newItems = items.filter((q) => q.id !== activeId);
+
+        // Update the question's property that affects grouping if it's changing
+        // In this implementation, targetStatus is the column ID ('OFFICIAL', 'COMMUNITY', 'OTHER')
+        // We should update sourceType to match the default of the target column if it's different.
+        const targetColumn = COLUMNS.find(c => c.id === targetStatus);
+        const updatedQuestion = { ...activeQuestion };
+        if (targetColumn && getColumnIdForQuestion(activeQuestion) !== targetStatus) {
+            updatedQuestion.sourceType = targetColumn.defaultSourceType;
+        }
+
         const columnQuestions = newItems.filter((q) => getColumnIdForQuestion(q) === targetStatus).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         if (targetQuestionId) {
             let targetIdx = columnQuestions.findIndex((q) => q.id === targetQuestionId);
             if (position === 'after') targetIdx++;
-            columnQuestions.splice(targetIdx, 0, { ...activeQuestion });
+            columnQuestions.splice(targetIdx, 0, updatedQuestion);
         } else {
-            columnQuestions.push({ ...activeQuestion });
+            columnQuestions.push(updatedQuestion);
         }
 
         // Update orders
@@ -284,7 +300,7 @@
             q.order = i;
         });
 
-        data.items = [...newItems.filter((q) => getColumnIdForQuestion(q) !== targetStatus), ...columnQuestions];
+        items = [...newItems.filter((q) => getColumnIdForQuestion(q) !== targetStatus), ...columnQuestions];
     }
 
     async function handlePointerUp(event: PointerEvent) {
@@ -348,13 +364,18 @@
 
         if (!isDragging || !targetStatus) return;
 
+        // Store previous state for rollback
+        const previousItems = [...items];
+
         performLocalReorder(draggedId, targetStatus, targetQuestionId, position);
 
-        const updates = data.items
+        // Include sourceType in updates because it might have changed if moved between columns
+        const updates = items
             .filter((q) => getColumnIdForQuestion(q) === targetStatus)
             .map((q) => ({
                 id: q.id,
-                order: q.order
+                order: q.order,
+                sourceType: q.sourceType
             }));
 
         try {
@@ -363,18 +384,22 @@
             const response = await fetch('?/reorder', { method: 'POST', body: formData });
             if (!response.ok) {
                 console.error('Failed to persist reorder');
+                // Rollback on failure
+                items = previousItems;
             } else {
                 await invalidateAll();
             }
         } catch (error) {
             console.error('Failed to persist reorder:', error);
+            // Rollback on error
+            items = previousItems;
         }
     }
 
     async function handleQuestionKeydown(event: KeyboardEvent, questionId: string) {
         if (!event.altKey) return;
 
-        const activeQuestion = data.items.find((q) => q.id === questionId);
+        const activeQuestion = items.find((q) => q.id === questionId);
         if (!activeQuestion) return;
 
         const columnId = getColumnIdForQuestion(activeQuestion);
@@ -451,6 +476,7 @@
                         aria-label={`Question actions for ${question.question}`}
                         onkeydown={(e) => handleQuestionKeydown(e, question.id)}
                         style={dragState?.id === question.id && dragState.isDragging ? 'opacity: 0.2; pointer-events: none;' : ''}
+                        animate:flip={{ duration: 200 }}
                     >
                         {#if isDragging && dropTarget.targetStatus === column.id && dropTarget.targetQuestionId === question.id && dropTarget.position === 'before'}
                             <div class="question-card-drop-indicator"></div>
@@ -499,7 +525,7 @@
 </div>
 
 {#if editingQuestion}
-    {@const question = data.items.find((q) => q.id === editingQuestion?.id)}
+    {@const question = items.find((q) => q.id === editingQuestion?.id)}
     {#if question}
         <QuestionModal
             mode="edit"

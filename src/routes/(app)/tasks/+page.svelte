@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onDestroy } from 'svelte';
+    import { flip } from 'svelte/animate';
     import PageHeader from '$lib/components/shared/PageHeader.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import TaskCard from '$lib/components/tasks/TaskCard.svelte';
@@ -18,10 +19,15 @@
 
     let { data, form }: { data: TasksPageData; form: { error?: string; errorId?: string } } = $props();
 
+    let tasks = $state(data.tasks);
+    $effect(() => {
+        tasks = data.tasks;
+    });
+
     let showCreateModal = $state(false);
     let defaultStatus = $state<string | undefined>(undefined);
     const editParam = $derived(page.url.searchParams.get('edit'));
-    const editingTask = $derived(editParam && data.tasks.some((t) => t.id === editParam) ? { id: editParam } : null);
+    const editingTask = $derived(editParam && tasks.some((t) => t.id === editParam) ? { id: editParam } : null);
 
     // Check if we're coming from dashboard with pre-fetched data
     let _isFromDashboard = $state(false);
@@ -80,7 +86,7 @@
     }
 
     function removeTaskFromPage(id: string) {
-        data.tasks = data.tasks.filter((t) => t.id !== id);
+        tasks = tasks.filter((t) => t.id !== id);
     }
 
     const COLUMNS = [
@@ -93,7 +99,7 @@
     const grouped = $derived(
         COLUMNS.map((col) => ({
             ...col,
-            tasks: data.tasks
+            tasks: tasks
                 .filter((t) => t.status === col.id)
                 .sort((a, b) => a.order - b.order)
                 .map((t) => ({
@@ -105,10 +111,10 @@
     let scrollContainer = $state<HTMLElement | null>(null);
 
     function getOriginalTaskPosition(taskId: string) {
-        const task = data.tasks.find((t) => t.id === taskId);
+        const task = tasks.find((t) => t.id === taskId);
         if (!task) return null;
-        
-        const columnTasks = data.tasks
+
+        const columnTasks = tasks
             .filter((t) => t.status === task.status)
             .sort((a, b) => a.order - b.order);
             
@@ -123,12 +129,12 @@
     function wouldChangePosition(taskId: string, targetStatus: string, targetTaskId: string | null, position: 'before' | 'after' | null) {
         const original = getOriginalTaskPosition(taskId);
         if (!original) return true;
-        
+
         // If moving to different column, definitely changes position
         if (original.status !== targetStatus) return true;
-        
+
         // Get target column tasks (excluding the dragged one)
-        const targetColumnTasks = data.tasks
+        const targetColumnTasks = tasks
             .filter((t) => t.status === targetStatus && t.id !== taskId)
             .sort((a, b) => a.order - b.order);
             
@@ -167,7 +173,7 @@
 
         wasDragging = false;
 
-        const taskItem = data.tasks.find((t) => t.id === id);
+        const taskItem = tasks.find((t) => t.id === id);
         if (!taskItem) return;
 
         dragState = {
@@ -284,10 +290,10 @@
     });
 
     function performLocalReorder(activeId: string, targetStatus: string, targetTaskId: string | null, position: 'before' | 'after' | null) {
-        const activeTask = data.tasks.find((t) => t.id === activeId);
+        const activeTask = tasks.find((t) => t.id === activeId);
         if (!activeTask) return;
 
-        let newTasks = data.tasks.filter((t) => t.id !== activeId);
+        let newTasks = tasks.filter((t) => t.id !== activeId);
         const columnTasks = newTasks.filter((t) => t.status === targetStatus).sort((a, b) => a.order - b.order);
 
         if (targetTaskId) {
@@ -315,7 +321,7 @@
             }
         });
 
-        data.tasks = [...newTasks.filter((t) => t.status !== targetStatus), ...columnTasks];
+        tasks = [...newTasks.filter((t) => t.status !== targetStatus), ...columnTasks];
     }
 
     async function handlePointerUp() {
@@ -386,12 +392,15 @@
 
         if (!isDragging || !targetStatus) return;
 
+        // Store previous state for rollback
+        const previousTasks = [...tasks];
+
         // Perform the actual reorder on drop (not during drag)
         performLocalReorder(draggedId, targetStatus, targetTaskId, position);
 
-        // Persist change (don't invalidate since we've already updated local state)
+        // Persist change
         const validStatuses = ['To do', 'Doing', 'On hold', 'Done'];
-        const updates = data.tasks
+        const updates = tasks
             .filter((t) => validStatuses.includes(t.status))
             .map((t) => ({
                 id: t.id,
@@ -405,21 +414,23 @@
             const response = await fetch('?/reorder', { method: 'POST', body: formData });
             if (!response.ok) {
                 console.error('Failed to persist reorder:', response.statusText);
-                const errorText = await response.text();
-                console.error('Error response:', errorText);
+                // Rollback on failure
+                tasks = previousTasks;
             } else {
                 // Invalidate to ensure UI shows persisted state from server
                 await invalidateAll();
             }
         } catch (error) {
             console.error('Failed to persist reorder:', error);
+            // Rollback on error
+            tasks = previousTasks;
         }
     }
 
     async function handleTaskKeydown(event: KeyboardEvent, taskId: string) {
         if (!event.altKey) return;
 
-        const activeTask = data.tasks.find((t) => t.id === taskId);
+        const activeTask = tasks.find((t) => t.id === taskId);
         if (!activeTask) return;
 
         // Safe to access activeTask.status since we confirmed it exists above
@@ -430,7 +441,7 @@
         const currentColumnValue = grouped.at(currentColumnIdx);
         if (!currentColumnValue) return;
 
-        const allTasks = [...data.tasks];
+        const allTasks = [...tasks];
         const currentTaskIdx = currentColumnValue.tasks.findIndex((t) => t.id === taskId);
         const updates: Array<{ id: string; status: string; order: number }> = [];
 
@@ -539,6 +550,7 @@
                         aria-label={`Task actions for ${task.title}`}
                         onkeydown={(e) => handleTaskKeydown(e, task.id)}
                         style={dragState?.id === task.id && dragState.isDragging ? 'opacity: 0.2; pointer-events: none;' : ''}
+                        animate:flip={{ duration: 200 }}
                     >
                         <!-- Drop indicator before this card -->
                         {#if isDragging && dropTarget.targetStatus === column.id && dropTarget.targetTaskId === task.id && dropTarget.position === 'before'}
@@ -590,7 +602,7 @@
 </div>
 
 {#if editingTask}
-    {@const task = data.tasks.find((t) => t.id === editingTask?.id)}
+    {@const task = tasks.find((t) => t.id === editingTask?.id)}
     {#if task}
         <TaskModal
             mode="edit"
