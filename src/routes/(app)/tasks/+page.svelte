@@ -714,7 +714,7 @@
         flex-direction: column;
         /* Negate layout padding to fill the viewport */
         margin: -16px -16px -16px -16px;
-        height: calc(100% + 32px);
+        flex: 1;
         min-height: 0;
         background: var(--bg);
     }
@@ -722,13 +722,16 @@
     @media (min-width: 768px) {
         .tasks-page-wrapper {
             margin: -32px -32px -32px -32px;
-            height: calc(100% + 64px);
         }
     }
 
     .tasks-header-wrapper {
         padding: 16px 16px 0 16px;
         flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--bg);
     }
 
     @media (min-width: 768px) {
@@ -745,7 +748,7 @@
         position: relative;
         gap: 0;
         padding: 0 4px 32px 4px;
-        align-items: start;
+        align-items: stretch;
         scrollbar-width: none;
         -ms-overflow-style: none;
     }
