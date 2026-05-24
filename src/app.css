@@ -916,62 +916,7 @@ button.modal-checklist-text-btn {
     color: var(--ink-3);
 }
 
-/* Tasks Page */
-.tasks-board {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(280px, 1fr));
-    gap: 24px;
-    overflow-x: auto;
-    padding-bottom: 16px;
-    /* Hide scrollbar for cleaner look, but keep functionality */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
-}
-
-.tasks-board::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-}
-
-@media (min-width: 1024px) {
-    .tasks-board {
-        grid-template-columns: repeat(4, 1fr);
-        overflow-x: visible;
-        padding-bottom: 0;
-    }
-}
-
-.tasks-column {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.tasks-column-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.tasks-column-count {
-    font-size: 12px;
-    color: var(--ink-3);
-}
-
-.tasks-column-content {
-    min-height: 100px;
-    padding: 4px 0;
-}
-
-.tasks-add-card-btn {
-    width: 100%;
-    justify-content: flex-start;
-    color: var(--ink-3);
-    cursor: pointer;
-}
-
-.tasks-add-card-btn:hover {
-    background: var(--surface-2);
-}
+/* Tasks Page - Handled in +page.svelte with local styles for fixed layout */
 /* Dialog component - Monarch Design */
 .dialog-backdrop {
     position: fixed;
