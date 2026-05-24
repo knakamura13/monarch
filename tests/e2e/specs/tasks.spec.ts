@@ -130,10 +130,14 @@ test.describe('Tasks Workflow', () => {
 
         // Start dragging SECOND task
         const task2 = tasksPage.getTaskCard(title2);
-        await task2.hover();
+        const handle2 = task2.locator('.task-drag-handle');
+        const handleBox2 = await handle2.boundingBox();
+        if (!handleBox2) throw new Error('Task drag handle not visible');
+
+        await page.mouse.move(handleBox2.x + handleBox2.width / 2, handleBox2.y + handleBox2.height / 2);
         await page.mouse.down();
         // Move slightly to trigger drag threshold (POINTER_MOVE_THRESHOLD_PX = 8)
-        await page.mouse.move(0, 10);
+        await page.mouse.move(handleBox2.x + handleBox2.width / 2 + 10, handleBox2.y + handleBox2.height / 2 + 10);
 
         // Verify drop indicator appears when hovering over first task
         const task1 = tasksPage.getTaskCard(title1);
@@ -170,9 +174,13 @@ test.describe('Tasks Workflow', () => {
 
         // Start dragging second task
         const task2 = tasksPage.getTaskCard(title2);
-        await task2.hover();
+        const handle2 = task2.locator('.task-drag-handle');
+        const handleBox2 = await handle2.boundingBox();
+        if (!handleBox2) throw new Error('Task drag handle not visible');
+
+        await page.mouse.move(handleBox2.x + handleBox2.width / 2, handleBox2.y + handleBox2.height / 2);
         await page.mouse.down();
-        await page.mouse.move(0, 10);
+        await page.mouse.move(handleBox2.x + handleBox2.width / 2 + 10, handleBox2.y + handleBox2.height / 2 + 10);
 
         // Hover over top half of FIRST task to show "before" indicator
         const task1 = tasksPage.getTaskCard(title1);
@@ -210,9 +218,13 @@ test.describe('Tasks Workflow', () => {
 
         // Start dragging first task
         const task = tasksPage.getTaskCard(title);
-        await task.hover();
+        const handle = task.locator('.task-drag-handle');
+        const handleBox = await handle.boundingBox();
+        if (!handleBox) throw new Error('Task drag handle not visible');
+
+        await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
         await page.mouse.down();
-        await page.mouse.move(0, 10);
+        await page.mouse.move(handleBox.x + handleBox.width / 2 + 10, handleBox.y + handleBox.height / 2 + 10);
 
         // Hover over bottom half of target task to show "after" indicator
         const targetTask = tasksPage.getTaskCard(title2);

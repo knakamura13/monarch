@@ -533,10 +533,13 @@
 
 <div aria-live="polite" aria-atomic="true" class="sr-only">{liveRegionMessage}</div>
 
-<PageHeader title="Tasks" sub="Personal todos and errands (not legal proceedings)." number={getPageNumber('/tasks')} />
+<div class="tasks-page-wrapper">
+    <div class="tasks-header-wrapper">
+        <PageHeader title="Tasks" sub="Personal todos and errands (not legal proceedings)." number={getPageNumber('/tasks')} />
+    </div>
 
-<div class="tasks-board" bind:this={scrollContainer} role="application">
-    {#each grouped as column (column.id)}
+    <div class="tasks-board" bind:this={scrollContainer} role="application">
+        {#each grouped as column (column.id)}
         <div class="tasks-column" data-status={column.id}>
             <div class="tasks-column-header">
                 <span class="pill {column.pillClass}">{column.label}</span>
@@ -597,8 +600,9 @@
             >
                 {#snippet children()}<Plus class="tasks-icon-sm tasks-mr-2" /> Add a card{/snippet}
             </Button>
-        </div>
-    {/each}
+            </div>
+        {/each}
+    </div>
 </div>
 
 {#if editingTask}
@@ -705,15 +709,137 @@
 {/if}
 
 <style>
-    .tasks-board {
-        margin-right: -16px;
-        padding-right: 32px;
-        padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
+    .tasks-page-wrapper {
+        display: flex;
+        flex-direction: column;
+        /* Negate layout padding to fill the viewport */
+        margin: -16px -16px -16px -16px;
+        height: calc(100% + 32px);
+        min-height: 0;
+        background: var(--bg);
     }
+
+    @media (min-width: 768px) {
+        .tasks-page-wrapper {
+            margin: -32px -32px -32px -32px;
+            height: calc(100% + 64px);
+        }
+    }
+
+    .tasks-header-wrapper {
+        padding: 16px 16px 0 16px;
+        flex-shrink: 0;
+    }
+
+    @media (min-width: 768px) {
+        .tasks-header-wrapper {
+            padding: 32px 32px 0 32px;
+        }
+    }
+
+    .tasks-board {
+        flex: 1;
+        overflow: auto;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(280px, 1fr));
+        position: relative;
+        gap: 0;
+        padding: 0 4px 32px 4px;
+        align-items: start;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .tasks-board::-webkit-scrollbar {
+        display: none;
+    }
+
     @media (min-width: 768px) {
         .tasks-board {
-            margin-right: 0;
-            padding-right: 32px;
+            padding: 0 20px 32px 20px;
         }
+    }
+
+    @media (min-width: 1024px) {
+        .tasks-board {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    .tasks-column {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 0 12px;
+        min-height: 100%;
+    }
+
+    .tasks-column-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 24px 0 12px 0;
+        margin: 0 -12px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .tasks-column-count {
+        font-size: 12px;
+        color: var(--ink-3);
+    }
+
+    .tasks-column-content {
+        min-height: 100px;
+        padding: 4px 0;
+    }
+
+    .tasks-empty-placeholder {
+        list-style: none;
+        min-height: 100px;
+        margin: 0;
+        padding: 12px;
+        border-radius: var(--r-sm);
+        border: 1px dashed var(--hairline);
+        font-size: 12px;
+        color: var(--ink-3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        transition:
+            border-color 200ms ease,
+            background-color 200ms ease,
+            color 200ms ease;
+    }
+
+    .tasks-empty-box-drop-target {
+        border-color: var(--peri-d);
+        background: var(--peri);
+        color: var(--ink);
+    }
+
+    :global(.tasks-icon-sm) {
+        width: 14px;
+        height: 14px;
+    }
+
+    :global(.tasks-mr-2) {
+        margin-right: 8px;
+    }
+
+    :global(.tasks-add-card-btn) {
+        width: 100%;
+        justify-content: flex-start !important;
+        color: var(--ink-3) !important;
+        cursor: pointer;
+    }
+
+    :global(.tasks-add-card-btn:hover) {
+        background: var(--surface-2) !important;
     }
 </style>
