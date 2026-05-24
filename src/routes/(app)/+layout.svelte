@@ -148,7 +148,7 @@
             display: block;
         }
         .main-content {
-            padding: 32px 32px 32px;
+            padding: 32px max(32px, env(safe-area-inset-right)) 32px max(32px, env(safe-area-inset-left));
         }
     }
     .main-area {
@@ -166,7 +166,7 @@
         min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        padding: 16px 16px 16px;
+        padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left));
         background: var(--bg);
         display: flex;
         flex-direction: column;
@@ -175,19 +175,19 @@
     /* Responsive main content for shorter screens */
     @media (max-height: 800px) {
         .main-content {
-            padding: 24px 24px 24px;
+            padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left));
         }
     }
 
     @media (max-height: 700px) {
         .main-content {
-            padding: 20px 20px 20px;
+            padding: 20px max(20px, env(safe-area-inset-right)) 20px max(20px, env(safe-area-inset-left));
         }
     }
 
     @media (max-height: 600px) {
         .main-content {
-            padding: 16px 16px 16px;
+            padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left));
         }
     }
 

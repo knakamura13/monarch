@@ -12,9 +12,7 @@
         {/if}
         <h1 class="display page-header-title" style="line-height: 1; margin: 0;">{title}</h1>
         {#if sub}
-            <p
-                style="color: var(--ink-2); margin-top: 12px; margin-bottom: 0; font-size: 15px; max-width: 560px; line-height: 1.5; text-wrap: pretty;"
-            >
+            <p class="page-header-sub">
                 {sub}
             </p>
         {/if}
@@ -27,6 +25,20 @@
 <style>
     .page-header-title {
         font-size: 32px;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+    .page-header-sub {
+        color: var(--ink-2);
+        margin-top: 12px;
+        margin-bottom: 0;
+        font-size: 15px;
+        max-width: 560px;
+        line-height: 1.5;
+        text-wrap: pretty;
+        overflow-wrap: break-word;
+        word-break: break-word;
     }
 
     @media (min-width: 640px) {

@@ -25,33 +25,33 @@
         display: flex;
         align-items: center;
         gap: 16px;
-        padding: 12px 16px;
+        padding: 12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
         border-bottom: 1px solid var(--hairline);
         background: var(--bg);
     }
 
     @media (min-width: 768px) {
         .topbar {
-            padding: 32px 32px;
+            padding: 32px max(32px, env(safe-area-inset-right)) 32px max(32px, env(safe-area-inset-left));
         }
     }
 
     /* Responsive topbar for shorter screens */
     @media (max-height: 800px) {
         .topbar {
-            padding: 24px 24px;
+            padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left));
         }
     }
 
     @media (max-height: 700px) {
         .topbar {
-            padding: 20px 20px;
+            padding: 20px max(20px, env(safe-area-inset-right)) 20px max(20px, env(safe-area-inset-left));
         }
     }
 
     @media (max-height: 600px) {
         .topbar {
-            padding: 16px 16px;
+            padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left));
         }
     }
     .topbar-menu-btn {
@@ -70,7 +70,7 @@
     .search-container {
         position: relative;
         width: 33%;
-        min-width: 250px;
+        min-width: 140px;
         max-width: 100%;
     }
     :global(.search-icon) {
@@ -108,5 +108,11 @@
         background: oklch(0.85 0.08 60);
         padding: 2px 6px;
         border-radius: 6px;
+    }
+
+    @media (max-width: 480px) {
+        .search-kb {
+            display: none;
+        }
     }
 </style>
