@@ -1,7 +1,6 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireOwner, requireWorkspace } from '$lib/server/guards';
-import { deleteWorkspace } from '$lib/server/services/workspace.service';
 import { listQuestions } from '$lib/server/services/question.service';
 import { listMilestones } from '$lib/server/services/milestone.service';
 

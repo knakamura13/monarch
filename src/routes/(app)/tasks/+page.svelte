@@ -11,17 +11,21 @@
     import { showSuccessToast } from '$lib/stores/toast';
     import { getPageNumber } from '$lib/constants/navigation';
     import { isDragThresholdMet, CLICK_PROTECTION_TIMEOUT_MS } from '$lib/utils/drag';
+    import type { TaskItem } from '$lib/server/dynamo/types';
     import type { PageData } from './$types';
 
     interface TasksPageData extends PageData {
+        tasks: TaskItem[];
         members: { id: string; name: string | null; email: string }[];
     }
 
-    let { data, form }: { data: TasksPageData; form: { error?: string; errorId?: string } } = $props();
+    let { data, form } = $props<{ data: TasksPageData; form: { error?: string; errorId?: string } }>();
 
-    let tasks = $state(data.tasks);
+    const initialTasks = $derived(data.tasks);
+    let tasks = $state<TaskItem[]>([]);
+
     $effect(() => {
-        tasks = data.tasks;
+        tasks = initialTasks;
     });
 
     let showCreateModal = $state(false);

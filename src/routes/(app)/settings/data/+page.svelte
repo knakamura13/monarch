@@ -4,7 +4,7 @@
     import { Shield, Download, FileJson, Activity } from 'lucide-svelte';
 </script>
 
-<PageHeader title="Settings" sub="Data, privacy, and workspace management." />
+<PageHeader title="Data & privacy" sub="Manage case data, exports, and privacy settings." />
 
 <div style="max-width: 880px; display: flex; flex-direction: column; gap: 24px;">
     <!-- Privacy & Export Card (Tinted Sage as per Phase 9) -->
@@ -16,7 +16,6 @@
                 <Shield style="width: 24px; height: 24px;" />
             </div>
             <div>
-                <h2 class="display" style="font-size: 24px; margin: 0 0 4px 0;">Privacy & Backups</h2>
                 <p style="font-size: 13px; color: var(--sage-d); margin: 0;">
                     Your data is encrypted and private to your workspace members.
                 </p>

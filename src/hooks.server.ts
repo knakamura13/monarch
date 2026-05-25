@@ -47,16 +47,21 @@ const sessionHandle: Handle = async ({ event, resolve }) => {
     event.locals.workspace = null;
 
     if (dev) {
-        try {
-            await ensureDevUserSeeded();
-            event.locals.user = DEV_USER;
-            event.locals.session = DEV_SESSION;
-            event.locals.workspace = DEV_WORKSPACE;
-            return resolve(event);
-        } catch (err) {
-            // Dev user seeding failed (likely DEV_MODE not set to unsafe).
-            // Fall through to normal auth flow.
-            console.warn('[hooks] dev user seeding skipped:', err);
+        // Allow disabling the dev auth bypass via header to test unauthenticated routes (login/signup)
+        const disableBypass = event.request.headers.get('x-disable-auth-bypass') === 'true';
+
+        if (!disableBypass) {
+            try {
+                await ensureDevUserSeeded();
+                event.locals.user = DEV_USER;
+                event.locals.session = DEV_SESSION;
+                event.locals.workspace = DEV_WORKSPACE;
+                return resolve(event);
+            } catch (err) {
+                // Dev user seeding failed (likely DEV_MODE not set to unsafe).
+                // Fall through to normal auth flow.
+                console.warn('[hooks] dev user seeding skipped:', err);
+            }
         }
     }
 

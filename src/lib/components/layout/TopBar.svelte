@@ -69,9 +69,9 @@
     }
     .search-container {
         position: relative;
-        width: 33%;
+        flex: 1;
         min-width: 140px;
-        max-width: 100%;
+        max-width: 33%;
     }
     :global(.search-icon) {
         position: absolute;
@@ -92,6 +92,9 @@
         font-size: 14px;
         cursor: text;
         transition: all 150ms ease;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .search-input:hover {
         background: var(--surface-2);
