@@ -5,7 +5,6 @@
     import Select from '$lib/components/ui/Select.svelte';
     import { Trash2, Copy, Shield, UserPlus } from 'lucide-svelte';
     import { enhance } from '$app/forms';
-    import { getPageNumber } from '$lib/constants/navigation';
     import type { ActionData, PageData } from './$types';
     import { page } from '$app/state';
 
@@ -25,11 +24,10 @@
     }
 </script>
 
-<PageHeader title="Settings" sub="Manage members, case access, and security." number={getPageNumber('/settings')} />
+<PageHeader title="Members" sub="Manage case access and member roles." />
 
 <div style="max-width: 880px; display: flex; flex-direction: column; gap: 24px;">
     <div class="card" style="padding: 24px;">
-        <h2 class="display" style="font-size: 24px; margin-top: 0; margin-bottom: 20px;">Members</h2>
         <div style="display: flex; flex-direction: column; gap: 16px;">
             {#each data.members as m (m.id)}
                 <div

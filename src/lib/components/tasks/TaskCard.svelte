@@ -6,7 +6,6 @@
     let {
         task,
         onEdit,
-        onPointerDown,
         onDragHandlePointerDown,
         isDragging = false,
         isAnyDragging = false,
@@ -22,7 +21,6 @@
             checklist?: Array<{ id: string; text: string; done: boolean }>;
         };
         onEdit?: (id: string) => void;
-        onPointerDown?: (e: PointerEvent, id: string) => void;
         onDragHandlePointerDown?: (e: PointerEvent, id: string) => void;
         isDragging?: boolean;
         isAnyDragging?: boolean;

@@ -89,7 +89,6 @@
                 <Fingerprint style="width: 24px; height: 24px;" />
             </div>
             <div>
-                <h2 class="display" style="font-size: 24px; margin: 0 0 4px 0;">Passkeys</h2>
                 <p style="font-size: 13px; color: var(--ink-2); margin: 0;">
                     Use Face ID, Touch ID, or a hardware key for secure, passwordless sign-in.
                 </p>
@@ -133,7 +132,6 @@
                 <ShieldCheck style="width: 24px; height: 24px;" />
             </div>
             <div>
-                <h2 class="display" style="font-size: 24px; margin: 0 0 4px 0;">Two-factor auth</h2>
                 <p style="font-size: 13px; color: var(--ink-2); margin: 0;">
                     Add an extra layer of security with a TOTP app like 1Password, Authy, or Google Authenticator.
                 </p>

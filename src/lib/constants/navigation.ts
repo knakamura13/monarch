@@ -1,4 +1,4 @@
-import { LayoutDashboard, List, HelpCircle, CheckSquare, Link } from 'lucide-svelte';
+import { LayoutDashboard, List, HelpCircle, CheckSquare, Link, ClipboardList } from 'lucide-svelte';
 
 export interface NavItem {
     href: string;
@@ -13,6 +13,7 @@ export const navigation: NavItem[] = [
     { href: '/timeline', label: 'Timeline', icon: List, description: 'Case phases and milestones' },
     { href: '/tasks', label: 'Tasks', icon: CheckSquare, description: 'Personal todos and errands' },
     { href: '/questions', label: 'Questions', icon: HelpCircle, description: 'Research tracker' },
+    { href: '/evidence', label: 'Evidence', icon: ClipboardList, description: 'Evidence collection' },
     { href: '/quick-links', label: 'Quick links', icon: Link }
 ];
 

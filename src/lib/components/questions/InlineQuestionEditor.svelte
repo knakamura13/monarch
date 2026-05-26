@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount, tick } from 'svelte';
     import { Check, X } from 'lucide-svelte';
-    import Input from '$lib/components/ui/Input.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import { showSuccessToast } from '$lib/stores/toast';
     import type { QuestionSourceType } from '$lib/types/enums';

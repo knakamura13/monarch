@@ -30,7 +30,7 @@
     };
 </script>
 
-<PageHeader title="Diagnostics" sub="Owner-only system health, process info, and error logs." />
+<PageHeader title="Dev" sub="Owner-only system health, process info, and error logs." />
 
 <div class="dev-page">
     <!-- Stats Grid -->

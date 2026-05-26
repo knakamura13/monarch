@@ -13,17 +13,21 @@
     import { getPageNumber } from '$lib/constants/navigation';
     import { isDragThresholdMet, CLICK_PROTECTION_TIMEOUT_MS } from '$lib/utils/drag';
     import type { QuestionSourceType } from '$lib/types/enums';
+    import type { QuestionItem } from '$lib/server/dynamo/types';
     import type { PageData } from './$types';
 
     interface QuestionsPageData extends PageData {
+        items: QuestionItem[];
         members: { id: string; name: string | null; email: string }[];
     }
 
-    let { data, form }: { data: QuestionsPageData; form: { error?: string; errorId?: string } } = $props();
+    let { data, form } = $props<{ data: QuestionsPageData; form: { error?: string; errorId?: string } }>();
 
-    let items = $state(data.items);
+    const initialItems = $derived(data.items);
+    let items = $state<QuestionItem[]>([]);
+
     $effect(() => {
-        items = data.items;
+        items = initialItems;
     });
 
     let showCreateModal = $state(false);
