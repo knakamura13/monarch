@@ -63,6 +63,8 @@
         cursor: pointer;
         transition: all 120ms ease;
         border: 1px solid transparent;
+        min-width: 0;
+        overflow: hidden;
     }
     .milestone-item:hover {
         background: var(--surface-3);
@@ -77,6 +79,12 @@
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+    }
+    @media (max-width: 480px) {
+        .milestone-item {
+            gap: 12px;
+            padding: 12px;
+        }
     }
     .status-icon.s-doing {
         background: var(--lilac);
@@ -110,6 +118,12 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        flex-shrink: 0;
+    }
+    @media (max-width: 480px) {
+        .milestone-action {
+            gap: 8px;
+        }
     }
     .empty-state {
         padding: 24px;

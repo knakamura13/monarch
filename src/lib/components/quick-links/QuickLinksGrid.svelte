@@ -500,6 +500,7 @@
                 : ''}"
             data-kind="folder"
             data-id={folder.id}
+            style={`--ql-tile: ${tileSize}px;`}
             animate:flip={{ duration: flipDuration }}
         >
             <div class="widget-item-menu-wrap" onclick={(e) => e.stopPropagation()} role="presentation">
@@ -543,6 +544,7 @@
             class="ql-item {dragState?.id === link.id ? 'ql-item--dragging-placeholder' : ''} {hoveredMergeId === link.id ? 'ql-item--merge-target' : ''}"
             data-kind="link"
             data-id={link.id}
+            style={`--ql-tile: ${tileSize}px;`}
             animate:flip={{ duration: flipDuration }}
         >
             <div class="widget-item-menu-wrap" onclick={(e) => e.stopPropagation()} role="presentation">
@@ -657,6 +659,8 @@
         display: grid;
         align-items: start;
         position: relative;
+        max-width: 100%;
+        min-width: 0;
     }
     /* Visually-hidden screen-reader-only status region for keyboard reorder
        announcements. Following the standard sr-only pattern. */
@@ -796,5 +800,26 @@
             opacity: 1;
             pointer-events: auto;
         }
+    }
+
+    /* Anchor the ⋮ kebab to the centered icon's top-right corner rather
+       than the entire tile. Without this, narrow grid columns (mobile) +
+       the 40px touch button leave the kebab sitting on top of the icon
+       and bleeding past the right edge of the column. */
+    .ql-item :global(.widget-item-menu-wrap) {
+        top: -10px;
+        left: auto;
+        right: calc(50% - var(--ql-tile, 48px) / 2 - 10px);
+        transform: none;
+    }
+
+    .ql-item :global(.widget-item-menu-wrap .btn.icon) {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: 999px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 </style>

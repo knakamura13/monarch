@@ -132,6 +132,11 @@
         border-radius: var(--r-md);
         cursor: pointer;
         transition: background-color 0.2s ease;
+        min-width: 0;
+        overflow: hidden;
+    }
+    .task-item :global(.pill) {
+        flex-shrink: 0;
     }
     .task-item:hover {
         background: var(--surface-3);
@@ -167,10 +172,14 @@
     */
     .task-info {
         flex: 1;
+        min-width: 0;
     }
     .task-title {
         font-size: 14px;
         font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .task-due-date {
         font-size: 11px;
