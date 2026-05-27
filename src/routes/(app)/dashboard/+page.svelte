@@ -112,10 +112,18 @@
             grid-template-columns: 1fr;
         }
     }
+    /* Grid items have min-width: auto by default, which lets their
+       min-content (e.g. a card's intrinsic min-width including padding)
+       expand the 1fr track beyond the grid container. That pushes the
+       cards past the right edge of the screen on mobile. */
+    .bento-grid > * {
+        min-width: 0;
+    }
     .bento-col-left {
         display: flex;
         flex-direction: column;
         gap: 28px;
+        min-width: 0;
     }
     .task-list/*,
     .heads-up-list*/ {

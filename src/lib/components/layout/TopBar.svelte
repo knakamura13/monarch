@@ -17,7 +17,7 @@
         <span class="mono search-kb">⌘K</span>
     </div>
 
-    <div style="flex: 1;"></div>
+    <div class="topbar-spacer"></div>
 </header>
 
 <style>
@@ -70,8 +70,19 @@
     .search-container {
         position: relative;
         flex: 1;
-        min-width: 140px;
-        max-width: 33%;
+        min-width: 0;
+    }
+    .topbar-spacer {
+        flex: 0;
+    }
+    @media (min-width: 768px) {
+        .search-container {
+            min-width: 140px;
+            max-width: 33%;
+        }
+        .topbar-spacer {
+            flex: 1;
+        }
     }
     :global(.search-icon) {
         position: absolute;
