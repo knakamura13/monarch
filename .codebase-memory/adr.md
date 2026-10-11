@@ -10,7 +10,7 @@ Monarch is a private, two-user "control tower" for managing a marriage-based US 
 
 - **SvelteKit 2** + **Svelte 5 (runes)** — full-stack framework
 - **TypeScript strict**
-- **`@sveltejs/adapter-node`** — deployed to **Railway** (`railway.json` present) via Node SSR
+- **`@sveltejs/adapter-node`** — deployed to **Railway** (`.railway/railway.ts` present) via Node SSR
 - **DynamoDB** (single-table design) — primary data store, **`@aws-sdk/client-dynamodb` + `lib-dynamodb`**
 - **S3** — file/evidence storage via **`@aws-sdk/client-s3`** + presigned URLs
 - **Better Auth** — email + password + passkeys + TOTP 2FA (`better-auth`, `@better-auth/passkey`, built-in TOTP)
@@ -42,7 +42,7 @@ Monarch is a private, two-user "control tower" for managing a marriage-based US 
 - **build/** — adapter-node output
 - **.svelte-kit/** — generated
 - **docker-compose.yml** — DynamoDB Local for dev
-- **playwright.config.ts**, **eslint.config.js**, **railway.json**
+- **playwright.config.ts**, **eslint.config.js**, **.railway/railway.ts**
 
 ## 5. Conventions
 
@@ -62,7 +62,7 @@ Monarch is a private, two-user "control tower" for managing a marriage-based US 
 
 ## 7. Deployment
 
-- `railway.json` → Railway hosting
+- `.railway/railway.ts` → Railway hosting
 - `docker-compose.yml` provides DynamoDB Local for development
 - Adapter-node SSR; build output in `build/`
 
