@@ -119,7 +119,7 @@ Deploy settings (builder, build and start commands, healthcheck, restart policy)
 1. Create a new Railway project from this repo (GitHub auto-deploy).
 2. Provision a DynamoDB table + IAM credentials in AWS and set `AWS_REGION` + `DYNAMO_TABLE` in Railway.
 3. Set the remaining variables (`APP_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `FIELD_ENCRYPTION_KEY`, optional `RESEND_API_KEY`, `EMAIL_FROM`).
-4. `railway config plan` previews and `railway config apply` applies `.railway/railway.ts` to the linked project. The file manages the whole project, so a resource missing from it (for example a service with a different name) is planned for deletion. Variable values are not in the file; they stay in Railway.
+4. `railway config plan` previews and `railway config apply` applies `.railway/railway.ts` to the linked project. The file manages the whole project, so a resource missing from it (for example a service with a different name) is planned for deletion. Variable values are not in the file; they stay in Railway. Railway never reads this file during a deploy, so an edit or merge changes nothing live until `railway config apply` runs. Run `railway config plan` first and apply right after merging any change to it.
 5. Push to `main`. Railway runs:
     - **Build:** `pnpm install --frozen-lockfile && pnpm build`
     - **Release/Start:** `node build`
